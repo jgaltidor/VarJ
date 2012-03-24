@@ -1,0 +1,17 @@
+
+aspect VExprJ
+{
+	eq DVar.toString() = String.format("DVar(%s, %s)",
+		getGenericTypeDecl().fullName(), getTypeVariable().name());
+	
+	public boolean DVar.equals(Object other) {
+		return (other instanceof DVar) ?
+			equals((DVar) other) : false;
+	}
+
+	public boolean DVar.equals(DVar other) {
+		return toString().equals(other.toString());
+	}
+
+	public int DVar.hashCode() { return toString().hashCode(); }
+}

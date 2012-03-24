@@ -1,0 +1,10 @@
+import java.util.logging.Logger;
+import java.util.logging.Level;
+import logutil.LogUtil;
+
+aspect Logging
+{
+	public static final Level ASTNode.DEBUG = LogUtil.DEBUG;
+	public static final Level ASTNode.INFO  = LogUtil.INFO;
+	public static final Level ASTNode.ERROR = LogUtil.ERROR;
+}

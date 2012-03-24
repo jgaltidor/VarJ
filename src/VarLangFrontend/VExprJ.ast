@@ -1,0 +1,5 @@
+// Extending VExpr with DVars, which are basically
+// identifiers/variables in VExprs that refer to
+// a type parameter of a generic Generic Type Definition
+
+DVar : VExpr ::= <GenericTypeDecl:GenericTypeDecl> <TypeVariable:TypeVariable>;

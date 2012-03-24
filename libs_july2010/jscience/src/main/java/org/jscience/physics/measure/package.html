@@ -1,0 +1,26 @@
+<body>
+<p> Provides support for physical quantities and operations upon these quantities
+    (extension of JSR-275).</p>
+<p> An amount is specialized measure for which the value type and the quantity
+    are parameterized. The unit of an amount determinates its type.
+    For example, <code>DecimalAmount.valueOf("1 µm")</code> and <code>DecimalAmount.valueOf("1.2 ft")</code>
+    are <code>Length</code> amounts (both <code>"µm"</code> and <code>"ft"</code> units
+    are derived from <code>SI.METRE</code>).</p>
+<p> Multiple physical models are supported (e.g. <code>Standard</code>,
+     <code>Relativistic</code>, <code>High-Energy</code>, <code>Quantum</code>
+    and <code>Natural</code>). The physical model sets which conversions are allowed or disallowed.
+    For example:[code]
+        RelativisticModel.select(); // Selects a relativistic model.
+        Amount<Float64, Length> x = Amount.valueOf(100, NonSI.INCH);
+        x = x.plus(Amount.valueOf("2.3 µs")).to(METRE); // Length and Duration can be added.
+        Amount<Float64, Mass> m = Amount.valueOf(12, Unit.ValueOf("GeV")).to(KILOGRAM); // Energy is compatible with mass (E=mc2)
+        System.out.println(x); 
+        System.out.println(m); 
+        
+        > 692.06265340000008 m
+        > 2.1391940763025056E-26 kg[/code]</p>
+<p> Finally, this package holds the latest physical {@link org.jscience.physics.amount.Constants constants} measurements
+    with the best known accuracy (the more accurate the constant, the higher the precision of the calculations
+    making use of these constants).</p>
+        
+</body>

@@ -1,0 +1,31 @@
+/** These settings in this aspect should be fixed
+  * prior to running any analysis, so that cached values computed
+	* during analyses remain valid.
+	* Specifically, the settings in this aspect should be:
+  *   (1) Be set before computing attributes of AST nodes.
+  *   (2) Not be changed during computation of attributes.
+  * This is to allow easier utilization of global program settings
+  * without having to create inherited attributes on the root node
+  * (Program), which seems likes the more complex alternative.
+  * For instance, it seems we would have to create the root node (program)
+  * and set fields of the root node before JastAdd computes all of the
+  * remaining attributes.
+  * This requires more dependencies on JastAdd internals.
+  *
+  * There are other global variables other than in this file, but they
+  * (should probably be) final static fields that are fixed for all executions.
+  *
+  * A purpose of this file is to easily find all global settings that should
+  * be set appropriately before performing analyses.
+  * However, the VarFrontend class should probably set these fields to default
+  * values for easier usage.
+  */
+aspect Settings
+{
+	public static Logger ASTNode.LOG = logutil.LogUtil.getGlobalLogger();
+
+	/** If true, analyzes all private members;
+	  * otherwise, analyzes the minimum needed
+	  */
+	public static boolean ASTNode.analyzePrivate = false;
+}

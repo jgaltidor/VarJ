@@ -1,0 +1,229 @@
+import tame.*;
+import java.util.Iterator;
+import java.util.Set;
+import java.util.HashSet;
+
+aspect Stats
+{
+	// uselessWildCardsInSig
+	
+	syn lazy int TypeDecl.uselessWildCardsInSig() {
+		int total = 0;
+		for (int j=0; j < getNumBodyDecl(); j++) {
+			total += getBodyDecl(j).uselessWildCards();
+		}
+		return total;
+	}
+	
+	// uselessWildCards
+
+	syn lazy int BodyDecl.uselessWildCards() = 0;
+
+	eq FieldDeclaration.uselessWildCards() =
+		type().uselessWildCards();
+
+	eq MethodDecl.uselessWildCards() {
+		// return type
+		int total = type().uselessWildCards();
+		// argument types
+		for (int i=0; i < getNumParameter(); i++) {
+			total += getParameter(i).type().uselessWildCards();
+		}
+		if(total > 0) {
+			LOG.log(INFO, fullName() + " sig has a useless wildcard");
+		}
+		return total;
+	}
+
+	syn lazy int TypeDecl.uselessWildCards() = 0;
+
+	eq ParTypeDecl.uselessWildCards() {
+		int total = 0;
+		GenericTypeDecl gtd = (GenericTypeDecl) genericDecl();
+		for (int i = 0; i < getNumArgument(); i++) {
+			TypeDecl typeArg = getArgument(i).type();
+			Value formalVariance = gtd.computeVar(i);
+			if(formalVariance != INVARIANT) {
+				Value actualVariance;
+				if(typeArg.isWildcardExtendsType())
+					actualVariance = COVARIANT;
+				else if(typeArg.isWildcardSuperType())
+					actualVariance = CONTRAVARIANT;
+				else if(typeArg.isWildcardType())
+					actualVariance = BIVARIANT;
+				else
+					actualVariance = INVARIANT;
+				
+				if(actualVariance != INVARIANT && formalVariance.gteq(actualVariance))
+					total++;
+			}
+			total += typeArg.uselessWildCards();
+		}
+		return total;
+	}
+
+	eq WildcardExtendsType.uselessWildCards() =
+		getAccess().type().uselessWildCards();
+
+	eq WildcardSuperType.uselessWildCards() =
+		getAccess().type().uselessWildCards();
+
+	eq ArrayDecl.uselessWildCards() =
+		componentType().uselessWildCards();
+
+
+	// numWildCardActualsInSig
+
+	syn lazy int TypeDecl.numWildCardActualsInSig() {
+		int total = 0;
+		for (int j=0; j < getNumBodyDecl(); j++) {
+			total += getBodyDecl(j).numWildCardActuals();
+		}
+		return total;
+	}
+	
+	// numWildCardActuals
+
+	syn lazy int BodyDecl.numWildCardActuals() = 0;
+
+	eq FieldDeclaration.numWildCardActuals() = type().numWildCardActuals();
+	
+	eq MethodDecl.numWildCardActuals() {
+		// return type
+		int total = type().numWildCardActuals();
+		// argument types
+		for (int i=0; i<getNumParameter(); i++) {
+			total += getParameter(i).type().numWildCardActuals();
+		}
+		return total;
+	}
+
+	syn lazy int TypeDecl.numWildCardActuals() = 0;
+	
+	eq ParTypeDecl.numWildCardActuals() {
+		int total = 0;
+		for (int i = 0; i < getNumArgument(); i++) {
+			total += getArgument(i).type().numWildCardActuals();
+		}
+		return total;
+	}
+		
+	eq WildcardExtendsType.numWildCardActuals() =
+		1 + getAccess().type().numWildCardActuals();
+
+	eq WildcardSuperType.numWildCardActuals() =
+		1 + getAccess().type().numWildCardActuals();
+		
+	eq WildcardType.numWildCardActuals() = 1;
+
+	eq ArrayDecl.numWildCardActuals() =
+		componentType().numWildCardActuals();
+
+
+	// overSpecifiedActualsInSig
+
+	syn lazy int TypeDecl.overSpecifiedActualsInSig() {
+		int total = 0;
+		for (int j=0; j < getNumBodyDecl(); j++) {
+			total += getBodyDecl(j).overSpecifiedActuals();
+		}
+		return total;
+	}
+	
+	// overSpecifiedActuals
+
+	syn lazy int BodyDecl.overSpecifiedActuals() = 0;
+	
+	eq MethodDecl.overSpecifiedActuals() {
+		int total = 0;
+		// only count in argument types
+		for (int i=0; i<getNumParameter(); i++) {
+			total += getParameter(i).type().overSpecified();
+		}
+		if(total > 0) {
+			LOG.log(INFO, fullName() + " sig has an overspecified type actual");
+		}
+		return total;
+	}
+
+
+	// overSpecified
+	
+	syn lazy int TypeDecl.overSpecified() = 0;
+
+	eq ParTypeDecl.overSpecified() {
+		int total = 0;
+		GenericTypeDecl gtd = (GenericTypeDecl) genericDecl();
+		for (int i = 0; i < getNumArgument(); i++) {
+			TypeDecl typeArg = getArgument(i).type();
+			Value formalVariance = gtd.computeVar(i);
+			if(!formalVariance.equals(INVARIANT)) {
+				Value actualVariance;
+				if(typeArg.isWildcardExtendsType())
+					actualVariance = COVARIANT;
+				else if(typeArg.isWildcardSuperType())
+					actualVariance = CONTRAVARIANT;
+				else if(typeArg.isWildcardType())
+					actualVariance = BIVARIANT;
+				else
+					actualVariance = INVARIANT;
+				
+				if(formalVariance.gt(actualVariance))
+					total++;
+			}
+			total += typeArg.overSpecified();
+		}
+		return total;
+	}
+
+	eq WildcardExtendsType.overSpecified() =
+		getAccess().type().overSpecified();
+
+	eq WildcardSuperType.overSpecified() =
+		getAccess().type().overSpecified();
+
+	eq ArrayDecl.overSpecified() =
+		componentType().overSpecified();
+
+
+	
+	// numMethArgTypeActuals
+	
+	syn lazy int TypeDecl.numMethArgTypeActualsInSig() {
+		int total = 0;
+		for (int j=0; j < getNumBodyDecl(); j++) {
+			total += getBodyDecl(j).numMethArgTypeActuals();
+		}
+		return total;
+	}
+		
+	syn lazy int BodyDecl.numMethArgTypeActuals() = 0;
+
+	eq MethodDecl.numMethArgTypeActuals() {
+		int total = 0;
+		// only argument types
+		for (int i=0; i<getNumParameter(); i++) {
+			total += getParameter(i).type().numTypeActuals();
+		}
+		return total;
+	}
+	
+	// numTypeActuals
+	
+	syn lazy int TypeDecl.numTypeActuals() = 0;
+	
+	eq ParTypeDecl.numTypeActuals() {
+		int numParams = getNumArgument();
+		int total = numParams;
+		for (int i = 0; i < numParams; i++) {
+			total += getArgument(i).type().numTypeActuals();
+		}
+		return total;
+	}
+
+	eq WildcardExtendsType.numTypeActuals() = getAccess().type().numTypeActuals();
+
+	eq WildcardSuperType.numTypeActuals() = getAccess().type().numTypeActuals();
+
+	eq ArrayDecl.numTypeActuals() = componentType().numTypeActuals();
+}

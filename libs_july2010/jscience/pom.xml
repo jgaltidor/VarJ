@@ -1,0 +1,332 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- =======================================================================
+        Maven Project Configuration File
+
+        The JScience Project
+            https://kenai.com/projects/jscience
+======================================================================= -->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <prerequisites>
+        <maven>2.0.9</maven>
+    </prerequisites>
+
+    <!-- ==================================================== -->
+    <!--     Project description (including license)          -->
+    <!-- ==================================================== -->
+    <groupId>org.jscience</groupId>
+    <artifactId>jscience-core</artifactId>
+    <packaging>jar</packaging>
+    <version>5.0.0</version>
+    <name>JScience</name>
+    <url>https://kenai.com/projects/jscience</url>
+    <description>JScience - JScience is a comprehensive Java library for the scientific community.
+        Its vision is to create synergy between all sciences (mathematics, physics, sociology, biology,
+        astronomy, economics, geography, history, etc.) by integrating them into a single architecture.
+        JScience provided the reference implementation for the JSR-275.
+    </description>
+    <licenses>
+        <license>
+            <name>BSD License</name>
+            <url>LICENSE.txt</url>
+        </license>
+    </licenses>
+    <organization>
+        <name>JScience</name>
+        <url>http://jscience.org</url>
+    </organization>
+    <inceptionYear>2005</inceptionYear>
+
+    <!-- =========================================================== -->
+    <!--     Issue managements and mailing lists.                    -->
+    <!-- =========================================================== -->
+    <scm>
+        <url>https://kenai.com/svn/jscience~svn-repository/trunk</url>
+        <connection>scm:svn:https://kenai.com/svn/jscience~svn-repository/trunk</connection>
+    </scm>
+
+    <issueManagement>
+        <system>JIRA</system>
+        <url>http://kenai.com/jira/browse/JSCIENCE</url>
+    </issueManagement>
+
+    <mailingLists>
+        <mailingList>
+            <name>Users</name>
+            <post>users@jscience.kenai.com</post>
+        </mailingList>
+    </mailingLists>
+
+    <!-- =========================================================== -->
+    <!--     Developers and Contributors                             -->
+    <!-- =========================================================== -->
+    <developers>
+        <developer>
+            <name>Jean-Marie Dautelle</name>
+            <id>dautelle</id>
+            <email>jean-marie@dautelle.com</email>
+            <organization>Thales</organization>
+            <organizationUrl>http://www.thalesraytheon-fr.com</organizationUrl>
+            <timezone>+1</timezone>
+            <roles>
+                <role>Project Founder</role>
+                <role>Java Developer</role>
+                <role>Architect</role>
+            </roles>
+        </developer>
+    </developers>
+    <contributors>
+        <contributor>
+            <name>Werner Keil</name>
+            <organization>Creative Arts &amp; Technologies</organization>
+            <organizationUrl>http://www.catmedia.us</organizationUrl>
+            <email>jsr275@catmedia.us</email>
+            <timezone>+1</timezone>
+            <roles>
+                <role>JSR-275 Spec Lead</role>
+            </roles>
+        </contributor>
+        <contributor>
+            <name>Martin Desruisseaux</name>
+            <email>desruisseaux@users.sourceforge.net</email>
+            <organization>Geomatys</organization>
+            <organizationUrl>http://www.geomatys.com</organizationUrl>
+            <timezone>+1</timezone>
+            <roles>
+                <role>JSR-275 EG</role>
+            </roles>
+        </contributor>
+        <contributor>
+            <name>Karen Legrand</name>
+            <organization>Innovation Emergency Management (IEM)</organization>
+            <organizationUrl>http://www.iem.com</organizationUrl>
+            <email>karen.legrand@iem.com</email>
+            <timezone>-5</timezone>
+            <roles>
+                <role>Architect</role>
+            </roles>
+        </contributor>
+    </contributors>
+
+    <!-- =========================================================== -->
+    <!--     Dependency Management                                   -->
+    <!--                                                             -->
+    <!--     Reference: http://repo1.maven.org/maven2/               -->
+    <!-- =========================================================== -->
+    <dependencies>
+        <dependency>
+            <groupId>javolution</groupId>
+            <artifactId>javolution</artifactId>
+            <version>5.4.5</version>
+        </dependency>
+<!--    <dependency>
+            <groupId>org.opengis</groupId>
+            <artifactId>geoapi-pending</artifactId>
+            <version>2.3-SNAPSHOT</version>
+        </dependency>
+  -->      <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.4</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <!-- ======================================================= -->
+    <!--     Build Settings                                      -->
+    <!-- ======================================================= -->
+    <properties>
+        <sourceEncoding>UTF-8</sourceEncoding> <!-- in Maven 3. -->
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+    <build>
+        <resources>
+        </resources>
+        <filters>
+        </filters>
+        <plugins>
+
+            <!-- ======================================================= -->
+            <!--     Compilation                                         -->
+            <!-- ======================================================= -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>1.5</source>
+                    <target>1.5</target>
+                    <encoding>${project.build.sourceEncoding}</encoding>
+                </configuration>
+            </plugin>
+
+            <!-- ======================================================= -->
+            <!--     Resources                                           -->
+            <!-- ======================================================= -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <configuration>
+                    <encoding>${project.build.sourceEncoding}</encoding>
+                </configuration>
+            </plugin>
+
+            <!-- ======================================================= -->
+            <!--     Custom Javadoc plugin                               -->
+            <!-- ======================================================= -->
+            <plugin>
+                <groupId>org.javolution</groupId>
+                <artifactId>colapi</artifactId>
+                <version>1.0.0</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>colorize</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- ======================================================= -->
+            <!--     Packaging                                           -->
+            <!-- ======================================================= -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <manifestEntries>
+                            <Implementation-Title>${project.name}</Implementation-Title>
+                            <Implementation-Version>${project.version}</Implementation-Version>
+                        </manifestEntries>
+                    </archive>
+                </configuration>
+            </plugin>
+
+        </plugins>
+
+        <!-- ======================================================= -->
+        <!--     For deployment on dev.java.net subversion           -->
+        <!--     See https://wagon-svn.dev.java.net/                 -->
+        <!-- ======================================================= -->
+        <extensions>
+            <extension>
+                <groupId>org.jvnet.wagon-svn</groupId>
+                <artifactId>wagon-svn</artifactId>
+                <version>1.9</version>
+            </extension>
+        </extensions>
+
+    </build>
+
+    <!-- ======================================================= -->
+    <!--     Maven web site                                      -->
+    <!-- ======================================================= -->
+    <reporting>
+        <plugins>
+            <!-- ======================================================= -->
+            <!--     Javadoc generation                                  -->
+            <!--                                                         -->
+            <!--     Do not set <docfilessubdirs> to true, since this    -->
+            <!--     cause the unwanted copy of .svn sub-directories.    -->
+            <!-- ======================================================= -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <configuration>
+                    <source>1.5</source>             <!-- Enables javadoc to handle assertions present in J2SE 1.4.  -->
+                    <encoding>UTF-8</encoding>       <!-- The encoding of the source files.                          -->
+                    <docencoding>UTF-8</docencoding> <!-- The encoding of the generated HTML files.                  -->
+                    <charset>UTF-8</charset>         <!-- Specifies the HTML character set for this document.        -->
+                    <locale>en</locale>              <!-- Locale that javadoc uses when generating documentation.    -->
+                    <noqualifier>all</noqualifier>   <!-- Omit qualifying package name before class names in output. -->
+                    <quiet>true</quiet>              <!-- Shuts off non-error and non-warning messages.              -->
+                    <keywords>true</keywords>        <!-- Adds HTML meta keyword tags to the generated files.        -->
+
+                    <!-- Creates links to existing javadoc-generated   -->
+                    <!-- documentation of external referenced classes. -->
+                    <links>
+                        <link>http://java.sun.com/javase/6/docs/api</link>
+                        <link>http://javolution.org/target/site/apidocs</link>
+                    </links>
+                </configuration>
+            </plugin>
+
+            <!-- ======================================================= -->
+            <!--     Code analysis                                       -->
+            <!-- ======================================================= -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-pmd-plugin</artifactId>
+                <configuration>
+                    <sourceEncoding>${project.build.sourceEncoding}</sourceEncoding>
+                    <targetJdk>1.5</targetJdk>
+                </configuration>
+            </plugin>
+
+            <!-- ======================================================= -->
+            <!--     Report on test results                              -->
+            <!-- ======================================================= -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-report-plugin</artifactId>
+            </plugin>
+
+
+            <!-- ======================================================= -->
+            <!--     Report on test coverage                             -->
+            <!-- ======================================================= -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>emma-maven-plugin</artifactId>
+                <version>1.0-alpha-1</version>
+            </plugin>
+
+            <!-- ======================================================= -->
+           <!--     Static analysis for occurences of bug patterns      -->
+           <!-- ======================================================= -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>findbugs-maven-plugin</artifactId>
+                <version>2.1</version>
+            </plugin>
+
+        </plugins>
+    </reporting>
+
+    <!-- ================================================================== -->
+    <!--     Repositories. This is where Maven looks for dependencies. The  -->
+    <!--     Maven repository is implicit and doesn't need to be specified. -->
+    <!-- ================================================================== -->
+    <pluginRepositories>
+        <pluginRepository>
+            <id>maven2-repository.dev.java.net</id>
+            <name>Java.net Repository for Maven</name>
+            <url>http://download.java.net/maven/2/</url>
+        </pluginRepository>
+    </pluginRepositories>
+    <repositories>
+        <repository>
+            <id>geotoolkit</id>
+            <name>Geotoolkit repository</name>
+            <url>http://maven.geotoolkit.org</url>
+        </repository>
+        <repository>
+            <id>maven2-repository.dev.java.net</id>
+            <name>Java.net Repository for Maven</name>
+            <url>http://download.java.net/maven/2/</url>
+        </repository>
+    </repositories>
+
+    <!-- ==================================================== -->
+    <!--     Deployment to public servers                     -->
+    <!-- ==================================================== -->
+    <distributionManagement>
+        <repository>
+            <id>java.net-maven2-repository</id>
+            <url>java-net:/maven2-repository/trunk/repository/</url>
+            <uniqueVersion>false</uniqueVersion>
+        </repository>
+    </distributionManagement>
+
+</project>

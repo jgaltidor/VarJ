@@ -1,0 +1,73 @@
+package tame
+
+import AST.GenericTypeDecl
+import AST.TypeVariable
+import AST.TypeDecl
+import AST.Program
+import AST.CompilationUnit
+import AST.DVar
+
+import scala.collection.immutable.SortedSet
+
+object IterStream
+{
+	def getTypes(cunit:CompilationUnit):Stream[TypeDecl] = {
+		val numTypeDecls = cunit.getNumTypeDecl
+		
+		def fromIndex(index:Int):Stream[TypeDecl] = {
+			if(index < numTypeDecls)
+				Stream.cons(cunit.getTypeDecl(index), fromIndex(index+1))
+			else Stream.empty
+		}
+		fromIndex(0)
+	}
+
+	def getTypes(program:Program):Stream[TypeDecl] =
+		getCompUnits(program).flatMap(getTypes)
+
+	def getGenerics(program:Program):Stream[GenericTypeDecl] =
+		getTypes(program).filter(_.isGenericType).map(_.asInstanceOf[GenericTypeDecl])
+
+	def getCompUnits(program:Program):Stream[CompilationUnit] = {
+		
+		def fromItr(itr:java.util.Iterator[_]):Stream[CompilationUnit] = {
+			if(itr.hasNext) {
+				val cunit = itr.next.asInstanceOf[CompilationUnit]
+				Stream.cons(cunit, fromItr(itr))
+			}
+			else
+				Stream.empty
+		}
+		fromItr(program.compilationUnitIterator)
+	}
+	
+	def getSrcCompUnits(program:Program):Stream[CompilationUnit] =
+		getCompUnits(program).filter(_.fromSource)
+	
+	def getSrcTypes(program:Program):Stream[TypeDecl] =
+		getSrcCompUnits(program).flatMap(getTypes)
+
+	def getSrcGenerics(program:Program):Stream[GenericTypeDecl] =
+		getSrcTypes(program).filter(_.isGenericType).map(_.asInstanceOf[GenericTypeDecl])
+
+	def getGenTypesSortedByName(program:Program):SortedSet[GenericTypeDecl] = {
+
+		def compareByFullName(gtd:GenericTypeDecl):Ordered[GenericTypeDecl] =
+			new Ordered[GenericTypeDecl] {
+				def compare(that:GenericTypeDecl) =
+					gtd.fullName.compareTo(that.fullName)
+			}
+		scala.collection.immutable.TreeSet()(compareByFullName) ++ getSrcGenerics(program)
+	}
+
+	/** Can return null */
+	def getGeneric(program:Program, name:String):GenericTypeDecl =
+		getGenerics(program).find(
+			gtd => gtd.fullName.equals(name)) match
+		{
+			case Some(gtd) => gtd
+			case None =>
+				System.err.println("Generic not found: " + name)
+				null
+		}
+}
