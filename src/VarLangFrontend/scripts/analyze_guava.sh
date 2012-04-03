@@ -8,5 +8,5 @@ JSCIENCE=$ROOTOFLIBS/jscience/src/main/java
 TROVE=$ROOTOFLIBS/trove-2.1.0/src
 
 
-echo 'scala tame.InferStats -texout testtex/table.tex $GUAVA:Guava'
+echo scala tame.InferStats -texout testtex/table.tex $GUAVA:Guava
 scala tame.InferStats -texout testtex/table.tex $GUAVA:Guava

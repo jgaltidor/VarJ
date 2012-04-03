@@ -5,6 +5,8 @@ public class RList<E>
 {
 	private List<E> elems;
 	
+	public RList() { this(new LinkedList<E>()); }
+	
 	public RList(List<E> elems) { this.elems = elems; }
 	
 	public E get(int index) { return elems.get(index); }

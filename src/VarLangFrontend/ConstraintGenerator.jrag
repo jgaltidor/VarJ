@@ -122,6 +122,8 @@ aspect ConstraintGenerator
 		}
 		return bounds;
 	}
+	
+	eq ParClassDecl.varBounds(TypeVariable tv) = original().varBounds(tv);
 
 
 	syn lazy java.util.List<VExpr> BodyDecl.varBounds(TypeVariable tv)
@@ -209,6 +211,11 @@ aspect ConstraintGenerator
 		}
 		return bounds;
 	}
+	
+	eq MemberClassDecl.varBounds(TypeVariable tv) = getClassDecl().varBounds(tv);
+		
+	eq MemberInterfaceDecl.varBounds(TypeVariable tv) = getInterfaceDecl().varBounds(tv);
+
 
 	// varExpr
 	
@@ -218,7 +225,7 @@ aspect ConstraintGenerator
 	 * var(X; C<T_1, ..., T_n>)
 	 */
 	eq ParTypeDecl.varExpr(TypeVariable tv) {
-		GenericTypeDecl gtd = (GenericTypeDecl) genericDecl();
+		GenericTypeDecl gtd = (GenericTypeDecl) original();
 		VExpr result = null;
 		for (int i = 0; i < getNumArgument(); i++) {
 			TypeDecl typeArg = getArgument(i).type();
