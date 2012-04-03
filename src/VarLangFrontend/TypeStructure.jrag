@@ -5,9 +5,9 @@ import java.util.ArrayList;
 
 aspect TypeStructure
 {
-	syn lazy java.util.List<TypeDecl> GenericTypeDecl.genericSuperTypes();
+	syn lazy java.util.List<TypeDecl> TypeDecl.superTypes() = Collections.emptyList();
 	
-	eq GenericClassDecl.genericSuperTypes() {
+	eq ClassDecl.superTypes() {
 		java.util.List<TypeDecl> superTypes = new ArrayList<TypeDecl>();
 		if ( hasSuperclass()) {
 			TypeDecl s = superclass();
@@ -20,7 +20,7 @@ aspect TypeStructure
 		return superTypes;
 	}
 
-	eq GenericInterfaceDecl.genericSuperTypes() {
+	eq InterfaceDecl.superTypes() {
 		java.util.List<TypeDecl> superTypes = new ArrayList<TypeDecl>();
 		for ( Iterator ifIt = superinterfacesIterator(); ifIt.hasNext(); ) {
 			TypeDecl iface = (TypeDecl) ifIt.next();
