@@ -15,15 +15,20 @@ aspect ConstraintGenerator
 		getGenericTypeDecl().varBounds(getTypeVariable());
 
 	// varBounds
-
-	syn lazy java.util.List<VExpr> GenericTypeDecl.varBounds(TypeVariable tv)
+	
+	syn lazy java.util.List<VExpr> GenericTypeDecl.varBounds(TypeVariable tv);
+	
+	
+	syn lazy java.util.List<VExpr> TypeDecl.varBounds(TypeVariable tv) = Collections.emptyList();
+	
+	eq ClassDecl.varBounds(TypeVariable tv)
 	{
 		java.util.List<VExpr> bounds = new ArrayList<VExpr>();
 		String fullname = fullName();
 		VExpr bound;
 		// analyze super type declarations
 		int n = 0;
-		for (TypeDecl st : genericSuperTypes() ) {
+		for (TypeDecl st : superTypes() ) {
 			if(st.structurallyContains(tv)) {
 				bound = st.varExpr(tv);
 				LOG.log(INFO, String.format(
@@ -32,27 +37,8 @@ aspect ConstraintGenerator
 			}
 		}
 
-		// Collect bounds from upper bounds of type parameters.
-		// Java does not allow lower bounds on type parameters.
-		// Upper bounds of class type parameters are in
-		// covariant positions.
-		for(int j = 0; j < getNumTypeParameter(); j++) {
-			TypeVariable param = getTypeParameter(j);
-			for (int i = 0; i < param.getNumTypeBound(); i++) {
-				TypeDecl typ = param.getTypeBound(i).type();
-				if(typ.structurallyContains(tv)) {
-					bound = typ.varExpr(tv);
-					LOG.log(INFO, String.format(
-						"varBounds(%s [type arg bound (%d, %d)]): %s",
-						fullname, j, i, bound));
-					bounds.add(bound);
-				}
-			}
-		}
-
 		LOG.log(INFO, fullname + ".checkPrivateMembers: " + checkPrivateMembers());
 		
-
 		// analyze type signatures of appropriate members
 		for (int j=0; j < getNumBodyDecl(); j++) {
 			BodyDecl b = getBodyDecl(j);
@@ -71,8 +57,75 @@ aspect ConstraintGenerator
 		}
 		return bounds;
 	}
+
+
+	eq InterfaceDecl.varBounds(TypeVariable tv)
+	{
+		java.util.List<VExpr> bounds = new ArrayList<VExpr>();
+		String fullname = fullName();
+		VExpr bound;
+		// analyze super type declarations
+		int n = 0;
+		for (TypeDecl st : superTypes() ) {
+			if(st.structurallyContains(tv)) {
+				bound = st.varExpr(tv);
+				LOG.log(INFO, String.format(
+					"varBounds(%s [super type %d]): %s", fullname, n++, bound));
+				bounds.add(bound);
+			}
+		}
+
+		LOG.log(INFO, fullname + ".checkPrivateMembers: " + checkPrivateMembers());
+		
+		// analyze type signatures of appropriate members
+		for (int j=0; j < getNumBodyDecl(); j++) {
+			BodyDecl b = getBodyDecl(j);
+			if(b.isFieldDeclaration()) {
+				FieldDeclaration f = (FieldDeclaration) b;
+				if((!f.isPrivate() || checkPrivateMembers()) && !f.isStatic())
+					bounds.addAll(f.varBounds(tv));
+			}
+			else if(b.isMethodDecl()) {
+				MethodDecl m = (MethodDecl) b;
+				if((!m.isPrivate() || checkPrivateMembers()) && !m.isStatic())
+					bounds.addAll(m.varBounds(tv));
+			}
+			else
+				bounds.addAll(b.varBounds(tv));
+		}
+		return bounds;
+	}
+
+
+	eq GenericTypeDecl.varBounds(TypeVariable tv)
+	{
+		java.util.List<VExpr> bounds = super.varBounds(tv);
+		String fullname = fullName();
+		VExpr bound;
+
+		// Collect bounds from upper bounds of type parameters.
+		// Java does not allow lower bounds on type parameters.
+		// Upper bounds of class type parameters are in
+		// covariant positions.
+		for(int j = 0; j < getNumTypeParameter(); j++) {
+			TypeVariable param = getTypeParameter(j);
+			for (int i = 0; i < param.getNumTypeBound(); i++) {
+				TypeDecl typ = param.getTypeBound(i).type();
+				if(typ.structurallyContains(tv)) {
+					bound = typ.varExpr(tv);
+					LOG.log(INFO, String.format(
+						"varBounds(%s [type arg bound (%d, %d)]): %s",
+						fullname, j, i, bound));
+					bounds.add(bound);
+				}
+			}
+		}
+		return bounds;
+	}
 	
-	
+	eq ParClassDecl.varBounds(TypeVariable tv) = original().varBounds(tv);
+
+
 	syn lazy java.util.List<VExpr> BodyDecl.varBounds(TypeVariable tv)
 		 = Collections.emptyList();
 
@@ -103,6 +156,7 @@ aspect ConstraintGenerator
 		}
 		return bounds;
 	}
+
 
 	eq MethodDecl.varBounds(TypeVariable tv)
 	{
@@ -157,6 +211,11 @@ aspect ConstraintGenerator
 		}
 		return bounds;
 	}
+	
+	eq MemberClassDecl.varBounds(TypeVariable tv) = getClassDecl().varBounds(tv);
+		
+	eq MemberInterfaceDecl.varBounds(TypeVariable tv) = getInterfaceDecl().varBounds(tv);
+
 
 	// varExpr
 	
@@ -166,7 +225,7 @@ aspect ConstraintGenerator
 	 * var(X; C<T_1, ..., T_n>)
 	 */
 	eq ParTypeDecl.varExpr(TypeVariable tv) {
-		GenericTypeDecl gtd = (GenericTypeDecl) genericDecl();
+		GenericTypeDecl gtd = (GenericTypeDecl) original();
 		VExpr result = null;
 		for (int i = 0; i < getNumArgument(); i++) {
 			TypeDecl typeArg = getArgument(i).type();
@@ -283,11 +342,12 @@ aspect ConstraintGenerator
 	syn lazy String MethodDecl.fullName() =
 		hostType().fullName() + '.' + name();
 
+
 	/** If any of the argument types contain this type in its closure,
 	  * then return false.
 	  * Otherwise, return true
 	  */
-	syn lazy boolean GenericTypeDecl.analyzePrivateMembers() {
+	syn lazy boolean TypeDecl.analyzePrivateMembers() {
 		for (int j=0; j < getNumBodyDecl(); j++) {
 			BodyDecl b = getBodyDecl(j);
 			if(b.isMethodDecl()) {
@@ -304,7 +364,7 @@ aspect ConstraintGenerator
 	}
 
 	/** Determine whether or not to check private members */
-	syn lazy boolean GenericTypeDecl.checkPrivateMembers() =
+	syn lazy boolean TypeDecl.checkPrivateMembers() =
 		analyzePrivate || analyzePrivateMembers();
 }
 
