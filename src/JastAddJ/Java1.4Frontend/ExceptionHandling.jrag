@@ -102,6 +102,15 @@ aspect ExceptionHandling {
     }
   }
 
+  public void ClassInstanceExpr.exceptionHandling() {
+    for (Access exception : decl().getExceptionList()) {
+      TypeDecl exceptionType = exception.type();
+      if (!handlesException(exceptionType))
+        error("" + this + " may throw uncaught exception " +
+            exceptionType.fullName() + "; it must be caught or declared as being thrown");
+    }
+  }
+
   public void ThrowStmt.exceptionHandling() {
     TypeDecl exceptionType = getExpr().type();
     if(exceptionType == typeNull())
@@ -186,12 +195,17 @@ aspect ExceptionHandling {
   }
 
   // the catch clause catches the exception
-  syn boolean CatchClause.handles(TypeDecl exceptionType) =
+  syn boolean CatchClause.handles(TypeDecl exceptionType) = false;
+  eq BasicCatch.handles(TypeDecl exceptionType) =
     !getParameter().type().isUnknown()
     && exceptionType.instanceOf(getParameter().type());
     
-  syn lazy boolean TryStmt.reachableThrow(CatchClause c) = 
-    getBlock().reachedException(c.getParameter().type());
+  /**
+   * The block of the try statement can throw an exception of
+   * a type assignable to the given type.
+   */
+  syn lazy boolean TryStmt.catchableException(TypeDecl type) =
+    getBlock().reachedException(type);
 
   protected boolean ASTNode.reachedException(TypeDecl type) {
     for(int i = 0; i < getNumChild(); i++)
@@ -213,7 +227,7 @@ aspect ExceptionHandling {
         return true;
     // even if the exception is caught by the catch clauses they may 
     // throw new exceptions
-    for(int i = 0; i < getNumCatchClause() && found; i++)
+    for(int i = 0; i < getNumCatchClause(); i++)
       if(getCatchClause(i).reachedException(type))
         return true;
     return hasFinally() && getFinally().reachedException(type);
@@ -257,7 +271,11 @@ aspect ExceptionHandling {
       if(catchType.mayCatch(exceptionType))
         return true;
     }
-    return super.reachedException(catchType);
+    for(int i = 0; i < getNumArg(); i++) {
+      if(getArg(i).reachedException(catchType))
+        return true;
+    }
+    return false;
   }
   
 }

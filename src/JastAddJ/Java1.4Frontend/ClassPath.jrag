@@ -108,7 +108,7 @@ aspect ClassPath {
           classPart = part;
       }
       
-      if(sourcePart != null && (classPart == null || classPart.age <= sourcePart.age)) {
+      if(sourcePart != null && (classPart == null || classPart.age < sourcePart.age)) {
         CompilationUnit unit = sourcePart.getCompilationUnit();
         int index = name.lastIndexOf('.');
         if(index == -1)
@@ -222,6 +222,8 @@ aspect ClassPath {
       String[] userClasses = null;
       if(options().hasValueForOption("-classpath"))
         userClasses = options().getValueForOption("-classpath").split(File.pathSeparator);
+      else if(options().hasValueForOption("-cp"))
+        userClasses = options().getValueForOption("-cp").split(File.pathSeparator);
       else {
         String s = System.getProperty("java.class.path");
         if(s != null && s.length() > 0) {
