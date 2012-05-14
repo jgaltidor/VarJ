@@ -1,6 +1,7 @@
 package tame
 // import implicit conversion for converting java.util collections
-import scala.collection.jcl.Conversions._
+// import scala.collection.jcl.Conversions._
+import scala.collection.JavaConversions._
 
 object Tester
 {
@@ -8,7 +9,7 @@ object Tester
 		val vf = new VarFrontend
 		if(args.length == 0) {
 			vf.printUsage
-			exit(1)
+			sys.exit(1)
 		}
 		val newArgs = vf getNewArgsRecursively args
 		VarFrontend.compile(vf, newArgs)
@@ -65,7 +66,7 @@ object LookupVar extends VarFrontend
 	def main(args:Array[String]):Unit = {
 		if(args.length == 0) {
 			printUsage
-			exit(1)
+			sys.exit(1)
 		}
 		val newArgs = preprocessArgs(args)
 		VarFrontend.compile(this, newArgs)

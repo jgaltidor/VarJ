@@ -6,7 +6,8 @@ import AST.TypeDecl
 import AST.Program
 import AST.CompilationUnit
 
-import scala.collection.immutable.SortedSet
+import scala.collection.immutable.{SortedSet, TreeSet}
+import scala.math.Ordering
 
 object IterSeq
 {
@@ -31,14 +32,13 @@ object IterSeq
 	def getSrcGenerics(program:Program):Seq[GenericTypeDecl] =
 		getSrcTypes(program).filter(_.isGenericType).map(_.asInstanceOf[GenericTypeDecl])
 
-	def getSrcGenericsSortedByName(program:Program):SortedSet[GenericTypeDecl] = {
-
-		def compareByFullName(gtd:GenericTypeDecl):Ordered[GenericTypeDecl] =
-			new Ordered[GenericTypeDecl] {
-				def compare(that:GenericTypeDecl) =
-					gtd.fullName.compareTo(that.fullName)
-			}
-		scala.collection.immutable.TreeSet()(compareByFullName) ++ getSrcGenerics(program)
+	def getSrcGenericsSortedByName(program:Program):SortedSet[GenericTypeDecl] =
+	{
+		val ordering = new Ordering[GenericTypeDecl] {
+			def compare(x:GenericTypeDecl, y:GenericTypeDecl):Int =
+				x.fullName compare y.fullName
+		}
+		TreeSet()(ordering) ++ getSrcGenerics(program)
 	}
 	
 	/** Can return null */

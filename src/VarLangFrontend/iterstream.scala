@@ -7,7 +7,8 @@ import AST.Program
 import AST.CompilationUnit
 import AST.DVar
 
-import scala.collection.immutable.SortedSet
+import scala.collection.immutable.{SortedSet, TreeSet}
+import scala.math.Ordering
 
 object IterStream
 {
@@ -50,14 +51,13 @@ object IterStream
 	def getSrcGenerics(program:Program):Stream[GenericTypeDecl] =
 		getSrcTypes(program).filter(_.isGenericType).map(_.asInstanceOf[GenericTypeDecl])
 
-	def getGenTypesSortedByName(program:Program):SortedSet[GenericTypeDecl] = {
-
-		def compareByFullName(gtd:GenericTypeDecl):Ordered[GenericTypeDecl] =
-			new Ordered[GenericTypeDecl] {
-				def compare(that:GenericTypeDecl) =
-					gtd.fullName.compareTo(that.fullName)
-			}
-		scala.collection.immutable.TreeSet()(compareByFullName) ++ getSrcGenerics(program)
+	def getGenTypesSortedByName(program:Program):SortedSet[GenericTypeDecl] =
+	{
+		val ordering = new Ordering[GenericTypeDecl] {
+			def compare(x:GenericTypeDecl, y:GenericTypeDecl):Int =
+				x.fullName compare y.fullName
+		}
+		TreeSet()(ordering) ++ getSrcGenerics(program)
 	}
 
 	/** Can return null */

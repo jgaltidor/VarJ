@@ -1,7 +1,8 @@
 package tame
 
 // import implicit conversion for converting java.util collections
-import scala.collection.jcl.Conversions._	
+// import scala.collection.jcl.Conversions._
+import scala.collection.JavaConversions._
 import AST.ASTNode._
 
 object ComputeStats
@@ -78,7 +79,7 @@ object ComputeStats
 		val vf = new VarFrontend
 		if(args.length == 0) {
 			vf.printUsage
-			exit(1)
+			sys.exit(1)
 		}
 		val newArgs = vf getNewArgsRecursively args
 		VarFrontend.compile(vf, newArgs)
@@ -141,7 +142,7 @@ object InferStats
 		val frontend = new StatsFrontend
 		if(args.length == 0) {
 			frontend.printUsage
-			exit(1)
+			sys.exit(1)
 		}
 		frontend preprocessArgs args
 		val allLibStats:Seq[LibStats] = frontend.pathNamePairs.map { p =>
