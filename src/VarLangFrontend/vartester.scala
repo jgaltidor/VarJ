@@ -29,6 +29,13 @@ object Tester
 			println("dvar.dvarBoundClosure: " + dvar.dvarBoundClosure)
 			println("dvar.isRecursivelyBounded: " + dvar.isRecursivelyBounded)
 			println
+			println("Original version of: " + gtd.fullName)
+			println
+			println(gtd)
+			println
+			println("Rewritten version of: " + gtd.fullName)
+			println
+			println(gtd.toWild)
 		}
 	}
 }
