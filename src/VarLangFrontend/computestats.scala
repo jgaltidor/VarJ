@@ -131,7 +131,7 @@ class StatsFrontend extends VarFrontend
 		val typeDecls = IterSeq getSrcTypes sf.getProgram
 		val libstats = ComputeStats computeStats typeDecls
 		libstats.name = libname
-		println("Complete analysis of: " + libname)
+		println("Completed analysis of: " + libname)
 		libstats
 	}
 }

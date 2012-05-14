@@ -23,6 +23,7 @@ import java.io.*;
   StringBuffer strbuf = new StringBuffer(128);
   int sub_line;
   int sub_column;
+  int strlit_start_line, strlit_start_column;
 
   private Symbol sym(short id) {
     return new Symbol(id, yyline + 1, yycolumn + 1, len(), str());
@@ -30,6 +31,10 @@ import java.io.*;
 
   private Symbol sym(short id, String value) {
     return new Symbol(id, yyline + 1, yycolumn + 1, len(), value);
+  }
+
+  private Symbol sym(short id, String value, int start_line, int start_column, int len) {
+    return new Symbol(id, start_line, start_column, len, value);
   }
 
   private String str() { return yytext(); }
@@ -198,7 +203,12 @@ BinaryExponent = [pP] [+-]? {Digits}
   \'{LineTerminator}             { error("unterminated character literal at end of line"); }
 
   // 3.10.5 String Literals
-  \"                             { yybegin(STRING); strbuf.setLength(0); }
+  \"                             { yybegin(STRING); 
+  				   // remember start position of string literal so we can
+				   // set its position correctly in the end
+  				   strlit_start_line = yyline+1;
+				   strlit_start_column = yycolumn+1;
+  				   strbuf.setLength(0); }
 
   // 3.10.7 The Null Literal
   "null"                         { return sym(Terminals.NULL_LITERAL); }
@@ -206,7 +216,8 @@ BinaryExponent = [pP] [+-]? {Digits}
 
 // 3.10.5 String Literals
 <STRING> {
-  \"                             { yybegin(YYINITIAL); return sym(Terminals.STRING_LITERAL, strbuf.toString()); }
+  \"                             { yybegin(YYINITIAL); 
+                                   return sym(Terminals.STRING_LITERAL, strbuf.toString(), strlit_start_line, strlit_start_column, strbuf.length()+2); }
 
   {StringCharacter}+             { strbuf.append(str()); }
 

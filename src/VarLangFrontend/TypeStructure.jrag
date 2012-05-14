@@ -51,15 +51,6 @@ aspect TypeStructure
 		return false;
 	}
 
-	eq TypeVariable.structurallyContains(TypeDecl t) {
-		if (super.structurallyContains(t)) return true;
-		for (int i=0; i<getNumTypeBound(); i++) {
-			if (getTypeBound(i).type().structurallyContains(t))
-				return true;
-		}
-		return false;
-	}
-
 	syn lazy boolean BodyDecl.structurallyContains(TypeDecl t) = false;
 
 	eq FieldDeclaration.structurallyContains(TypeDecl t) =
@@ -76,12 +67,16 @@ aspect TypeStructure
 	eq GenericMethodDecl.structurallyContains(TypeDecl t) {
 		if(super.structurallyContains(t)) return true;
 		for(int i = 0; i < getNumTypeParameter(); i++) {
-			if(getTypeParameter(i).structurallyContains(t)) return true;
+			TypeVariable tv = getTypeParameter(i);
+			if(tv.structurallyContains(t)) return true;			
+			for (int j = 0; j < tv.getNumTypeBound(); j++) {
+				if(tv.getTypeBound(j).type().structurallyContains(t))
+					return true;
+			}
 		}
 		return false;
 	}
 
-	
 	// isInTypeClosure
 	syn lazy boolean TypeDecl.isInTypeClosure(TypeDecl t) = typedefClosure().contains(t);
 	

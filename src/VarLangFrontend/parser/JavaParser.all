@@ -483,7 +483,7 @@ List catches =
   | catches.l catch_clause.c                   {: return l.add(c); :}
   ;
 CatchClause catch_clause =
-    CATCH LPAREN formal_parameter.p RPAREN block.b {: return new CatchClause(p, b); :}
+    CATCH LPAREN formal_parameter.p RPAREN block.b {: return new BasicCatch(p, b); :}
   ;
 Block finally =
     FINALLY block.b {: return b; :}
@@ -601,12 +601,19 @@ Access method_invocation =
                                                                MethodAccess m = new MethodAccess(pn.getID(), l);
                                                                m.setStart(pn.getStart()); // add location information
                                                                m.setEnd(RPAREN.getEnd()); // add location information
+                                                               m.IDstart = pn.getStart();
+                                                               m.IDend = pn.getStart() + pn.getID().length() - 1;
                                                                d.replaceLast(m);
                                                                return d;
                                                              }
                                                              else {
                                                                ParseName pn = (ParseName)n;
-                                                               return new MethodAccess(pn.getID(), l);
+                                                               MethodAccess m = new MethodAccess(pn.getID(), l);
+                                                               m.setStart(pn.getStart()); // add location information
+                                                               m.setEnd(RPAREN.getEnd()); // add location information
+                                                               m.IDstart = pn.getStart();
+                                                               m.IDend = pn.getStart() + pn.getID().length() - 1;
+                                                               return m;
                                                              }
                                                                :}
    | primary.p DOT IDENTIFIER LPAREN argument_list.l? RPAREN 
@@ -679,7 +686,7 @@ Expr unary_expression_not_plus_minus =
   ;
 Expr cast_expression =
     LPAREN primitive_type.t dims.d? RPAREN unary_expression.e      {: return new CastExpr(t.addArrayDims(d), e); :}
-  | LPAREN name.n dims.d? RPAREN unary_expression_not_plus_minus.e {: return new CastExpr(n.addArrayDims(d), e); :}
+  | LPAREN name.t dims.d? RPAREN unary_expression_not_plus_minus.e {: return new CastExpr(t.addArrayDims(d), e); :}
   ;
 Expr multiplicative_expression =
     unary_expression.e                                     {: return e; :}
@@ -780,17 +787,34 @@ TypeDecl type_declaration =
   ;
   
 BodyDecl interface_member_declaration =
-  annotation_type_declaration.i {:  return new MemberInterfaceDecl(i);  :}
+  annotation_type_declaration.i 
+  {:  
+   MemberInterfaceDecl mid = new MemberInterfaceDecl(i);  
+   mid.setStart(i.getStart());
+   mid.setEnd(i.getEnd());
+   return mid;
+  :}
   ;
 
 BodyDecl class_member_declaration =
-  annotation_type_declaration.i {:  return new MemberInterfaceDecl(i);  :}
+  annotation_type_declaration.i
+  {:  
+   MemberInterfaceDecl mid = new MemberInterfaceDecl(i);  
+   mid.setStart(i.getStart());
+   mid.setEnd(i.getEnd());
+   return mid;
+  :}
   ;
 
 // a comment
 AnnotationDecl annotation_type_declaration =
   modifiers.m? AT INTERFACE IDENTIFIER annotation_type_body.b 
-  {:  return new AnnotationDecl(new Modifiers(m), IDENTIFIER, b); :}
+  {:  
+   AnnotationDecl a = new AnnotationDecl(new Modifiers(m), IDENTIFIER, b); 
+   a.setStart(m.getStart());
+   a.setEnd(b.getEnd());
+   return a;
+  :}
   ;
 
 List annotation_type_body =
@@ -803,12 +827,41 @@ List annotation_type_element_declarations =
 
 BodyDecl annotation_type_element_declaration =
     modifiers.m? type.t IDENTIFIER LPAREN RPAREN default_value? SEMICOLON
-    {: return new AnnotationMethodDecl(new Modifiers(m), t, IDENTIFIER, new List(), new List(), new Opt(), default_value); :}
+    {: 
+     AnnotationMethodDecl a = new AnnotationMethodDecl(new Modifiers(m), t, IDENTIFIER, new List(), new List(), new Opt(), default_value); 
+     a.setStart(m.getStart());
+     a.setEnd(SEMICOLON.getEnd());
+     return a;
+    :}
   | constant_declaration
-  | class_declaration {: return new MemberClassDecl(class_declaration); :}
-  | interface_declaration {: return new MemberInterfaceDecl(interface_declaration); :}
-  | enum_declaration {: return new MemberClassDecl(enum_declaration); :}
-  | annotation_type_declaration {: return new MemberInterfaceDecl(annotation_type_declaration); :}
+  | class_declaration 
+    {: 
+     MemberClassDecl m = new MemberClassDecl(class_declaration); 
+     m.setStart(class_declaration.getStart());
+     m.setEnd(class_declaration.getEnd());
+     return m;
+    :}
+  | interface_declaration 
+    {: 
+     MemberInterfaceDecl m = new MemberInterfaceDecl(interface_declaration); 
+     m.setStart(interface_declaration.getStart());
+     m.setEnd(interface_declaration.getEnd());
+     return m;
+    :}
+  | enum_declaration 
+    {: 
+     MemberClassDecl m = new MemberClassDecl(enum_declaration); 
+     m.setStart(enum_declaration.getStart());
+     m.setEnd(enum_declaration.getEnd());
+     return m;
+    :}
+  | annotation_type_declaration 
+    {: 
+     MemberInterfaceDecl m = new MemberInterfaceDecl(annotation_type_declaration); 
+     m.setStart(annotation_type_declaration.getStart());
+     m.setEnd(annotation_type_declaration.getEnd());
+     return m;
+    :}    
   | SEMICOLON {: return new StaticInitializer(new Block()); :}
   ;
 
@@ -828,7 +881,13 @@ Annotation annotation =
   ;
 
 Modifier normal_annotation =
-  AT type LPAREN element_value_pairs? RPAREN {: return new Annotation("annotation", type, element_value_pairs); :}
+  AT type LPAREN element_value_pairs? RPAREN 
+    {: 
+     Annotation a = new Annotation("annotation", type, element_value_pairs); 
+     a.setStart(AT.getStart());
+     a.setEnd(RPAREN.getEnd());
+     return a;
+    :}
   ;
 
 List element_value_pairs =
@@ -837,11 +896,23 @@ List element_value_pairs =
   ;
 
 ElementValuePair element_value_pair =
-  IDENTIFIER EQ element_value {: return new ElementValuePair(IDENTIFIER, element_value); :}
+  IDENTIFIER EQ element_value 
+    {: 
+     ElementValuePair evp = new ElementValuePair(IDENTIFIER, element_value);
+     evp.setStart(IDENTIFIER.getStart());
+     evp.setEnd(element_value.getEnd());
+     return evp;
+    :}
   ;
 
 ElementValue element_value =
-  conditional_expression              {: return new ElementConstantValue(conditional_expression); :}
+  conditional_expression              
+    {: 
+     ElementConstantValue e = new ElementConstantValue(conditional_expression);
+     e.setStart(conditional_expression.getStart());
+     e.setEnd(conditional_expression.getEnd());
+     return e; 
+    :}
   | annotation                        {: return new ElementAnnotationValue(annotation); :}
   | element_value_array_initializer.e {: return e; :}
   ;
@@ -860,7 +931,13 @@ Modifier marker_annotation =
   ;
   
 Modifier single_element_annotation =
-  AT type LPAREN element_value RPAREN {: return new Annotation("annotation", type, new List().add(new ElementValuePair("value", element_value))); :}
+  AT type LPAREN element_value RPAREN 
+    {: 
+     Annotation a = new Annotation("annotation", type, new List().add(new ElementValuePair("value", element_value)));
+     a.setStart(AT.getStart());
+     a.setEnd(RPAREN.getEnd());
+     return a;
+    :}
   ;
   
 
