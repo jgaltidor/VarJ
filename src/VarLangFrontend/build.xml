@@ -9,7 +9,7 @@
 <project name="VarLangFrontend" default="build">
 
 <!-- location of JastAddJ -->
-<property name="JastAddJ" value="../JastAddJ"/>
+<property name="JastAddJ" value="../JastAddJ_R9266"/>
 
 <!-- location of Java1.4Frontend -->
 <property name="Java1.4Frontend" value="${JastAddJ}/Java1.4Frontend"/>
