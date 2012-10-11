@@ -27,7 +27,7 @@
 <property environment="env"/>
 
 <!-- "scalalib" is the jar file of the standard Scala library. -->
-<property name="scalalib" value="${env.SCALA_HOME}/lib/scala-library.jar"/>
+<!-- <property name="scalalib" value="${env.SCALA_HOME}/lib/scala-library.jar"/> -->
 
 <!-- "jflex" is an ant task class for the scanner generator in JFlex.jar -->
 <taskdef name="jflex" classname="JFlex.anttask.JFlexTask" classpath="${tools}/JFlex.jar"/>
@@ -36,18 +36,27 @@
 <!-- "jastadd" is an ant task class in jastadd2.jar -->
 <taskdef name="jastadd" classname="jastadd.JastAddTask" classpath="${tools}/jastadd2.jar"/>
 
+<target name="init-scala">
+	<path id="scala.classpath">
+		<pathelement location="${env.SCALA_HOME}/lib/scala-library.jar" />
+		<pathelement location="." />
+	</path>
+	<taskdef resource="scala/tools/ant/antlib.xml">
+		<classpath>
+			<pathelement location="${env.SCALA_HOME}/lib/scala-compiler.jar"   />
+			<pathelement location="${env.SCALA_HOME}/lib/scala-library.jar"   />
+		</classpath>
+	</taskdef>
+</target>
+
 <!-- compile sources -->
-<target name="build" depends="gen">
-  <!--
-	<javac debug="true" nowarn="true" srcdir="." includes="**/*.java" excludes="*test*/**" 
-         classpath=".:${tools}/beaver-rt.jar:${tools}/junit.jar:${scalalib}"/>
-  -->
-	<javac debug="true" nowarn="true" srcdir="." includes="**/*.java"
-	       excludes="*test*/**,*old*/**" 
-         classpath=".:${tools}/beaver-rt.jar:${tools}/junit.jar:${scalalib}"/>
-         
-  <!-- New scala command -->
-  <!-- <scalac srcdir="." includes="**/*.scala" /> -->
+<target name="build" depends="gen,init-scala">
+  <!-- Compile Java sources -->
+	<javac debug="true" nowarn="true" srcdir="." destdir="." includes="**/*.java"
+	       excludes="unittests/**,notyet/**" 
+         classpath=".:${tools}/beaver-rt.jar:${tools}/junit.jar:"/>
+  <!-- Compile Scala sources -->
+  <scalac classpathref="scala.classpath" srcdir="." includes="**/*.scala" />
 </target>
 
 <!-- generate compiler source files -->
@@ -71,7 +80,8 @@
 			<include name="**/*.ast"/>
 			<include name="**/*.jrag"/>
 			<include name="**/*.jadd"/>
-			<exclude name="old/**"/> <!-- jga -->
+			<exclude name="old/**"/>    <!-- jga -->
+			<exclude name="notyet/**"/> <!-- jga -->
 		</fileset>
   </jastadd>
   <!-- copy library files-->
@@ -152,6 +162,9 @@
     <delete>
       <fileset dir="." includes="**/*.class"/>
     </delete>
+    <delete dir="tame" />
+    <delete dir="parser" />
+    <delete dir="scanner" />
     <delete file="VarLang.jar"/>
     <delete file="VarLangFrontend-src.jar"/>
 </target>

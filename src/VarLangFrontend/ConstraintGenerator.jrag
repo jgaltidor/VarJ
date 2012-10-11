@@ -222,7 +222,9 @@ aspect ConstraintGenerator
 	syn lazy VExpr TypeDecl.varExpr(TypeVariable tv) = BIVARIANT;
 	
 	/**
-	 * var(X; C<T_1, ..., T_n>)
+	 * var(X; C<v_1 T_1, ..., v_n T_n>),
+	 * where v_i is the use-site annotation applied to
+	 * type actual T_i.
 	 */
 	eq ParTypeDecl.varExpr(TypeVariable tv) {
 		GenericTypeDecl gtd = (GenericTypeDecl) original();
