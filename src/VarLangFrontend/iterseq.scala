@@ -40,15 +40,7 @@ object IterSeq
 		}
 		TreeSet()(ordering) ++ getSrcGenerics(program)
 	}
-	
-	/** Can return null */
-	def getGeneric(program:Program, name:String):GenericTypeDecl =
-		getGenerics(program).find(
-			gtd => gtd.fullName.equals(name)) match
-		{
-			case Some(gtd) => gtd
-			case None =>
-				System.err.println("Generic not found: " + name)
-				null
-		}
+
+	def getGeneric(program:Program, name:String):Option[GenericTypeDecl] =
+		getGenerics(program).find(gtd => gtd.fullName.equals(name))
 }

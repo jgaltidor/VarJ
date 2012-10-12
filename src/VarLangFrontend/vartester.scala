@@ -1,7 +1,7 @@
 package tame
 // import implicit conversion for converting java.util collections
-// import scala.collection.jcl.Conversions._
 import scala.collection.JavaConversions._
+import AST.ASTNode._  // import for logging
 
 object Tester
 {
@@ -29,14 +29,6 @@ object Tester
 			}
 			println("dvar.dvarBoundClosure: " + dvar.dvarBoundClosure)
 			println("dvar.isRecursivelyBounded: " + dvar.isRecursivelyBounded)
-			println
-			println("Original version of: " + gtd.fullName)
-			println
-			println(gtd)
-			println
-			println("Rewritten version of: " + gtd.fullName)
-			println
-			println(gtd.toWild)
 		}
 	}
 }
@@ -70,12 +62,11 @@ object LookupVar extends VarFrontend
 		}
 		val newArgs = preprocessArgs(args)
 		VarFrontend.compile(this, newArgs)
-		IterSeq.getGenerics(getProgram).find(
-			gtd => gtd.fullName.equals(genericName)) match
+		IterSeq.getGeneric(getProgram, genericName) match
 		{
 			case Some(gtd) => Tester.processGeneric(gtd)
 			case None =>
-				System.err.println("Generic not found: " + genericName)
+				LOG.log(INFO, "Generic not found: " + name)
 		}
 	}
 }

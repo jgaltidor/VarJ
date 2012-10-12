@@ -9,7 +9,7 @@
 <project name="VarLangFrontend" default="build">
 
 <!-- location of JastAddJ -->
-<property name="JastAddJ" value="../JastAddJ_R20070504"/>
+<property name="JastAddJ" value="../JastAddJ_R9322"/>
 
 <!-- location of Java1.4Frontend -->
 <property name="Java1.4Frontend" value="${JastAddJ}/Java1.4Frontend"/>
@@ -23,18 +23,16 @@
 <!-- "tools" is the directory where generators and libraries are located. -->
 <property name="tools" value="${Java1.4Frontend}/tools"/>
 
-<!-- Get access to environment variables via "env." prefix -->
-<property environment="env"/>
-
-<!-- "scalalib" is the jar file of the standard Scala library. -->
-<!-- <property name="scalalib" value="${env.SCALA_HOME}/lib/scala-library.jar"/> -->
-
 <!-- "jflex" is an ant task class for the scanner generator in JFlex.jar -->
 <taskdef name="jflex" classname="JFlex.anttask.JFlexTask" classpath="${tools}/JFlex.jar"/>
 <!-- "beaver" is an ant task class for the parser generator in beaver.jar -->
-<taskdef name="beaver" classname="beaver.comp.run.AntTask" classpath="${tools}/beaver.jar"/>
+<taskdef name="beaver" classname="beaver.comp.run.AntTask" classpath="${tools}/beaver-ant.jar"/>
 <!-- "jastadd" is an ant task class in jastadd2.jar -->
 <taskdef name="jastadd" classname="jastadd.JastAddTask" classpath="${tools}/jastadd2.jar"/>
+
+<!-- Get access to environment variables via "env." prefix -->
+<property environment="env"/>
+
 
 <target name="init-scala">
 	<path id="scala.classpath">
@@ -54,7 +52,8 @@
   <!-- Compile Java sources -->
 	<javac debug="true" nowarn="true" srcdir="." destdir="." includes="**/*.java"
 	       excludes="unittests/**,notyet/**" 
-         classpath=".:${tools}/beaver-rt.jar:${tools}/junit.jar:"/>
+         classpath=".:${tools}/beaver-rt.jar:${tools}/junit.jar:"
+         includeantruntime="false"/>
   <!-- Compile Scala sources -->
   <scalac classpathref="scala.classpath" srcdir="." includes="**/*.scala" />
 </target>

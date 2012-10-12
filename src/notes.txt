@@ -1,4 +1,0 @@
-
-The VarLangFrontend has been tested to work with JastAddJ
-version R20070504.
-
