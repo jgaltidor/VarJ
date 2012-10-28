@@ -3,7 +3,7 @@ import java.util.*;
 
 public class RList<E>
 {
-	private List<E> elems;
+	List<E> elems;
 	
 	public RList() { this(new LinkedList<E>()); }
 	

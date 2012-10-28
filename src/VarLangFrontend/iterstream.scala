@@ -62,4 +62,7 @@ object IterStream
 
 	def getGeneric(program:Program, name:String):Option[GenericTypeDecl] =
 		getGenerics(program).find(gtd => gtd.fullName.equals(name))
+
+	def getType(program:Program, name:String):Option[TypeDecl] =
+		getTypes(program).find(td => td.fullName.equals(name))
 }

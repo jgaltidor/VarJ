@@ -1,0 +1,71 @@
+aspect VirtualMethods
+{
+	inh Program CompilationUnit.program();
+	eq Program.getCompilationUnit(int i).program() = this;
+
+	syn lazy java.util.List<MethodDecl> MethodDecl.overridingMethods() {
+		TypeDecl hostType = this.hostType();
+		java.util.List<TypeDecl> subtypes = hostType.compilationUnit().program().findSubtypes(hostType);
+
+		java.util.List<MethodDecl> oms = new java.util.ArrayList<MethodDecl>();
+		for ( TypeDecl st : subtypes ) {
+			if(st.equals(hostType))
+				continue;
+			for ( Iterator lmIt = st.localMethodsIterator(); lmIt.hasNext(); ) {
+				MethodDecl localMd = (MethodDecl) lmIt.next();
+				if ( localMd.overrides(this))
+					oms.add(localMd);
+			}
+		}
+		return oms;
+	}
+
+	java.util.List<TypeDecl> Program.findSubtypes(TypeDecl superType) {
+		java.util.ArrayList<TypeDecl> sublist = new java.util.ArrayList<TypeDecl>();
+		loadAllSourceFiles();
+
+		for ( Iterator cuIt = compilationUnitIterator(); cuIt.hasNext(); ) {
+			CompilationUnit cu = (CompilationUnit) cuIt.next();
+			for ( int i=0; i<cu.getNumTypeDecl(); i++) {
+				TypeDecl td = cu.getTypeDecl(i);
+				if ( td.subtype(superType))
+					sublist.add(td);
+			}
+		}
+		return sublist;
+	}
+	
+	
+	private boolean Program.sourceFilesLoaded = false;
+	
+	public void Program.loadAllSourceFiles() {
+		if(sourceFilesLoaded) return;
+		Iterator itr = this.compilationUnitIterator();
+		while(itr.hasNext()) itr.next();
+		sourceFilesLoaded = true;
+	}
+
+	// Method for Testing
+
+	public void TypeDecl.logOverridenMethods() {
+		System.out.println("Logging overriden methods for: " + fullName());
+		for (int j=0; j < getNumBodyDecl(); j++) {
+			BodyDecl b = getBodyDecl(j);
+			if(b.isMethodDecl()) {
+				MethodDecl m = (MethodDecl) b;
+				String mname = m.fullName();
+				java.util.List<MethodDecl> oms = m.overridingMethods();
+				if(oms.isEmpty()) {
+					System.out.println("No overriding methods found for: " + mname);
+				}
+				else {
+					System.out.println("Found overriding methods of: " + mname);
+					for(MethodDecl overridingMethod : oms) {
+						System.out.println(String.format(
+							"%s overrides %s", overridingMethod.fullName(), mname));
+					}
+				}
+			}
+		}
+	}
+}

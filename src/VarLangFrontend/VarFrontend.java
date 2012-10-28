@@ -1,6 +1,14 @@
 package tame;
-import AST.*;
-import java.util.*;
+import AST.Program;
+import AST.ASTNode;
+import AST.CompilationUnit;
+import AST.Frontend;
+import AST.BytecodeParser;
+import AST.JavaParser;
+import AST.Options;
+import java.util.LinkedList;
+import java.util.Map;
+import java.util.Collection;
 import java.io.File;
 import logutil.LogUtil;
 import java.util.logging.Level;

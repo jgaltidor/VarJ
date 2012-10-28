@@ -1,7 +1,6 @@
 package tame
 // import implicit conversion for converting java.util collections
 import scala.collection.JavaConversions._
-import AST.ASTNode._  // import for logging
 
 object Tester
 {
@@ -29,6 +28,7 @@ object Tester
 			}
 			println("dvar.dvarBoundClosure: " + dvar.dvarBoundClosure)
 			println("dvar.isRecursivelyBounded: " + dvar.isRecursivelyBounded)
+			gtd.asInstanceOf[AST.TypeDecl].logFieldFlowsTo
 		}
 	}
 }
@@ -66,7 +66,50 @@ object LookupVar extends VarFrontend
 		{
 			case Some(gtd) => Tester.processGeneric(gtd)
 			case None =>
-				LOG.log(INFO, "Generic not found: " + name)
+				Console.err.println("Generic not found: " + genericName)
 		}
 	}
 }
+
+
+object AnalyzeType extends VarFrontend
+{
+	var typeName:String = null
+
+	override def initOptions:Unit = {
+		super.initOptions
+		options.addKeyValueOption("-type")
+	}
+	
+	def preprocessArgs(args:Array[String]):Array[String] = {
+		val newArgs = getNewArgsRecursively(args)
+		typeName = getValueForRequiredOption("-type")
+		newArgs
+	}
+
+	override def printUsage:Unit = {
+		super.printUsage
+		println("AnalyzeType options:")
+		println("  -type" + (" "*17) + "Name of class or interface to analyze")
+	}
+	
+	def main(args:Array[String]):Unit = {
+		if(args.length == 0) {
+			printUsage
+			sys.exit(1)
+		}
+		val newArgs = preprocessArgs(args)
+		VarFrontend.compile(this, newArgs)
+		IterSeq.getType(getProgram, typeName) match
+		{
+			case Some(typeDecl) => analyzeTypeDec(typeDecl)
+			case None =>
+				Console.err.println("Class/Interface not found: " + typeName)
+		}
+	}
+	
+	def analyzeTypeDec(typeDecl:AST.TypeDecl):Unit = {
+		typeDecl.logOverridenMethods
+	}
+}
+

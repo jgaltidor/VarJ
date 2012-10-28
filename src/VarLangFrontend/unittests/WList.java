@@ -9,7 +9,7 @@ interface IndirectList<E> {
 
 public class WList<E>
 {
-	private List<E> elems;
+	public List<E> elems;
 	
 	public WList(List<E> elems) { this.elems = elems; }
 	
