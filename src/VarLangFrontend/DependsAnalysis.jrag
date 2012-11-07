@@ -1,0 +1,252 @@
+import java.util.Set;
+import java.util.HashSet;
+// Update to JastAdd-stable version
+
+aspect DependsAnalysis
+{
+	// Will need a more general interface representing a node
+	// in this type influence graph
+	
+	interface TINode
+	{
+		public Set<TINode> succ();
+		public String fullName();
+	}
+	
+	Variable extends TINode;
+	MethodDecl implements TINode; // Represents really the return type of a method
+
+	
+	public Set<TINode> Variable.succ() {
+		Set<TINode> nodes = new HashSet<TINode>();
+		nodes.addAll(getAssignedTo());
+		for(MethodDecl meth : returnedFrom()) {
+			nodes.addAll(meth.overridingMethods());
+		}
+		return nodes;
+	}
+
+
+	/** The variables accessed in return expressions of the method declaration. */
+	coll Set<Variable> MethodDecl.returnedVars() [new HashSet<Variable>()]
+		with addAll root MethodDecl;
+	
+	ReturnStmt
+		contributes getResult().accessedVarDecls()
+		when (hasResult() && enclosingBodyDecl() instanceof MethodDecl)
+		to MethodDecl.returnedVars()
+		for ((MethodDecl) enclosingBodyDecl());
+
+
+	coll Set<MethodDecl> Variable.returnedFrom() [new HashSet<MethodDecl>()] with add root Program;
+	
+	MethodDecl
+		contributes this
+		to Variable.returnedFrom()
+		for each returnedVars();
+
+
+	// accessedVarDecls
+	
+	syn Set<Variable> ASTNode.accessedVarDecls() {
+		Set<Variable> decls = new HashSet<Variable>();
+    for(int i = 0; i < getNumChild(); i++) {
+    	decls.addAll(getChild(i).accessedVarDecls());
+    }
+    return decls;
+	}
+	
+	eq VarAccess.accessedVarDecls() {
+		Set<Variable> decls = new HashSet<Variable>();
+		decls.add(decl());
+		return decls;
+	}
+
+	
+	/** Variable.getAssignedTo() is really a collection attribute
+	  * but cannot be implemented as an JastAdd collection attribute
+	  * due to its limited syntax.
+	  */
+	public Set<Variable> Variable.getAssignedTo() {
+		if(!program().computedVariableGetAssignedTo)
+			program().computeVariableGetAssignedTo();
+		return partialAssignedTo();
+	}
+	
+	/** Returns a reference to the possibly partially computed
+	  * assigned to set. This method should only be accessed in
+	  * computeVariableGetAssignedTo methods, so this set can be
+	  * computed, and in the public Variable.getAssignedTo() method.
+	  * Clients of the Variable interface should not call this method
+	  * to get access to the assigned to set.
+	  */
+	public Set<Variable> Variable.partialAssignedTo();
+
+	protected boolean Program.computedVariableGetAssignedTo = false;
+	
+	protected void ASTNode.computeVariableGetAssignedTo() {
+    for(int i = 0; i < getNumChild(); i++) {
+    	getChild(i).computeVariableGetAssignedTo();
+    }
+	}
+
+	protected void Program.computeVariableGetAssignedTo() {
+		super.computeVariableGetAssignedTo();
+		this.computedVariableGetAssignedTo = true;
+	}
+
+
+	// Implementing the collection routines for special cases
+	// of ASTNodes
+	
+	protected void AssignExpr.computeVariableGetAssignedTo() {
+		Variable dest = getDest().varDecl();
+		for(Variable accessedVar : getSource().accessedVarDecls())
+			accessedVar.partialAssignedTo().add(dest);
+	}
+	
+	/** Contributions made for m(e_1, e_2, ..., e_n) are:
+	  * For each i in [1, n],
+	  *  overrideArgParameters(m, i) are contributed to
+	  *  assignedto vars(e_i)
+	  */
+	protected void MethodAccess.computeVariableGetAssignedTo() {
+		MethodDecl meth = decl();
+		for(int i = 0; i < getNumArg(); i++) {
+			for(Variable var : getArg(i).accessedVarDecls())
+				var.partialAssignedTo().addAll(meth.overridingParams(i));
+		}
+	}
+
+
+	syn lazy java.util.List<ParameterDeclaration> MethodDecl.overridingParams(int i) {
+		ArrayList<ParameterDeclaration> params = new ArrayList<ParameterDeclaration>();
+		for(MethodDecl overridingMethod : overridingMethods()) {
+			params.add(overridingMethod.getParameter(i));
+		}
+		return params;
+	}
+
+
+	// Final technical detail of implementing Variable.getAssignedTo().
+	// Since Variable is an interface, need to provide a separate
+	// implementation for each direct implementing subclass
+	
+	protected Set<Variable> VariableDeclaration.assignedTo =
+		new HashSet<Variable>();
+	
+	public Set<Variable> VariableDeclaration.partialAssignedTo() {
+		return assignedTo;
+	}
+	 
+	protected Set<Variable> FieldDeclaration.assignedTo =
+		new HashSet<Variable>();
+	
+	public Set<Variable> FieldDeclaration.partialAssignedTo() {
+		return assignedTo;
+	}
+	 
+	protected Set<Variable> ParameterDeclaration.assignedTo =
+		new HashSet<Variable>();
+	
+	public Set<Variable> ParameterDeclaration.partialAssignedTo() {
+		return assignedTo;
+	}
+	
+	
+	public Set<TINode> MethodDecl.succ() {
+		return assignedTo();
+	}
+
+	coll Set<TINode> MethodDecl.assignedTo() [new HashSet<TINode>()]
+		with add root MethodDecl;
+	
+	AssignExpr
+		contributes getDest().varDecl()
+		to MethodDecl.assignedTo()
+		for each getSource().accessedMethDecls();
+
+	// accessedMethDecls
+	
+	syn Set<MethodDecl> ASTNode.accessedMethDecls() {
+		Set<MethodDecl> decls = new HashSet<MethodDecl>();
+    for(int i = 0; i < getNumChild(); i++) {
+    	decls.addAll(getChild(i).accessedVarDecls());
+    }
+    return decls;
+	}
+	
+	eq MethodAccess.accessedMethDecls() {
+		Set<MethodDecl> decls = new HashSet<MethodDecl>();
+		decls.addAll(decl().overridingMethods());
+		decls.addAll(super.accessedMethDecls());
+		return decls;
+	}
+
+
+	// reachable
+	
+	syn Set<TINode> TINode.reachableTINodes() circular [succ()] {
+		Set<TINode> nodes = new HashSet<TINode>();
+		for(TINode node : succ()) {
+			nodes.add(node);
+			nodes.addAll(node.reachableTINodes());
+		}
+		return nodes;
+	}
+
+	// Bug w/ JastAdd forcing me to repeat definition
+	// for subclasses of Variable
+	
+	syn Set<TINode> Variable.reachableTINodes() circular [succ()] {
+		Set<TINode> nodes = new HashSet<TINode>();
+		for(TINode node : succ()) {
+			nodes.add(node);
+			nodes.addAll(node.reachableTINodes());
+		}
+		return nodes;
+	}
+	
+	
+	public String VariableDeclaration.fullName() {
+		return DAUtil.fullName(this);
+	}
+	
+	public String ParameterDeclaration.fullName() {
+		return DAUtil.fullName(this);
+	}
+
+	// Methods for testing
+	
+	public final class DAUtil
+	{
+		public static String fullName(Variable v) {
+			TypeDecl host = v.hostType();
+			return (host != null) ?
+				host.fullName() + '.' + v.name() : v.name();
+		}
+	}
+	
+
+	public void TypeDecl.logFieldFlowsTo() {
+		for (int j=0; j < getNumBodyDecl(); j++) {
+			BodyDecl b = getBodyDecl(j);
+			if(b.isFieldDeclaration()) {
+				FieldDeclaration f = (FieldDeclaration) b;
+				String fieldname = f.fullName();
+				System.out.printf("logging flowsto for %s", fieldname);
+				System.out.println();
+				for(TINode tinode : f.reachableTINodes()) {
+					String declname = tinode.fullName();
+					ASTNode node = (ASTNode) tinode;
+					// Add source file info if it exists
+					String srcfile = node.sourceFile();
+					if(!srcfile.equals("Unknown file"))
+							declname += String.format(" from %s:%s", srcfile, node.location());
+					System.out.printf("%s flowsto %s", fieldname, declname);
+					System.out.println();
+				}
+			}
+		}
+	}
+}

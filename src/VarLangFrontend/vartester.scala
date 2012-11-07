@@ -28,7 +28,6 @@ object Tester
 			}
 			println("dvar.dvarBoundClosure: " + dvar.dvarBoundClosure)
 			println("dvar.isRecursivelyBounded: " + dvar.isRecursivelyBounded)
-			gtd.asInstanceOf[AST.TypeDecl].logFieldFlowsTo
 		}
 	}
 }
@@ -109,7 +108,9 @@ object AnalyzeType extends VarFrontend
 	}
 	
 	def analyzeTypeDec(typeDecl:AST.TypeDecl):Unit = {
-		typeDecl.logOverridenMethods
+		// typeDecl.logOverridenMethods
+		typeDecl.logFieldFlowsTo
+		println("type: " + typeDecl.fullName)
 	}
 }
 

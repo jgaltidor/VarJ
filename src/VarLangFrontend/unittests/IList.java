@@ -15,6 +15,8 @@ public class IList<E>
 	
 	public int size() { return elems.size(); }
 	
+	public void addFirst() { add(elems.get(0)); }
+	
 	public void flowsTest(RList<E> rlist, IList<E> ilist, RList<E> rlist2) {
 		rlist.elems = this.elems;
 		ilist.elems = rlist.elems;
@@ -23,6 +25,7 @@ public class IList<E>
 		ilist.elems = another.elems;
 	}
 	
+	/*
 	public static void main(String[] args) {
 		System.out.println("IList started");
 		IList<String> ilist = new IList<String>(new LinkedList<String>());
@@ -34,9 +37,8 @@ public class IList<E>
 			System.out.printf("ilist.get(%d): %s", i, ilist.get(i));
 			System.out.println();
 		}
-		/*
 		RList<String> rlist = new RList<String>(new LinkedList<String>());
 		rlist.elems = ilist.elems;
-		*/
 	}
+	*/
 }

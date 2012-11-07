@@ -1,16 +1,20 @@
+import java.util.ArrayList;
+
 aspect VirtualMethods
 {
-	inh Program CompilationUnit.program();
-	eq Program.getCompilationUnit(int i).program() = this;
+	inh Program ASTNode.program();
+	// eq ASTNode.program() = null;
+	eq Program.getChild(int i).program() = this;
+	
+	// eq Program.getCompilationUnit(int i).program() = this;
 
 	syn lazy java.util.List<MethodDecl> MethodDecl.overridingMethods() {
 		TypeDecl hostType = this.hostType();
 		java.util.List<TypeDecl> subtypes = hostType.compilationUnit().program().findSubtypes(hostType);
 
-		java.util.List<MethodDecl> oms = new java.util.ArrayList<MethodDecl>();
+		java.util.List<MethodDecl> oms = new ArrayList<MethodDecl>();
 		for ( TypeDecl st : subtypes ) {
-			if(st.equals(hostType))
-				continue;
+			// if(st.equals(hostType)) continue;
 			for ( Iterator lmIt = st.localMethodsIterator(); lmIt.hasNext(); ) {
 				MethodDecl localMd = (MethodDecl) lmIt.next();
 				if ( localMd.overrides(this))
@@ -21,7 +25,7 @@ aspect VirtualMethods
 	}
 
 	java.util.List<TypeDecl> Program.findSubtypes(TypeDecl superType) {
-		java.util.ArrayList<TypeDecl> sublist = new java.util.ArrayList<TypeDecl>();
+		ArrayList<TypeDecl> sublist = new ArrayList<TypeDecl>();
 		loadAllSourceFiles();
 
 		for ( Iterator cuIt = compilationUnitIterator(); cuIt.hasNext(); ) {
