@@ -108,9 +108,8 @@ object AnalyzeType extends VarFrontend
 	}
 	
 	def analyzeTypeDec(typeDecl:AST.TypeDecl):Unit = {
-		// typeDecl.logOverridenMethods
-		typeDecl.logFieldFlowsTo
 		println("type: " + typeDecl.fullName)
+		typeDecl.logFieldFlowsTo
 	}
 }
 

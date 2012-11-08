@@ -1,6 +1,5 @@
 import java.util.Set;
 import java.util.HashSet;
-// Update to JastAdd-stable version
 
 aspect DependsAnalysis
 {
@@ -11,12 +10,13 @@ aspect DependsAnalysis
 	{
 		public Set<TINode> succ();
 		public String fullName();
+		public boolean isFromSource();
 	}
 	
 	Variable extends TINode;
 	MethodDecl implements TINode; // Represents really the return type of a method
 
-	
+
 	public Set<TINode> Variable.succ() {
 		Set<TINode> nodes = new HashSet<TINode>();
 		nodes.addAll(getAssignedTo());
@@ -33,7 +33,7 @@ aspect DependsAnalysis
 	
 	ReturnStmt
 		contributes getResult().accessedVarDecls()
-		when (hasResult() && enclosingBodyDecl() instanceof MethodDecl)
+		when (hasResult() && enclosingBodyDecl().isMethodDecl())
 		to MethodDecl.returnedVars()
 		for ((MethodDecl) enclosingBodyDecl());
 
@@ -112,9 +112,22 @@ aspect DependsAnalysis
 	  */
 	protected void MethodAccess.computeVariableGetAssignedTo() {
 		MethodDecl meth = decl();
-		for(int i = 0; i < getNumArg(); i++) {
-			for(Variable var : getArg(i).accessedVarDecls())
+		// Only collect if the method is from source
+		if(!meth.isFromSource()) {
+			return;
+		}
+		int numParams = meth.getNumParameter();
+		int minNumArgs = (!meth.isVariableArity() || invokesVariableArityAsArray()) ?
+			numParams : Math.max(0, numParams-1);
+		for(int i = 0; i < minNumArgs; i++) {
+			for(Variable var : getArg(i).accessedVarDecls()) {
 				var.partialAssignedTo().addAll(meth.overridingParams(i));
+			}
+		}
+		for(int j = minNumArgs; j < getNumArg(); j++) {
+			for(Variable var : getArg(j).accessedVarDecls()) {
+				var.partialAssignedTo().addAll(meth.overridingParams(numParams-1));
+			}
 		}
 	}
 
@@ -122,11 +135,15 @@ aspect DependsAnalysis
 	syn lazy java.util.List<ParameterDeclaration> MethodDecl.overridingParams(int i) {
 		ArrayList<ParameterDeclaration> params = new ArrayList<ParameterDeclaration>();
 		for(MethodDecl overridingMethod : overridingMethods()) {
+			/*
+			String msg = String.format("%s overriding %s", overridingMethod.fullName(), fullName());
+			System.out.println(msg);
+			LOG.log(DEBUG, msg);
+			*/
 			params.add(overridingMethod.getParameter(i));
 		}
 		return params;
 	}
-
 
 	// Final technical detail of implementing Variable.getAssignedTo().
 	// Since Variable is an interface, need to provide a separate
@@ -171,7 +188,7 @@ aspect DependsAnalysis
 	syn Set<MethodDecl> ASTNode.accessedMethDecls() {
 		Set<MethodDecl> decls = new HashSet<MethodDecl>();
     for(int i = 0; i < getNumChild(); i++) {
-    	decls.addAll(getChild(i).accessedVarDecls());
+    	decls.addAll(getChild(i).accessedMethDecls());
     }
     return decls;
 	}
@@ -197,7 +214,7 @@ aspect DependsAnalysis
 
 	// Bug w/ JastAdd forcing me to repeat definition
 	// for subclasses of Variable
-	
+
 	syn Set<TINode> Variable.reachableTINodes() circular [succ()] {
 		Set<TINode> nodes = new HashSet<TINode>();
 		for(TINode node : succ()) {
@@ -206,47 +223,62 @@ aspect DependsAnalysis
 		}
 		return nodes;
 	}
+		
+	// syn lazy Set<TINode> Variable.flowsTo() = reachableTINodes();
+
 	
+	syn boolean BodyDecl.isFromSource() = hostType().compilationUnit().fromSource();
 	
-	public String VariableDeclaration.fullName() {
-		return DAUtil.fullName(this);
-	}
+	syn boolean Variable.isFromSource();
 	
-	public String ParameterDeclaration.fullName() {
-		return DAUtil.fullName(this);
-	}
+	eq FieldDeclaration.isFromSource() = hostType().compilationUnit().fromSource();
+
+	eq ParameterDeclaration.isFromSource() = enclosingBodyDecl().isFromSource();
+	
+	eq VariableDeclaration.isFromSource() = enclosingBodyDecl().isFromSource();
 
 	// Methods for testing
 	
-	public final class DAUtil
-	{
-		public static String fullName(Variable v) {
-			TypeDecl host = v.hostType();
-			return (host != null) ?
-				host.fullName() + '.' + v.name() : v.name();
+	public void TypeDecl.logFieldFlowsTo() {
+		for (int j=0; j < getNumBodyDecl(); j++) {
+			getBodyDecl(j).logFieldFlowsTo();
+			System.out.println();
 		}
 	}
 	
+	
+	public void BodyDecl.logFieldFlowsTo() { }
+	
+	public void FieldDeclaration.logFieldFlowsTo() {
+		String name = fullName();
+		System.out.printf("logging flowsto for %s", name);
+		System.out.println();
+		for(TINode tinode : reachableTINodes()) {
+			String declname = tinode.fullName();
+			ASTNode node = (ASTNode) tinode;
+			// Add source file info if it exists
+			String srcfile = node.sourceFile();
+			if(!srcfile.equals("Unknown file"))
+					declname += String.format(" from %s:%s", srcfile, node.location());
+			System.out.printf("%s flowsto %s", name, declname);
+			System.out.println();
+		}
+	}
 
-	public void TypeDecl.logFieldFlowsTo() {
-		for (int j=0; j < getNumBodyDecl(); j++) {
-			BodyDecl b = getBodyDecl(j);
-			if(b.isFieldDeclaration()) {
-				FieldDeclaration f = (FieldDeclaration) b;
-				String fieldname = f.fullName();
-				System.out.printf("logging flowsto for %s", fieldname);
-				System.out.println();
-				for(TINode tinode : f.reachableTINodes()) {
-					String declname = tinode.fullName();
-					ASTNode node = (ASTNode) tinode;
-					// Add source file info if it exists
-					String srcfile = node.sourceFile();
-					if(!srcfile.equals("Unknown file"))
-							declname += String.format(" from %s:%s", srcfile, node.location());
-					System.out.printf("%s flowsto %s", fieldname, declname);
-					System.out.println();
-				}
-			}
+
+	public void MethodDecl.logFieldFlowsTo() {
+		String name = fullName();
+		System.out.printf("logging flowsto for %s", name);
+		System.out.println();
+		for(TINode tinode : reachableTINodes()) {
+			String declname = tinode.fullName();
+			ASTNode node = (ASTNode) tinode;
+			// Add source file info if it exists
+			String srcfile = node.sourceFile();
+			if(!srcfile.equals("Unknown file"))
+					declname += String.format(" from %s:%s", srcfile, node.location());
+			System.out.printf("%s flowsto %s", name, declname);
+			System.out.println();
 		}
 	}
 }

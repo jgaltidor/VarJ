@@ -335,14 +335,20 @@ aspect ConstraintGenerator
 	syn lazy boolean BodyDecl.isMethodDecl() = false;
 	eq MethodDecl.isMethodDecl() = true;
 	
-	
-	/** Full name of field */
-	syn lazy String FieldDeclaration.fullName() =
-		hostType().fullName() + '.' + name();
 
-	/** Full name of method */
-	syn lazy String MethodDecl.fullName() =
-		hostType().fullName() + '.' + name();
+	syn lazy String BodyDecl.fullName() = hostType().fullName();
+	
+	eq MethodDecl.fullName() = hostType().fullName() + '.' + name();
+	
+	syn lazy String Variable.fullName();
+	
+	eq FieldDeclaration.fullName() = hostType().fullName() + '.' + name();
+	
+	eq ParameterDeclaration.fullName() =
+		enclosingBodyDecl().fullName() + '.' + name();
+	
+	eq VariableDeclaration.fullName() =
+		enclosingBodyDecl().fullName() + '.' + name();
 
 
 	/** If any of the argument types contain this type in its closure,
