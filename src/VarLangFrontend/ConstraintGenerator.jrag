@@ -99,7 +99,8 @@ aspect ConstraintGenerator
 
 	eq GenericTypeDecl.varBounds(TypeVariable tv)
 	{
-		java.util.List<VExpr> bounds = super.varBounds(tv);
+		java.util.List<VExpr> bounds = new ArrayList<VExpr>();
+		bounds.addAll(super.varBounds(tv));
 		String fullname = fullName();
 		VExpr bound;
 
@@ -189,7 +190,8 @@ aspect ConstraintGenerator
 	eq GenericMethodDecl.varBounds(TypeVariable tv)
 	{
 		// Collect bounds from return and argument types
-		java.util.List<VExpr> bounds = super.varBounds(tv);
+		java.util.List<VExpr> bounds = new ArrayList<VExpr>();
+		bounds.addAll(super.varBounds(tv));
 		String fullname = fullName();
 
 		// Collect bounds from upper bounds of type parameters.

@@ -111,7 +111,7 @@ aspect DependsAnalysis
 	  *  assignedto vars(e_i)
 	  */
 	protected void MethodAccess.computeVariableGetAssignedTo() {
-		MethodDecl meth = decl();
+		MethodDecl meth = decl().originalDecl();
 		// Only collect if the method is from source
 		if(!meth.isFromSource()) {
 			return;
@@ -135,11 +135,6 @@ aspect DependsAnalysis
 	syn lazy java.util.List<ParameterDeclaration> MethodDecl.overridingParams(int i) {
 		ArrayList<ParameterDeclaration> params = new ArrayList<ParameterDeclaration>();
 		for(MethodDecl overridingMethod : overridingMethods()) {
-			/*
-			String msg = String.format("%s overriding %s", overridingMethod.fullName(), fullName());
-			System.out.println(msg);
-			LOG.log(DEBUG, msg);
-			*/
 			params.add(overridingMethod.getParameter(i));
 		}
 		return params;
@@ -195,10 +190,15 @@ aspect DependsAnalysis
 	
 	eq MethodAccess.accessedMethDecls() {
 		Set<MethodDecl> decls = new HashSet<MethodDecl>();
-		decls.addAll(decl().overridingMethods());
+		decls.addAll(decl().originalDecl().overridingMethods());
 		decls.addAll(super.accessedMethDecls());
 		return decls;
 	}
+
+
+	syn MethodDecl MethodDecl.originalDecl() = this;
+	
+	eq MethodDeclSubstituted.originalDecl() = getOriginal().originalDecl();
 
 
 	// reachable
