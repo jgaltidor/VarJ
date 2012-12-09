@@ -1,0 +1,269 @@
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Set;
+import java.util.HashSet;
+
+aspect AnalyzeSig
+{
+	public class OnlySigAnalysis extends AnalysisStrategy
+	{
+		public OnlySigAnalysis(Visibility visibility) { super(visibility); }
+
+		public java.util.List<VExpr> varBounds(TypeContainer container, TypeVariable tv) {
+			return container.varBoundsSig(tv);
+		}
+	}
+	
+	syn lazy java.util.List<VExpr> TypeContainer.varBoundsSig(TypeVariable tv);
+	
+	eq TypeDecl.varBoundsSig(TypeVariable tv) =
+		Collections.emptyList();
+
+	eq ClassDecl.varBoundsSig(TypeVariable tv)
+	{
+		java.util.List<VExpr> bounds = new ArrayList<VExpr>();
+		String fullname = fullName();
+		VExpr bound;
+		// analyze super type declarations
+		int n = 0;
+		for (TypeDecl st : superTypes() ) {
+			if(st.structurallyContains(tv)) {
+				bound = st.varExpr(tv);
+				LOG.log(INFO, String.format(
+					"varBoundsSig(%s [super type %d]): %s", fullname, n++, bound));
+				bounds.add(bound);
+			}
+		}
+		boolean chkPrivateMembers = checkPrivateMembers();
+
+		LOG.log(INFO, fullname + ".checkPrivateMembers: " + chkPrivateMembers);
+		
+		// analyze type signatures of appropriate members
+		for (int j=0; j < getNumBodyDecl(); j++) {
+			BodyDecl b = getBodyDecl(j);
+			if(b.isFieldDeclaration()) {
+				FieldDeclaration f = (FieldDeclaration) b;
+				if((!f.isPrivate() || chkPrivateMembers) && !f.isStatic())
+					bounds.addAll(strategy.varBounds(f, tv));
+			}
+			else if(b.isMethodDecl()) {
+				MethodDecl m = (MethodDecl) b;
+				if((!m.isPrivate() || chkPrivateMembers) && !m.isStatic())
+					bounds.addAll(strategy.varBounds(m, tv));
+			}
+			else
+				bounds.addAll(strategy.varBounds(b, tv));
+		}
+		return bounds;
+	}
+
+
+	eq InterfaceDecl.varBoundsSig(TypeVariable tv)
+	{
+		java.util.List<VExpr> bounds = new ArrayList<VExpr>();
+		String fullname = fullName();
+		VExpr bound;
+		// analyze super type declarations
+		int n = 0;
+		for (TypeDecl st : superTypes() ) {
+			if(st.structurallyContains(tv)) {
+				bound = st.varExpr(tv);
+				LOG.log(INFO, String.format(
+					"varBoundsSig(%s [super type %d]): %s", fullname, n++, bound));
+				bounds.add(bound);
+			}
+		}
+
+		boolean chkPrivateMembers = checkPrivateMembers();
+		LOG.log(INFO, fullname + ".checkPrivateMembers: " + chkPrivateMembers);
+		
+		// analyze type signatures of appropriate members
+		for (int j=0; j < getNumBodyDecl(); j++) {
+			BodyDecl b = getBodyDecl(j);
+			if(b.isFieldDeclaration()) {
+				FieldDeclaration f = (FieldDeclaration) b;
+				if((!f.isPrivate() || chkPrivateMembers) && !f.isStatic())
+					bounds.addAll(strategy.varBounds(f, tv));
+			}
+			else if(b.isMethodDecl()) {
+				MethodDecl m = (MethodDecl) b;
+				if((!m.isPrivate() || chkPrivateMembers) && !m.isStatic())
+					bounds.addAll(strategy.varBounds(m, tv));
+			}
+			else
+				bounds.addAll(strategy.varBounds(b, tv));
+		}
+		return bounds;
+	}
+
+
+	eq GenericTypeDecl.varBoundsSig(TypeVariable tv)
+	{
+		java.util.List<VExpr> bounds = new ArrayList<VExpr>();
+		bounds.addAll(super.varBoundsSig(tv));
+		String fullname = fullName();
+		VExpr bound;
+
+		// Collect bounds from upper bounds of type parameters.
+		// Java does not allow lower bounds on type parameters.
+		// Upper bounds of class type parameters are in
+		// covariant positions.
+		for(int j = 0; j < getNumTypeParameter(); j++) {
+			TypeVariable param = getTypeParameter(j);
+			for (int i = 0; i < param.getNumTypeBound(); i++) {
+				TypeDecl typ = param.getTypeBound(i).type();
+				if(typ.structurallyContains(tv)) {
+					bound = typ.varExpr(tv);
+					LOG.log(INFO, String.format(
+						"varBoundsSig(%s [type arg bound (%d, %d)]): %s",
+						fullname, j, i, bound));
+					bounds.add(bound);
+				}
+			}
+		}
+		return bounds;
+	}
+	
+	eq ParClassDecl.varBoundsSig(TypeVariable tv) = original().varBoundsSig(tv);
+
+
+	// BodyDecl.varBoundsSig
+
+	eq BodyDecl.varBoundsSig(TypeVariable tv) =
+		Collections.emptyList();
+
+	eq FieldDeclaration.varBoundsSig(TypeVariable tv)
+	{
+		java.util.List<VExpr> bounds = new ArrayList<VExpr>();
+		String fullname = fullName();
+
+		// field type
+		TypeDecl t = type();
+		if(!t.structurallyContains(tv))
+			return bounds;
+
+		// variance of tv in return type t
+		VExpr vart = t.varExpr(tv);
+		// Fields can be read, so t is in a covariant position
+		VExpr bound = vart;
+		bounds.add(bound);
+		
+		LOG.log(INFO, String.format("varBoundsSig(%s): %s", fullname, bound));
+
+		// If field is not final, then t is also in a contravariant position
+		if(!isFinal()) {
+			bound = new Transform(CONTRAVARIANT, vart);
+			LOG.log(INFO, String.format("varBoundsSig(%s): %s", fullname, bound));
+			bounds.add(bound);
+		}
+		return bounds;
+	}
+
+
+	eq MethodDecl.varBoundsSig(TypeVariable tv)
+	{
+		java.util.List<VExpr> bounds = new ArrayList<VExpr>();
+		bounds.addAll(boundsFromReturnType(tv));
+		bounds.addAll(boundsFromArgTypes(tv));
+		return bounds;
+	}
+
+	/** Bounds from return type of the method.
+	  * Return types are in covariant positions.
+	  */
+	syn java.util.List<VExpr> MethodDecl.boundsFromReturnType(TypeVariable tv) {
+		TypeDecl returnType = type();
+		VExpr bound;
+		if(returnType.structurallyContains(tv)) {
+			bound = returnType.varExpr(tv);
+			LOG.log(INFO, String.format("boundsFromReturnType(%s [return]): %s",
+				fullName(), bound));
+			return ASTUtils.singletonList(bound);
+		}
+		else return Collections.emptyList();
+	}
+
+
+	/** Bounds from formal value argument types
+	  * argument types are in contravariant positions
+	  */
+	syn java.util.List<VExpr> MethodDecl.boundsFromArgTypes(TypeVariable tv) {
+		int numParams = getNumParameter();
+		if(numParams == 0) {
+			return Collections.emptyList();
+		}
+		ArrayList<VExpr> bounds = new ArrayList<VExpr>();
+		String fullname = fullName();
+		for (int i = 0; i < numParams; i++) {
+			TypeDecl argType = getParameter(i).type();
+			if(argType.structurallyContains(tv)) {
+				VExpr bound = new Transform(CONTRAVARIANT, argType.varExpr(tv));
+				LOG.log(INFO, String.format("boundsFromArgTypes(%s [arg %d]): %s",
+					fullname, i, bound));
+				bounds.add(bound);
+			}
+		}
+		return bounds;
+	}
+
+	
+	eq GenericMethodDecl.varBoundsSig(TypeVariable tv)
+	{
+		// Collect bounds from return and argument types
+		java.util.List<VExpr> bounds = new ArrayList<VExpr>();
+		bounds.addAll(super.varBoundsSig(tv));
+		String fullname = fullName();
+
+		// Collect bounds from upper bounds of type parameters.
+		// Java does not allow lower bounds on type parameters.
+		// Upper bounds of method type parameters are in
+		// contravariant positions.
+		for(int j = 0; j < getNumTypeParameter(); j++) {
+			TypeVariable param = getTypeParameter(j);
+			for (int i = 0; i < param.getNumTypeBound(); i++) {
+				TypeDecl typ = param.getTypeBound(i).type();
+				if(typ.structurallyContains(tv)) {
+					VExpr bound = new Transform(CONTRAVARIANT, typ.varExpr(tv));
+					LOG.log(INFO, String.format(
+						"varBoundsSig(%s [type arg bound (%d, %d)]): %s",
+						fullname, j, i, bound));
+					bounds.add(bound);
+				}
+			}
+		}
+		return bounds;
+	}
+	
+	eq MemberClassDecl.varBoundsSig(TypeVariable tv) =
+		getClassDecl().varBoundsSig(tv);
+		
+	eq MemberInterfaceDecl.varBoundsSig(TypeVariable tv) =
+		getInterfaceDecl().varBoundsSig(tv);
+
+
+	/** Determine whether or not to check private members */
+	syn lazy boolean TypeDecl.checkPrivateMembers() =
+		strategy.visibility == AnalysisStrategy.Visibility.ALL_PRIVATE
+			|| needToCheckPrivateMembers();
+
+
+	/** If any of the argument types contain this type in its closure,
+	  * then return false.
+	  * Otherwise, return true
+	  */
+	syn lazy boolean TypeDecl.needToCheckPrivateMembers() {
+		for (int j=0; j < getNumBodyDecl(); j++) {
+			BodyDecl b = getBodyDecl(j);
+			if(b.isMethodDecl()) {
+				MethodDecl meth = (MethodDecl) b;
+				if(!meth.isStatic()) {
+					for (int i=0; i < meth.getNumParameter(); i++) {
+						if(meth.getParameter(i).type().isInTypeClosure(this))
+							return true;
+					}
+				}
+			}
+		}
+		return false;
+	}
+}

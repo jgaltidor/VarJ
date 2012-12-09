@@ -1,0 +1,141 @@
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Set;
+import java.util.HashSet;
+
+aspect ConstraintSystem
+{
+	syn lazy DVar GenericTypeDecl.getDVar(int index) =
+		getDVar(getTypeParameter(index));
+
+	syn lazy DVar GenericTypeDecl.getDVar(TypeVariable tv) =
+		new DVar(this, tv);
+	
+	syn lazy UVar ParameterDeclaration.getUVar(int index) =
+		new UVar(this, index);
+
+	syn lazy Value GenericTypeDecl.computeVar(int index)
+		= computeVar(getTypeParameter(index));
+
+	syn lazy Value GenericTypeDecl.computeVar(TypeVariable tv)
+		= getDVar(tv).eval();
+
+	syn lazy Value VVar.eval() circular [BIVARIANT]  {
+		// Value var = this.eval();
+		Value var = BIVARIANT;
+		java.util.List<VExpr> ubounds = this.bounds();
+		for(VExpr bound : bounds()) {
+			var = var.meet(bound.eval());
+			if(var.equals(INVARIANT))
+				return INVARIANT;
+		}
+		return var;
+	}
+
+	syn lazy java.util.List<VExpr> VVar.bounds()
+		= Collections.emptyList();
+
+	eq DVar.bounds() =
+		strategy.varBounds(getGenericTypeDecl(), getTypeVariable());
+		
+
+	// varExpr computes var(X; T)
+	
+	syn VExpr TypeDecl.varExpr(TypeVariable tv) = BIVARIANT;
+	
+	/**
+	  * var(X; C<v_1 T_1, ..., v_n T_n>),
+	  * where v_i is the use-site annotation applied to
+	  * type actual T_i.
+	  */
+	eq ParTypeDecl.varExpr(TypeVariable tv) {
+		GenericTypeDecl gtd =
+			(GenericTypeDecl) ((TypeDecl) this).original();
+		VExpr result = null;
+		for (int i = 0; i < getNumArgument(); i++) {
+			TypeDecl typeArg = getArgument(i).type();
+			if(typeArg.structurallyContains(tv)) {
+				DVar gtdVar = gtd.getDVar(i);
+				Value annotationVar;
+				if (typeArg.isWildcardExtendsType())
+					annotationVar = COVARIANT;
+				else if (typeArg.isWildcardSuperType())
+					annotationVar = CONTRAVARIANT;
+				else
+					annotationVar = INVARIANT;
+				VExpr newVar = new Transform(
+					new Join(gtdVar, annotationVar),
+					typeArg.varExpr(tv));
+				result = (result == null) ?
+					newVar : new Meet(result, newVar);
+			}
+		}
+		return (result == null) ? BIVARIANT : result;
+	}
+
+	eq TypeVariable.varExpr(TypeVariable tv) =
+		(this == tv) ? COVARIANT : BIVARIANT;
+
+	eq ArrayDecl.varExpr(TypeVariable tv) =
+		componentType().varExpr(tv);
+
+	eq WildcardExtendsType.varExpr(TypeVariable tv) =
+		getAccess().type().varExpr(tv);
+
+	eq WildcardSuperType.varExpr(TypeVariable tv) =
+		getAccess().type().varExpr(tv);
+
+		
+	syn lazy boolean VVar.isRecursivelyBounded()
+		= varBoundClosure().contains(this);
+
+	// varBoundClosure
+
+	syn lazy Set<VVar> VVar.varBoundClosure() circular [Collections.emptySet()]
+	{
+		Set<VVar> vars = new HashSet<VVar>();
+		for(VExpr bound : bounds()) {
+			for(VVar var : bound.getVars()) {
+				vars.add(var);
+				if(!var.equals(this))
+					vars.addAll(var.varBoundClosure());
+			}
+		}
+		return vars;
+	}
+
+	/** Returns the set of VVars in a variance expression. */
+	syn Set<VVar> VExpr.getVars() = Collections.emptySet();
+	
+	eq Transform.getVars() {
+		Set<VVar> set = new HashSet<VVar>();
+		set.addAll(getLeft().getVars());
+		set.addAll(getRight().getVars());
+		return set;
+	}
+
+	eq Meet.getVars() {
+		Set<VVar> set = new HashSet<VVar>();
+		set.addAll(getLeft().getVars());
+		set.addAll(getRight().getVars());
+		return set;
+	}
+
+	eq Join.getVars() {
+		Set<VVar> set = new HashSet<VVar>();
+		set.addAll(getLeft().getVars());
+		set.addAll(getRight().getVars());
+		return set;
+	}
+	
+	eq VVar.getVars() = ASTUtils.singletonSet(this);
+
+
+	/*
+	syn lazy Set<VVar> GenericTypeDecl.dvarBoundClosure(int index) =
+		dvarBoundClosure(getTypeParameter(index));
+
+	syn lazy Set<VVar> GenericTypeDecl.dvarBoundClosure(TypeVariable tv) =
+		getDVar(tv).varBoundClosure();
+	*/
+}
