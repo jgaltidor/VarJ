@@ -6,6 +6,9 @@ import AST.Frontend;
 import AST.BytecodeParser;
 import AST.JavaParser;
 import AST.Options;
+import AST.AnalysisStrategy;
+import AST.OnlySigAnalysis;
+import AST.MethBodyAnalysis;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Collection;
@@ -25,6 +28,10 @@ public class VarFrontend extends Frontend
 			"  -verbosity                Logging verbosity level (1-3). Default is 1");
 		System.out.println(
     	"  -nologcolor               No colored output in log messages");
+		System.out.println(
+    	"  -allprivate               Analyze all private instance members");
+		System.out.println(
+    	"  -bodies                   Analyze method bodies");
     System.out.println();
 	}
 
@@ -38,6 +45,8 @@ public class VarFrontend extends Frontend
 		// Logging verbosity level (1-3). Default level is 1
 		options().addKeyValueOption("-verbosity");
 		options().addKeyOption("-nologcolor");
+		options().addKeyOption("-allprivate");
+		options().addKeyOption("-bodies");
 	}
 
 	
@@ -72,6 +81,16 @@ public class VarFrontend extends Frontend
 		// initialize logger with appropriate settings
 		LogUtil.initLogger(ASTNode.LOG, handler);
 		ASTNode.LOG.setLevel(loglevel);
+		
+		// Set analysis strategy
+		AnalysisStrategy.Visibility visibility =
+			options().hasOption("-allprivate") ?
+				AnalysisStrategy.Visibility.ALL_PRIVATE :
+				AnalysisStrategy.Visibility.MINIMAL;
+		
+		ASTNode.strategy = options().hasOption("-bodies") ?
+			new MethBodyAnalysis(visibility) :
+			new OnlySigAnalysis(visibility);
 	}
 
 
@@ -210,24 +229,6 @@ public class VarFrontend extends Frontend
 				getFiles(child.getPath(), srcfiles);
 		}
 	}
-	
-
-	/** Compiles all *.java files under directories
-	  * listed in the args.
-	  */
-	/*
-	public void compileAllSources(String[] args) {
-		String[] newArgs = this.preprocessArgs(args);
-		VarFrontend.compile(this, newArgs);
-	}
-	*/
-
-	/*
-	public static boolean compile(String args[]) {
-		return compile(new VarFrontend(), args);
-	}
-	*/
-	
 	
 	public static void main(String args[]) {
 		VarFrontend vf = new VarFrontend();

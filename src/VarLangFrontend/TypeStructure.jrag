@@ -80,8 +80,8 @@ aspect TypeStructure
 	// isInTypeClosure
 	syn lazy boolean TypeDecl.isInTypeClosure(TypeDecl t) = typedefClosure().contains(t);
 	
-	syn Set<TypeDecl> TypeDecl.typedefClosure() circular [new HashSet<TypeDecl>()]
-		= new HashSet<TypeDecl>();
+	syn Set<TypeDecl> TypeDecl.typedefClosure() circular [Collections.emptySet()]
+		= Collections.emptySet();
 	
 	eq ClassDecl.typedefClosure() {
 		HashSet<TypeDecl> set = new HashSet<TypeDecl>();
@@ -116,9 +116,10 @@ aspect TypeStructure
 	eq ArrayDecl.typedefClosure() = componentType().typedefClosure();	
 
 
+	// BodyDecl.typedefClosure
 
-	syn Set<TypeDecl> BodyDecl.typedefClosure() circular [new HashSet<TypeDecl>()] =
-		new HashSet<TypeDecl>();
+	syn Set<TypeDecl> BodyDecl.typedefClosure() circular [Collections.emptySet()] =
+		Collections.emptySet();
 	
 	eq FieldDeclaration.typedefClosure() = type().typedefClosure();
 	

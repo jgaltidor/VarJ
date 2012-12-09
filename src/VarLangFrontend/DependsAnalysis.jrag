@@ -56,11 +56,7 @@ aspect DependsAnalysis
     return decls;
 	}
 	
-	eq VarAccess.accessedVarDecls() {
-		Set<Variable> decls = new HashSet<Variable>();
-		decls.add(decl());
-		return decls;
-	}
+	eq VarAccess.accessedVarDecls() = ASTUtils.singletonSet(decl());
 
 	
 	/** Variable.getAssignedTo() is really a collection attribute
@@ -131,15 +127,6 @@ aspect DependsAnalysis
 		}
 	}
 
-
-	syn lazy java.util.List<ParameterDeclaration> MethodDecl.overridingParams(int i) {
-		ArrayList<ParameterDeclaration> params = new ArrayList<ParameterDeclaration>();
-		for(MethodDecl overridingMethod : overridingMethods()) {
-			params.add(overridingMethod.getParameter(i));
-		}
-		return params;
-	}
-
 	// Final technical detail of implementing Variable.getAssignedTo().
 	// Since Variable is an interface, need to provide a separate
 	// implementation for each direct implementing subclass
@@ -194,12 +181,6 @@ aspect DependsAnalysis
 		decls.addAll(super.accessedMethDecls());
 		return decls;
 	}
-
-
-	syn MethodDecl MethodDecl.originalDecl() = this;
-	
-	eq MethodDeclSubstituted.originalDecl() = getOriginal().originalDecl();
-
 
 	// reachable
 	

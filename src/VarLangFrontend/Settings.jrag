@@ -22,10 +22,7 @@
   */
 aspect Settings
 {
-	public static Logger ASTNode.LOG = logutil.LogUtil.getGlobalLogger();
+	public static AnalysisStrategy ASTNode.strategy = null;
 
-	/** If true, analyzes all private members;
-	  * otherwise, analyzes the minimum needed
-	  */
-	public static boolean ASTNode.analyzePrivate = false;
+	public static Logger ASTNode.LOG = logutil.LogUtil.getGlobalLogger();
 }

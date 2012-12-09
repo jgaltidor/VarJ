@@ -1,0 +1,68 @@
+import java.util.ArrayList;
+import java.util.Set;
+import java.util.HashSet;
+
+/** This aspect contains utility methods used by multiple clients (aspects)
+  * other than itself.
+  */
+aspect Utils
+{
+	// fullName
+
+	syn lazy String BodyDecl.fullName() = hostType().fullName();
+	
+	eq MethodDecl.fullName() = hostType().fullName() + '.' + name();
+	
+	syn lazy String Variable.fullName();
+	
+	eq FieldDeclaration.fullName() = hostType().fullName() + '.' + name();
+	
+	eq ParameterDeclaration.fullName() =
+		enclosingBodyDecl().fullName() + '.' + name();
+	
+	eq VariableDeclaration.fullName() =
+		enclosingBodyDecl().fullName() + '.' + name();
+	
+	// Avoid having to use more time expensive instanceof operation
+	
+	syn lazy boolean TypeDecl.isWildcardExtendsType() = false;
+	eq WildcardExtendsType.isWildcardExtendsType() = true;
+
+	syn lazy boolean TypeDecl.isWildcardSuperType() = false;
+	eq WildcardSuperType.isWildcardSuperType() = true;
+
+	syn lazy boolean TypeDecl.isWildcardType() = false;
+	eq WildcardType.isWildcardType() = true;
+
+	syn lazy boolean BodyDecl.isFieldDeclaration() = false;
+	eq FieldDeclaration.isFieldDeclaration() = true;
+
+	syn lazy boolean BodyDecl.isMethodDecl() = false;
+	eq MethodDecl.isMethodDecl() = true;
+
+	syn lazy MethodDecl MethodDecl.originalDecl() = this;
+	eq MethodDeclSubstituted.originalDecl() = getOriginal().originalDecl();
+
+	syn lazy FieldDeclaration FieldDeclaration.originalDecl() = this;
+	eq FieldDeclarationSubstituted.originalDecl() = getOriginal().originalDecl();
+	
+	
+	/** Needed to added some utility methods to this class because JastAdd
+		* fails to parse some legal Java methods, such as generic methods
+		* (methods with declared type parameters).
+		*/
+	public class ASTUtils
+	{
+		public static <T> java.util.List<T> singletonList(T elem) {
+			ArrayList<T> arr = new ArrayList<T>();
+			arr.add(elem);
+			return arr;
+		}
+	
+		public static <T> Set<T> singletonSet(T elem) {
+			HashSet<T> set = new HashSet<T>();
+			set.add(elem);
+			return set;
+		}
+	}
+}

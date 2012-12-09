@@ -49,6 +49,31 @@ aspect VirtualMethods
 		sourceFilesLoaded = true;
 	}
 
+
+	// overridingParams
+
+
+	syn lazy java.util.List<ParameterDeclaration> MethodDecl.overridingParams(int i) {
+		ArrayList<ParameterDeclaration> params = new ArrayList<ParameterDeclaration>();
+		for(MethodDecl overridingMethod : overridingMethods()) {
+			params.add(overridingMethod.getParameter(i));
+		}
+		return params;
+	}
+	
+	inh lazy java.util.List<ParameterDeclaration> ParameterDeclaration.overridingParams();
+
+	// eq ASTNode.getChild(int i).overridingParams() = Collections.empty();
+
+	eq MethodDecl.getParameter(int i).overridingParams() = overridingParams(i);
+	
+	eq ConstructorDecl.getParameter(int i).overridingParams() =
+		ASTUtils.singletonList(getParameter(i));
+	
+	eq BasicCatch.getParameter().overridingParams() =
+		ASTUtils.singletonList(getParameter());
+
+
 	// Method for Testing
 
 	public void TypeDecl.logOverridenMethods() {

@@ -51,11 +51,13 @@
 <target name="build" depends="gen,init-scala">
   <!-- Compile Java sources -->
 	<javac debug="true" nowarn="true" srcdir="." destdir="." includes="**/*.java"
-	       excludes="unittests/**,notyet/**" 
+	       excludes="unittests/**,notyet/**,old/**"
          classpath=".:${tools}/beaver-rt.jar:${tools}/junit.jar:"
          includeantruntime="false"/>
   <!-- Compile Scala sources -->
-  <scalac classpathref="scala.classpath" srcdir="." includes="**/*.scala" />
+  <scalac classpathref="scala.classpath" srcdir="."
+          includes="**/*.scala"
+          excludes="unittests/**,notyet/**,old/**" />
 </target>
 
 <!-- generate compiler source files -->

@@ -1,0 +1,199 @@
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Set;
+import java.util.HashSet;
+
+aspect AnalyzeMethBody
+{
+	public class MethBodyAnalysis extends AnalysisStrategy
+	{
+		public MethBodyAnalysis(Visibility visibility) { super(visibility); }
+
+		public java.util.List<VExpr> varBounds(TypeContainer container, TypeVariable tv) {
+			return container.varBoundsBodies(tv);
+		}
+	}
+
+	syn lazy java.util.List<VExpr> TypeContainer.varBoundsBodies(TypeVariable tv);
+
+	// TypeDecl.varBoundsBodies
+	
+	eq TypeDecl.varBoundsBodies(TypeVariable tv) = varBoundsSig(tv);
+
+	// BodyDecl.varBoundsBodies
+
+	eq BodyDecl.varBoundsBodies(TypeVariable tv) = varBoundsSig(tv);
+
+	eq MethodDecl.varBoundsBodies(TypeVariable tv) {
+		java.util.List<VExpr> bounds = new ArrayList<VExpr>();
+		String fullname = fullName();
+		VExpr bound;
+		
+		// Collect bounds from argument types, which will now contain unknowns
+		// denoting of the most general use-site variance annotations allowed
+		// for method bodies.
+		for (int i = 0; i < getNumParameter(); i++) {
+			ParameterDeclaration param = getParameter(i);
+			if(param.type().structurallyContains(tv)) {
+				VExpr paramTypeVar = param.varExprWithUVars(tv);
+				bound = new Transform(CONTRAVARIANT, paramTypeVar);
+				LOG.log(INFO, String.format("varBoundsBodies(%s [arg %d]): %s",
+					fullname, i, bound));
+				bounds.add(bound);
+			}
+		}
+		
+		// bound from return type
+		TypeDecl rtyp = type();
+		if(rtyp.structurallyContains(tv)) {
+			bound = rtyp.varExpr(tv);
+			LOG.log(INFO, String.format("varBoundsBodies(%s [return]): %s",
+				fullname, bound));
+			bounds.add(bound);
+		}
+		return bounds;
+	}
+	
+	
+	syn VExpr ParameterDeclaration.varExprWithUVars(TypeVariable tv) {
+		TypeDecl typ = type();
+		if(!typ.isParameterizedType()) {
+			return typ.varExpr(tv);
+		}
+		GenericTypeDecl gtd = (GenericTypeDecl) typ.original();
+		ParTypeDecl ptyp = (ParTypeDecl) typ;
+		VExpr result = null;
+		for (int i = 0; i < ptyp.getNumArgument(); i++) {
+			TypeDecl typeArg = ptyp.getArgument(i).type();
+			if(typeArg.structurallyContains(tv)) {
+				DVar gtdVar = gtd.getDVar(i);
+				UVar annotationVar = getUVar(i);
+				VExpr newVar = new Transform(
+					new Join(gtdVar, annotationVar),
+					typeArg.varExpr(tv));
+				result = (result == null) ?
+					newVar : new Meet(result, newVar);
+			}
+		}
+		return (result == null) ? BIVARIANT : result;
+	}
+
+
+	eq GenericMethodDecl.varBoundsBodies(TypeVariable tv) {
+		java.util.List<VExpr> bounds = new ArrayList<VExpr>();
+		bounds.addAll(super.varBoundsBodies(tv));
+		String fullname = fullName();
+		
+		// Collect bounds from upper bounds of type parameters.
+		// Java does not allow lower bounds on type parameters.
+		// Upper bounds of method type parameters are in
+		// contravariant positions.
+		for(int j = 0; j < getNumTypeParameter(); j++) {
+			TypeVariable param = getTypeParameter(j);
+			for (int i = 0; i < param.getNumTypeBound(); i++) {
+				TypeDecl typ = param.getTypeBound(i).type();
+				if(typ.structurallyContains(tv)) {
+					VExpr bound = new Transform(CONTRAVARIANT, typ.varExpr(tv));
+					LOG.log(INFO, String.format(
+						"varBoundsBodies(%s [type arg bound (%d, %d)]): %s",
+						fullname, j, i, bound));
+					bounds.add(bound);
+				}
+			}
+		}
+		return bounds;
+	}
+
+	eq UVar.bounds() = getParam().usesiteListOfBoundLists().get(getIndex());
+	
+	syn lazy java.util.List<VExpr> ParameterDeclaration.usesiteBoundList(int index)
+		= usesiteListOfBoundLists().get(index);
+
+	syn lazy java.util.List<java.util.List<VExpr>> ParameterDeclaration.usesiteListOfBoundLists()
+	{
+		BodyDecl enclosingBody = enclosingBodyDecl();
+		if(enclosingBody instanceof MethodDecl) {
+			MethodDecl meth = (MethodDecl) enclosingBody;
+			return meth.usesiteListOfBoundLists(this);
+		}
+		else {
+			throw new RuntimeException(
+			  "Computing usesiteListOfBoundLists for a ParameterDeclaration of a "
+			  + enclosingBody.getClass().getName());
+		}
+	}
+	
+	syn lazy java.util.List<java.util.List<VExpr>> MethodDecl.usesiteListOfBoundLists(Variable var)
+	{
+		TypeDecl typ = var.type();
+		if(!typ.isParameterizedType()) {
+			return Collections.emptyList();
+		}
+		GenericTypeDecl gtd = (GenericTypeDecl) typ.original();
+		int numTypeParams = gtd.getNumTypeParameter();
+		if(numTypeParams == 0) {
+			return Collections.emptyList();
+		}
+		java.util.List<java.util.List<VExpr>> listOfBoundLists =
+			new ArrayList<java.util.List<VExpr>>(numTypeParams);
+		Set<MemberDecl> members = membersAccessed(var);
+		for(int i = 0; i < numTypeParams; i++) {
+			TypeVariable tv = gtd.getTypeParameter(i);
+			ArrayList<VExpr> bounds = new ArrayList<VExpr>();
+			for(MemberDecl member : members) {
+				bounds.addAll(strategy.varBounds(member, tv));
+			}
+			listOfBoundLists.add(bounds);
+		}
+		return listOfBoundLists;
+	}
+	
+	/** Return the set of non-static members accessed */
+	syn Set<MemberDecl> ASTNode.membersAccessed(Variable var) {
+		Set<MemberDecl> members = new HashSet<MemberDecl>();
+    for(int i = 0; i < getNumChild(); i++) {
+    	members.addAll(getChild(i).membersAccessed(var));
+    }
+    return members;
+	}
+
+	eq MethodAccess.membersAccessed(Variable var) {
+		if(qualifiedBy(var)) {
+			MethodDecl method = decl().originalDecl();
+			if(!method.isStatic()) {
+				HashSet<MemberDecl> members = new HashSet<MemberDecl>();
+				members.addAll(method.overridingMethods());
+				return members;
+			}
+		}
+		return Collections.emptySet();
+	}
+
+	eq VarAccess.membersAccessed(Variable var) {
+		if(qualifiedBy(var)) {
+			Variable vdecl = decl();
+			if(vdecl.isInstanceVariable()) {
+				FieldDeclaration field = ((FieldDeclaration) vdecl).originalDecl();
+				return ASTUtils.<MemberDecl>singletonSet(field);			
+			}
+		}
+		return Collections.emptySet();
+	}
+
+	syn lazy boolean Expr.qualifiedBy(Variable v) = false;
+
+	eq VarAccess.qualifiedBy(Variable v) {
+		if (decl() == v) return true;
+		else if (isQualified()) return qualifier().qualifiedBy(v);
+		else return false;
+	}
+
+
+	inh lazy boolean VarAccess.isWriteTarget();
+
+	// if access is on the written end of an assign, then it is not being read
+	eq AssignExpr.getDest().isWriteTarget() = true;
+	// all other cases, it is read.
+	eq Program.getChild().isWriteTarget() = false;
+
+}
