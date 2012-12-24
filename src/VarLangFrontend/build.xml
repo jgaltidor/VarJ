@@ -33,6 +33,9 @@
 <!-- Get access to environment variables via "env." prefix -->
 <property environment="env"/>
 
+<!-- Location of JCommander distribution -->
+<property name="jcommander" value="../jcommander-master" />
+
 
 <target name="init-scala">
 	<path id="scala.classpath">
@@ -48,7 +51,7 @@
 </target>
 
 <!-- compile sources -->
-<target name="build" depends="gen,init-scala">
+<target name="build" depends="gen,init-scala,jcommander">
   <!-- Compile Java sources -->
 	<javac debug="true" nowarn="true" srcdir="." destdir="." includes="**/*.java"
 	       excludes="unittests/**,notyet/**,old/**"
@@ -58,6 +61,11 @@
   <scalac classpathref="scala.classpath" srcdir="."
           includes="**/*.scala"
           excludes="unittests/**,notyet/**,old/**" />
+</target>
+
+<target name="jcommander">
+	<javac debug="true" nowarn="true" srcdir="${jcommander}/src/main/java" destdir="." includes="**/*.java"
+	        includeantruntime="false" />
 </target>
 
 <!-- generate compiler source files -->
@@ -163,11 +171,12 @@
     <delete>
       <fileset dir="." includes="**/*.class"/>
     </delete>
-    <delete dir="tame" />
-    <delete dir="parser" />
-    <delete dir="scanner" />
-    <delete file="VarLang.jar"/>
-    <delete file="VarLangFrontend-src.jar"/>
+    <delete quiet="true" dir="tame" />
+    <delete quiet="true" dir="parser" />
+    <delete quiet="true" dir="scanner" />
+    <delete quiet="true" dir="com" />
+    <delete quiet="true" file="VarLang.jar"/>
+    <delete quiet="true" file="VarLangFrontend-src.jar"/>
 </target>
 
 <!-- remove generated source files -->
