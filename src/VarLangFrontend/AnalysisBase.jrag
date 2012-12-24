@@ -15,8 +15,8 @@ aspect AnalysisBase
 	BodyDecl implements TypeContainer;
 
 	/** Class representing all analysis options
-	  * Mainly, it represents a strategy for generating constraints
-		* on variance unknowns such as inferred definition-site variances
+	  * It represents a strategy for generating constraints on variance
+	  * unknowns such as inferred definition-site variances.
 		* In particular, implementing the function varBounds depends on
 		* three inputs:
 		* 1) The AST construct being analyzed

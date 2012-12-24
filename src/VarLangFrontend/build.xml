@@ -81,8 +81,8 @@
 			<include name="**/*.ast"/>
 			<include name="**/*.jrag"/>
 			<include name="**/*.jadd"/>
-			<exclude name="old/**"/>    <!-- jga -->
-			<exclude name="notyet/**"/> <!-- jga -->
+			<exclude name="old/**"/>
+			<exclude name="notyet/**"/>
 		</fileset>
   </jastadd>
   <!-- copy library files-->

@@ -7,8 +7,6 @@ import AST.BytecodeParser;
 import AST.JavaParser;
 import AST.Options;
 import AST.AnalysisStrategy;
-import AST.OnlySigAnalysis;
-import AST.MethBodyAnalysis;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Collection;
@@ -89,8 +87,9 @@ public class VarFrontend extends Frontend
 				AnalysisStrategy.Visibility.MINIMAL;
 		
 		ASTNode.strategy = options().hasOption("-bodies") ?
-			new MethBodyAnalysis(visibility) :
-			new OnlySigAnalysis(visibility);
+			// new AST.MethBodyAnalysis(visibility) :
+			null :
+			new AST.OnlySigAnalysis(visibility);
 	}
 
 

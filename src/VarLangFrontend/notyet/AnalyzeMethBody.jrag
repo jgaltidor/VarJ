@@ -43,14 +43,7 @@ aspect AnalyzeMethBody
 			}
 		}
 		
-		// bound from return type
-		TypeDecl rtyp = type();
-		if(rtyp.structurallyContains(tv)) {
-			bound = rtyp.varExpr(tv);
-			LOG.log(INFO, String.format("varBoundsBodies(%s [return]): %s",
-				fullname, bound));
-			bounds.add(bound);
-		}
+		bounds.addAll(boundsFromReturnType());
 		return bounds;
 	}
 	
@@ -67,9 +60,16 @@ aspect AnalyzeMethBody
 			TypeDecl typeArg = ptyp.getArgument(i).type();
 			if(typeArg.structurallyContains(tv)) {
 				DVar gtdVar = gtd.getDVar(i);
-				UVar annotationVar = getUVar(i);
+				Value specifiedAnnotation;
+				if (typeArg.isWildcardExtendsType())
+					specifiedAnnotation = COVARIANT;
+				else if (typeArg.isWildcardSuperType())
+					specifiedAnnotation = CONTRAVARIANT;
+				else
+					specifiedAnnotation = INVARIANT;
+				UVar optimalAnnotation = getUVar(i);
 				VExpr newVar = new Transform(
-					new Join(gtdVar, annotationVar),
+					new Join(gtdVar, new Join(specifiedAnnotation, optimalAnnotation)),
 					typeArg.varExpr(tv));
 				result = (result == null) ?
 					newVar : new Meet(result, newVar);
@@ -105,25 +105,12 @@ aspect AnalyzeMethBody
 	}
 
 	eq UVar.bounds() = getParam().usesiteListOfBoundLists().get(getIndex());
-	
+
+
 	syn lazy java.util.List<VExpr> ParameterDeclaration.usesiteBoundList(int index)
 		= usesiteListOfBoundLists().get(index);
-
-	syn lazy java.util.List<java.util.List<VExpr>> ParameterDeclaration.usesiteListOfBoundLists()
-	{
-		BodyDecl enclosingBody = enclosingBodyDecl();
-		if(enclosingBody instanceof MethodDecl) {
-			MethodDecl meth = (MethodDecl) enclosingBody;
-			return meth.usesiteListOfBoundLists(this);
-		}
-		else {
-			throw new RuntimeException(
-			  "Computing usesiteListOfBoundLists for a ParameterDeclaration of a "
-			  + enclosingBody.getClass().getName());
-		}
-	}
 	
-	syn lazy java.util.List<java.util.List<VExpr>> MethodDecl.usesiteListOfBoundLists(Variable var)
+	syn lazy java.util.List<java.util.List<VExpr>> ParameterDeclaration.usesiteListOfBoundLists()
 	{
 		TypeDecl typ = var.type();
 		if(!typ.isParameterizedType()) {
@@ -134,50 +121,81 @@ aspect AnalyzeMethBody
 		if(numTypeParams == 0) {
 			return Collections.emptyList();
 		}
-		java.util.List<java.util.List<VExpr>> listOfBoundLists =
+		ArrayList<java.util.List<VExpr>> listOfBoundLists =
 			new ArrayList<java.util.List<VExpr>>(numTypeParams);
-		Set<MemberDecl> members = membersAccessed(var);
+
+		// overridingParameters is used to add bounds induced by
+		// all overriding method implementations
+		java.util.List<ParameterDeclaration> overridingParameters = overridingParams();
+
 		for(int i = 0; i < numTypeParams; i++) {
 			TypeVariable tv = gtd.getTypeParameter(i);
+			// that may not be too conservative
 			ArrayList<VExpr> bounds = new ArrayList<VExpr>();
-			for(MemberDecl member : members) {
-				bounds.addAll(strategy.varBounds(member, tv));
+			if(getAssignedTo().empty()) {
+				// Add bounds induced by all overriding method implementations.
+				for(ParameterDeclaration param : overridingParameters) {
+					// each enclosingBody should be a method
+					BodyDecl enclosingBody = param.enclosingBodyDecl();
+					bounds.addAll(enclosingBody.usesiteBounds(param, tv));
+				}
+			}
+			else {
+				bounds.add();
 			}
 			listOfBoundLists.add(bounds);
 		}
 		return listOfBoundLists;
 	}
-	
-	/** Return the set of non-static members accessed */
-	syn Set<MemberDecl> ASTNode.membersAccessed(Variable var) {
-		Set<MemberDecl> members = new HashSet<MemberDecl>();
+
+	/** Returns the set of bounds placed on the def-site variance of tv
+	  * required to support the uses of var in the ASTNode.
+	  * This method is used to compute the bounds on use-site variance
+	  * annotations.
+	  */
+	syn java.util.List<VExpr> ASTNode.usesiteBounds(Variable var, TypeVariable tv) {
+		ArrayList<VExpr> bounds = new ArrayList<VExpr>();
     for(int i = 0; i < getNumChild(); i++) {
-    	members.addAll(getChild(i).membersAccessed(var));
+    	bounds.addAll(getChild(i).usesiteBounds(var, tv));
     }
-    return members;
+    return bounds;
 	}
 
-	eq MethodAccess.membersAccessed(Variable var) {
+	eq MethodAccess.usesiteBounds(Variable var, TypeVariable tv) {
+		ArrayList<VExpr> bounds = new ArrayList<VExpr>();
+		bounds.addAll(super.usesiteBounds(var, tv));
 		if(qualifiedBy(var)) {
 			MethodDecl method = decl().originalDecl();
 			if(!method.isStatic()) {
-				HashSet<MemberDecl> members = new HashSet<MemberDecl>();
-				members.addAll(method.overridingMethods());
-				return members;
+				bounds.addAll(strategy.varBounds(method, tv))
 			}
 		}
-		return Collections.emptySet();
+		return bounds;
 	}
 
-	eq VarAccess.membersAccessed(Variable var) {
+	eq VarAccess.usesiteBounds(Variable var, TypeVariable tv) {
+		ArrayList<VExpr> bounds = new ArrayList<VExpr>();
 		if(qualifiedBy(var)) {
 			Variable vdecl = decl();
 			if(vdecl.isInstanceVariable()) {
 				FieldDeclaration field = ((FieldDeclaration) vdecl).originalDecl();
-				return ASTUtils.<MemberDecl>singletonSet(field);			
+				TypeDecl fieldType = var.type();
+				if(fieldType.structurallyContains(tv)) {
+					VExpr vexpr = fieldType.varExpr(tv);
+					if(isWriteTarget()) {
+						// field is being written to so need the
+						// "contravariant version"
+						bounds.add(new Transform(CONTRAVARIANT, vexpr));
+					}
+					else {
+						// field is being read from so need the
+						// "covariant version"
+						bounds.add(vexpr);
+					}
+				}
 			}
 		}
-		return Collections.emptySet();
+		return bounds;
 	}
 
 	syn lazy boolean Expr.qualifiedBy(Variable v) = false;
@@ -187,6 +205,25 @@ aspect AnalyzeMethBody
 		else if (isQualified()) return qualifier().qualifiedBy(v);
 		else return false;
 	}
+
+
+	/**
+	 * An access is considered a src of assignment if it is assigned
+	 * directly to a variable -- this includes method calls using
+	 * access as a parameter.
+	 **/
+	inh lazy boolean Expr.isAssignSrc(Access v);
+
+	eq AssignExpr.getSource().isAssignSrc(Access v) =
+		(getSource() instanceof Access) && ((Access) getSource()).lastAccess() == v;
+	
+	eq VariableDeclaration.getInit().isAssignSrc(Access v) =
+		(getInit() instanceof Access) && ((Access) getInit()).lastAccess() == v;
+
+	eq MethodAccess.getArg(int i).isAssignSrc(Access v) =
+		(getArg(i) instanceof Access) && ((Access) getArg(i)).lastAccess() == v;
+
+	eq Program.getChild().isAssignSrc(Access v) = false;
 
 
 	inh lazy boolean VarAccess.isWriteTarget();
