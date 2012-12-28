@@ -1,26 +1,23 @@
 package tame
 // import implicit conversion for converting java.util collections
 import scala.collection.JavaConversions._
-import AST.ASTNode.strategy
+import com.beust.jcommander.Parameter
+
 
 object Tester
 {
 	def main(args:Array[String]):Unit = {
 		val vf = new VarFrontend
-		if(args.length == 0) {
-			vf.printUsage
-			sys.exit(1)
-		}
-		val newArgs = vf getNewArgsRecursively args
-		VarFrontend.compile(vf, newArgs)
+		val params = new FilesParams
+		BaseParams.processArgsAndCompile(args, vf, params, "tame.Tester")
 		IterSeq.getSrcGenerics(vf.getProgram).foreach(processGeneric)
 	}
-	
+
 	def processGeneric(gtd:AST.GenericTypeDecl):Unit = {
 		for(index <- 0 until gtd.getNumTypeParameter) {
 			val param = gtd getTypeParameter index
 			val dvar = gtd getDVar param
-			val bounds = strategy.varBounds(gtd, param).toList
+			val bounds = AST.ASTNode.strategy.varBounds(gtd, param).toList
 			println(dvar + ": " + dvar.eval())
 			println("-"*32)
 			println("bounds:")
@@ -33,36 +30,17 @@ object Tester
 	}
 }
 
-object LookupVar extends VarFrontend
+
+object LookupVar extends FilesParams
 {
+	@Parameter(names = Array("-g", "--generic"), required = true,
+						 description = "Name of generic to look up dvars")
 	var genericName:String = null
-	
-	override def initOptions:Unit = {
-		super.initOptions
-		options.addKeyValueOption("-generic")
-	}
-	
-	def preprocessArgs(args:Array[String]):Array[String] = {
-		val newArgs = getNewArgsRecursively(args)
-		genericName = getValueForRequiredOption("-generic")
-		newArgs
-	}
-
-	override def printUsage:Unit = {
-		super.printUsage
-		println("LookupVar options:")
-		println("  -generic" + (" "*17) + "Name of generic to look up dvars")
-	}
-
 
 	def main(args:Array[String]):Unit = {
-		if(args.length == 0) {
-			printUsage
-			sys.exit(1)
-		}
-		val newArgs = preprocessArgs(args)
-		VarFrontend.compile(this, newArgs)
-		IterSeq.getGeneric(getProgram, genericName) match
+		val vf = new VarFrontend
+		BaseParams.processArgsAndCompile(args, vf, this, "tame.LookupVar")
+		IterSeq.getGeneric(vf.getProgram, genericName) match
 		{
 			case Some(gtd) => Tester.processGeneric(gtd)
 			case None =>
@@ -72,45 +50,26 @@ object LookupVar extends VarFrontend
 }
 
 
-object AnalyzeType extends VarFrontend
+object AnalyzeType extends FilesParams
 {
+	@Parameter(names = Array("-t", "--type"), required = true,
+	           description = "Name of class/interface to analyze")
 	var typeName:String = null
 
-	override def initOptions:Unit = {
-		super.initOptions
-		options.addKeyValueOption("-type")
-	}
-	
-	def preprocessArgs(args:Array[String]):Array[String] = {
-		val newArgs = getNewArgsRecursively(args)
-		typeName = getValueForRequiredOption("-type")
-		newArgs
-	}
 
-	override def printUsage:Unit = {
-		super.printUsage
-		println("AnalyzeType options:")
-		println("  -type" + (" "*17) + "Name of class or interface to analyze")
-	}
-	
 	def main(args:Array[String]):Unit = {
-		if(args.length == 0) {
-			printUsage
-			sys.exit(1)
-		}
-		val newArgs = preprocessArgs(args)
-		VarFrontend.compile(this, newArgs)
-		IterSeq.getType(getProgram, typeName) match
+		val vf = new VarFrontend
+		BaseParams.processArgsAndCompile(args, vf, this, "tame.AnalyzeType")
+		IterSeq.getType(vf.getProgram, typeName) match
 		{
 			case Some(typeDecl) => analyzeTypeDec(typeDecl)
 			case None =>
 				Console.err.println("Class/Interface not found: " + typeName)
 		}
 	}
-	
+
 	def analyzeTypeDec(typeDecl:AST.TypeDecl):Unit = {
 		println("type: " + typeDecl.fullName)
 		typeDecl.logFieldFlowsTo
 	}
 }
-

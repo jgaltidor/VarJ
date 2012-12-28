@@ -1,9 +1,85 @@
 package tame
 
-// import implicit conversion for converting java.util collections
-// import scala.collection.jcl.Conversions._
-import scala.collection.JavaConversions._
+import com.beust.jcommander.Parameter
+import com.beust.jcommander.ParameterException
 import AST.ASTNode._
+// importing implicit conversions for java.util collections
+import scala.collection.JavaConversions._
+import java.util.ArrayList
+
+
+object InferStats extends BaseParams
+{
+	// Main Parameter
+  @Parameter(description = "<dir1:nameN> ... <dirN:nameN>")
+  var pathNameArgs:java.util.List[String] = new ArrayList[String]
+
+	@Parameter(names = Array("t", "--texout"), required = true,
+	           description = "Name of tex file to generate")
+	var outTexFileName:String = null
+	
+	/** Should be accessed only after command line arguments are processed */
+	var pathNamePairs:Seq[(String,String)] = null
+	
+	/** Should be called after command line arguments are processed */
+	var optionArgs:java.util.List[String] = null
+	
+	@throws(classOf[ParameterException])
+	override def preprocessArgs(args:Array[String]):Unit = {
+		super.preprocessArgs(args)
+		
+		optionArgs = createCompilerArgs
+
+		def splitPathName(pathName:String):(String,String) = {
+			val i = pathName lastIndexOf ':'
+			(pathName.substring(0, i), pathName.substring(i+1))
+		}
+		try {
+			pathNamePairs = pathNameArgs map splitPathName
+		}
+		catch {
+			case exc : Exception =>
+				throw new ParameterException(String.format(
+					"Error while parsing path-name pairs: " + exc.getMessage))
+		}
+		if (pathNamePairs.isEmpty)
+			throw new ParameterException("No path-name pairs specified")
+	}
+
+
+	def main(args:Array[String]):Unit = {
+		BaseParams.parseAndPreProcess(args,
+			new VarFrontend, this, "tame.InferStats")
+
+		val allLibStats:Seq[LibStats] = pathNamePairs.map { p =>
+			val libstats = processLib(p._1, p._2)
+			// free up memory from last run
+			Runtime.getRuntime.gc
+			libstats
+		}
+		val allstats = new AllStats(allLibStats)
+		println("Writing out Tex Table to file: " + outTexFileName)
+		Utils.writeToFile(Table1.texTable(allstats), outTexFileName)
+		println("Successful completion")
+	}
+
+
+	def processLib(libpath:String, libname:String):LibStats = {
+		// Compute new args
+		// Collect source files
+		val sourceFiles = FilesParams.collectSourceFiles(libpath)
+		var newArgs = (optionArgs ++ sourceFiles).toArray
+		println("Analyzing library: " + libname)
+		val vf = new VarFrontend
+		VarFrontend.compile(vf, newArgs)
+		val typeDecls = IterSeq getSrcTypes vf.getProgram
+		val libstats = ComputeStats computeStats typeDecls
+		libstats.name = libname
+		println("Completed analysis of: " + libname)
+		libstats
+	}
+}
+
 
 object ComputeStats
 {
@@ -77,83 +153,11 @@ object ComputeStats
 	
 	def main(args:Array[String]):Unit = {
 		val vf = new VarFrontend
-		if(args.length == 0) {
-			vf.printUsage
-			sys.exit(1)
-		}
-		val newArgs = vf getNewArgsRecursively args
-		VarFrontend.compile(vf, newArgs)
+		val params = new FilesParams
+		BaseParams.processArgsAndCompile(args, vf, params, "tame.ComputeStats")
 		val typeDecls = IterSeq getSrcTypes vf.getProgram
 		val libstats = computeStats(typeDecls)
 		val allstats = new AllStats(List(libstats))
 		print(Table1.texTable(allstats))
-	}
-}
-
-class StatsFrontend extends VarFrontend
-{
-	var outTexFileName:String = null
-	var pathNamePairs:Seq[(String,String)] = null
-	var optionArgs:Seq[String] = null
-
-	override def printUsage:Unit = {
-		super.printUsage
-		println("tame.StatsFrontend usage: <options> <dir1:nameN> ... <dirN:nameN>")
-		println("tame.StatsFrontend options:")
-		println("  -texout" + (" "*17) + "Name of tex file to generate")
-	}
-	
-	override def initOptions:Unit = {
-		super.initOptions
-		options.addKeyValueOption("-texout")
-	}
-
-	def preprocessArgs(args:Array[String]):Array[String] = {
-
-		def splitPathName(pathName:String):(String,String) = {
-			val i = pathName lastIndexOf ':'
-			(pathName.substring(0, i), pathName.substring(i+1))
-		}
-		val optFiles = getOptFilesPair(args) // calls initOptions
-		pathNamePairs = optFiles.files.map(splitPathName)
-		outTexFileName = getValueForRequiredOption("-texout")
-		optionArgs = optFiles.options
-		args // These args will be ignored 
-	}
-	
-	def processLib(libpath:String, libname:String):LibStats = {
-		// Compute new args
-		var newArgs = (optionArgs ++ List(libpath)).toArray
-		newArgs = getNewArgsRecursively(newArgs)
-		println("Analyzing library: " + libname)
-		val sf = new StatsFrontend
-		VarFrontend.compile(sf, newArgs)
-		val typeDecls = IterSeq getSrcTypes sf.getProgram
-		val libstats = ComputeStats computeStats typeDecls
-		libstats.name = libname
-		println("Completed analysis of: " + libname)
-		libstats
-	}
-}
-
-object InferStats
-{
-	def main(args:Array[String]):Unit = {
-		val frontend = new StatsFrontend
-		if(args.length == 0) {
-			frontend.printUsage
-			sys.exit(1)
-		}
-		frontend preprocessArgs args
-		val allLibStats:Seq[LibStats] = frontend.pathNamePairs.map { p =>
-			val libstats = frontend.processLib(p._1, p._2)
-			// free up memory from last run
-			Runtime.getRuntime.gc
-			libstats
-		}
-		val allstats = new AllStats(allLibStats)
-		println("Writing out Tex Table to file: " + frontend.outTexFileName)
-		Utils.writeToFile(Table1.texTable(allstats), frontend.outTexFileName)
-		println("Successful completion")
 	}
 }
