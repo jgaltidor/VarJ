@@ -7,20 +7,25 @@
        genClean        - removes all generated files and their class files
 -->
 <project name="VarLangFrontend" default="build">
-
+<!-- root directory of source -->
+<property name="src" value=".." />
 <!-- location of JastAddJ -->
-<property name="JastAddJ" value="../JastAddJ_R9329"/>
+<property name="JastAddJ" value="JastAddJ_R9329"/>
+
+<!-- location of JCommander distribution -->
+<property name="jcommander" value="jcommander-master" />
 
 <!-- location of Java1.4Frontend -->
-<property name="Java1.4Frontend" value="${JastAddJ}/Java1.4Frontend"/>
+<property name="Java1.4Frontend" value="${src}/${JastAddJ}/Java1.4Frontend"/>
 
 <!-- location of Java1.5Frontend -->
-<property name="Java1.5Frontend" value="${JastAddJ}/Java1.5Frontend"/>
+<property name="Java1.5Frontend" value="${src}/${JastAddJ}/Java1.5Frontend"/>
 
 <!-- "package" is the directory where generated files will be stored -->
 <property name="package" value="AST"/>
 
-<!-- "tools" is the directory where generators and libraries are located. -->
+<!-- "tools" is the directory where generators and libraries
+     used by JastAddJ are located. -->
 <property name="tools" value="${Java1.4Frontend}/tools"/>
 
 <!-- "jflex" is an ant task class for the scanner generator in JFlex.jar -->
@@ -33,19 +38,22 @@
 <!-- Get access to environment variables via "env." prefix -->
 <property environment="env"/>
 
-<!-- Location of JCommander distribution -->
-<property name="jcommander" value="../jcommander-master" />
+<!-- Getting SCALA_HOME environment variable -->
+<property name="SCALA_HOME" value="${env.SCALA_HOME}" />
 
 
+<!-- Target for constructing values used to compile Scala sources -->
 <target name="init-scala">
+	<!-- Classpath for compiling Scala sources -->
 	<path id="scala.classpath">
-		<pathelement location="${env.SCALA_HOME}/lib/scala-library.jar" />
+		<pathelement location="${SCALA_HOME}/lib/scala-library.jar" />
 		<pathelement location="." />
 	</path>
 	<taskdef resource="scala/tools/ant/antlib.xml">
+		<!-- Classpath need for Scala ant task -->
 		<classpath>
-			<pathelement location="${env.SCALA_HOME}/lib/scala-compiler.jar"   />
-			<pathelement location="${env.SCALA_HOME}/lib/scala-library.jar"   />
+			<pathelement location="${SCALA_HOME}/lib/scala-compiler.jar"  />
+			<pathelement location="${SCALA_HOME}/lib/scala-library.jar"   />
 		</classpath>
 	</taskdef>
 </target>
@@ -64,14 +72,15 @@
 </target>
 
 <target name="jcommander">
-	<javac debug="true" nowarn="true" srcdir="${jcommander}/src/main/java" destdir="." includes="**/*.java"
-	        includeantruntime="false" />
+	<javac debug="true" nowarn="true" srcdir="${src}/${jcommander}/src/main/java"
+	       destdir="." includes="**/*.java" includeantruntime="false" />
 </target>
 
 <!-- generate compiler source files -->
 <target name="gen" depends="scanner,parser">
   <!-- create AST node types and weave aspect modules -->
-  <jastadd package="${package}" rewrite="true" beaver="true" novisitcheck="true" noCacheCycle="true" outdir="${basedir}" refineLegacy="false">
+  <jastadd package="${package}" rewrite="true" beaver="true" novisitcheck="true"
+           noCacheCycle="true" outdir="${basedir}" refineLegacy="false">
 		<fileset dir="${Java1.4Frontend}">
 			<include name="**/*.ast"/>
 			<include name="**/*.jrag"/>
@@ -176,7 +185,7 @@
     <delete quiet="true" dir="scanner" />
     <delete quiet="true" dir="com" />
     <delete quiet="true" file="VarLang.jar"/>
-    <delete quiet="true" file="VarLangFrontend-src.jar"/>
+    <delete quiet="true" file="VarLang-src.jar"/>
 </target>
 
 <!-- remove generated source files -->
@@ -195,7 +204,7 @@
 
 <!-- build binaries -->
 <target name="jar" depends="build">
-  <jar destfile="VarLang.jar" basedir="." includes="**/*.class" excludes="test/**">
+  <jar destfile="VarLang.jar" basedir="." includes="**/*.class" excludes="unittests/**">
     <manifest>
       <attribute name="Main-Class" value="tame.Tester"/>
     </manifest>
@@ -204,23 +213,38 @@
 
 
 <!-- build a source distribution -->
-<target name="source" depends="build">
-  <jar destfile="VarLangFrontend-src.jar">
-    <fileset dir="..">
-      <!-- include backend source file -->
-      <!-- <include name="VarLangFrontend/main/MyWildJChecker.java"/> -->
-      <include name="VarLangFrontend/**/*.ast"/>
-      <include name="VarLangFrontend/**/*.jrag"/>
-      <include name="VarLangFrontend/**/*.jadd"/>
-      <!-- include parser and scanner -->
-      <include name="VarLangFrontend/**/*.parser"/>
-      <include name="VarLangFrontend/*.flex"/>
-      <!-- include buildfile used to build the backend -->
-      <include name="VarLangFrontend/build.xml"/>
-      <!-- include readme and licence -->
-      <include name="VarLangFrontend/README"/>
-      <include name="VarLangFrontend/licences/BSD"/>
-    </fileset>
+<target name="source" depends="build" >
+	<delete file="VarLang-src.jar" />
+  <jar destfile="VarLang-src.jar">
+  	<fileset dir="${src}">
+  		<!-- VarLangFrontend -->
+  		<include name="VarLangFrontend/**/*.java" />
+  		<include name="VarLangFrontend/**/*.scala" />
+  		<include name="VarLangFrontend/**/*.ast" />
+  		<include name="VarLangFrontend/**/*.jrag" />
+  		<include name="VarLangFrontend/**/*.jadd" />
+  		<!-- include build script -->
+  		<include name="VarLangFrontend/build.xml" />
+  		
+  		<exclude name="VarLangFrontend/old/**" />
+  		<exclude name="VarLangFrontend/notyet/**" />
+  		<exclude name="VarLangFrontend/unittests/**" />
+  		
+  		<!-- exclude binary files -->
+  		<exclude name="VarLangFrontend/**/*.class" />
+			<!-- exclude generated files -->
+			<exclude name="VarLangFrontend/scanner/**" />
+			<exclude name="VarLangFrontend/parser/**" />
+			<exclude name="VarLangFrontend/${package}/**" />
+			
+			<!-- include 3rd party libraries -->
+			<include name="${JastAddJ}/**" />
+			<include name="${jcommander}/**" />
+
+			<!-- include readme and licence -->
+			<include name="README" />
+      <include name="licences/BSD" />
+		</fileset>
     <manifest>
     </manifest>
   </jar>

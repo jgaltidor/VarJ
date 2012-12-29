@@ -22,13 +22,13 @@ object InferStats extends BaseParams
 	var pathNamePairs:Seq[(String,String)] = null
 	
 	/** Should be called after command line arguments are processed */
-	var optionArgs:java.util.List[String] = null
+	var optionArgs:Seq[String] = null
 	
 	@throws(classOf[ParameterException])
 	override def preprocessArgs(args:Array[String]):Unit = {
 		super.preprocessArgs(args)
 		
-		optionArgs = createCompilerArgs
+		optionArgs = List.empty ++ createCompilerArgs
 
 		def splitPathName(pathName:String):(String,String) = {
 			val i = pathName lastIndexOf ':'
@@ -51,12 +51,13 @@ object InferStats extends BaseParams
 		BaseParams.parseAndPreProcess(args,
 			new VarFrontend, this, "tame.InferStats")
 
-		val allLibStats:Seq[LibStats] = pathNamePairs.map { p =>
-			val libstats = processLib(p._1, p._2)
-			// free up memory from last run
-			Runtime.getRuntime.gc
-			libstats
-		}
+		val allLibStats:Seq[LibStats] =
+			for((libpath, libname) <- pathNamePairs) yield {
+				val libstats = processLib(libpath, libname)
+				// free up memory from last run
+				Runtime.getRuntime.gc
+				libstats
+			}
 		val allstats = new AllStats(allLibStats)
 		println("Writing out Tex Table to file: " + outTexFileName)
 		Utils.writeToFile(Table1.texTable(allstats), outTexFileName)
@@ -68,8 +69,9 @@ object InferStats extends BaseParams
 		// Compute new args
 		// Collect source files
 		val sourceFiles = FilesParams.collectSourceFiles(libpath)
-		var newArgs = (optionArgs ++ sourceFiles).toArray
-		println("Analyzing library: " + libname)
+		val newArgs = (optionArgs ++ sourceFiles).toArray
+		printf("Analyzing library %s in path %s", libname, libpath)
+		println
 		val vf = new VarFrontend
 		VarFrontend.compile(vf, newArgs)
 		val typeDecls = IterSeq getSrcTypes vf.getProgram

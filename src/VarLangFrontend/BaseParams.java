@@ -29,7 +29,7 @@ public class BaseParams
 {
 	@Parameter(names = {"-h", "--help"}, help = true,
 	           description = "Print this help message and exit")
-  protected boolean help;
+	protected boolean help;
 
 	@Parameter(names = {"-v", "--verbose"}, description = "Level of verbosity (1-3)")
   protected int verbosity = 1;
