@@ -190,9 +190,9 @@
 
 <!-- remove generated source files -->
 <target name="cleanGen">
-    <delete dir="${package}"/>
-    <delete dir="beaver"/>
-    <delete>
+    <delete quiet="true" dir="${package}"/>
+    <delete quiet="true" dir="beaver"/>
+    <delete quiet="true">
       <fileset dir="scanner" includes="JavaScanner.flex"/>
       <fileset dir="scanner" includes="JavaScanner.java"/>
       <fileset dir="scanner" includes="Unicode.java"/>
