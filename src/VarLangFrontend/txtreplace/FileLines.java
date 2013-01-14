@@ -92,9 +92,9 @@ public class FileLines
 	public static List<String> combineLines(List<String> prefix, List<String> suffix)
 	{
 		if(prefix.isEmpty())
-			return suffix;
+			return copyList(suffix);
 		if(suffix.isEmpty())
-			return prefix;
+			return copyList(prefix);
 		// else both prefix and suffix are non-empty
 		int prefixSize = prefix.size();
 		// constructing resulting List

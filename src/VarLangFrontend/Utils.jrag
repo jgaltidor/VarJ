@@ -1,6 +1,4 @@
-import java.util.ArrayList;
 import java.util.Set;
-import java.util.HashSet;
 
 /** This aspect contains utility methods used by multiple clients (aspects)
   * other than itself.
@@ -46,21 +44,40 @@ aspect Utils
 	syn lazy FieldDeclaration FieldDeclaration.originalDecl() = this;
 	eq FieldDeclarationSubstituted.originalDecl() = getOriginal().originalDecl();
 	
-	
 	/** Needed to added some utility methods to this class because JastAdd
 		* fails to parse some legal Java methods, such as generic methods
 		* (methods with declared type parameters).
 		*/
 	public class ASTUtils
 	{
-		public static <T> java.util.List<T> singletonList(T elem) {
-			ArrayList<T> arr = new ArrayList<T>();
-			arr.add(elem);
-			return arr;
+		public static <E> java.util.List<E> copyList(java.util.List<E> list) {
+			java.util.List<E> newList = createList();
+			newList.addAll(list);
+			return newList;
+		}
+		
+		public static <E> java.util.List<E> createList() {
+			return new java.util.ArrayList<E>();
+		}
+
+		public static <E> Set<E> copySet(Set<E> set) {
+			Set<E> newSet = createSet();
+			newSet.addAll(set);
+			return newSet;
+		}
+		
+		public static <E> Set<E> createSet() {
+			return new java.util.HashSet<E>();
+		}
+
+		public static <E> java.util.List<E> singletonList(E elem) {
+			java.util.List<E> list = createList();
+			list.add(elem);
+			return list;
 		}
 	
-		public static <T> Set<T> singletonSet(T elem) {
-			HashSet<T> set = new HashSet<T>();
+		public static <E> Set<E> singletonSet(E elem) {
+			Set<E> set = createSet();
 			set.add(elem);
 			return set;
 		}

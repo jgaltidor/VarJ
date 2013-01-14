@@ -1,7 +1,5 @@
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Set;
-import java.util.HashSet;
 
 aspect ConstraintSystem
 {
@@ -93,7 +91,7 @@ aspect ConstraintSystem
 
 	syn lazy Set<VVar> VVar.varBoundClosure() circular [Collections.emptySet()]
 	{
-		Set<VVar> vars = new HashSet<VVar>();
+		Set<VVar> vars = ASTUtils.createSet();
 		for(VExpr bound : bounds()) {
 			for(VVar var : bound.getVars()) {
 				vars.add(var);
@@ -108,21 +106,21 @@ aspect ConstraintSystem
 	syn Set<VVar> VExpr.getVars() = Collections.emptySet();
 	
 	eq Transform.getVars() {
-		Set<VVar> set = new HashSet<VVar>();
+		Set<VVar> set = ASTUtils.createSet();
 		set.addAll(getLeft().getVars());
 		set.addAll(getRight().getVars());
 		return set;
 	}
 
 	eq Meet.getVars() {
-		Set<VVar> set = new HashSet<VVar>();
+		Set<VVar> set = ASTUtils.createSet();
 		set.addAll(getLeft().getVars());
 		set.addAll(getRight().getVars());
 		return set;
 	}
 
 	eq Join.getVars() {
-		Set<VVar> set = new HashSet<VVar>();
+		Set<VVar> set = ASTUtils.createSet();
 		set.addAll(getLeft().getVars());
 		set.addAll(getRight().getVars());
 		return set;

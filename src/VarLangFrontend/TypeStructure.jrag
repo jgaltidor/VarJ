@@ -1,14 +1,12 @@
 import java.util.Iterator;
 import java.util.Set;
-import java.util.HashSet;
-import java.util.ArrayList;
 
 aspect TypeStructure
 {
 	syn lazy java.util.List<TypeDecl> TypeDecl.superTypes() = Collections.emptyList();
 	
 	eq ClassDecl.superTypes() {
-		java.util.List<TypeDecl> superTypes = new ArrayList<TypeDecl>();
+		java.util.List<TypeDecl> superTypes = ASTUtils.createList();
 		if ( hasSuperclass()) {
 			TypeDecl s = superclass();
 			superTypes.add(s);
@@ -21,7 +19,7 @@ aspect TypeStructure
 	}
 
 	eq InterfaceDecl.superTypes() {
-		java.util.List<TypeDecl> superTypes = new ArrayList<TypeDecl>();
+		java.util.List<TypeDecl> superTypes = ASTUtils.createList();
 		for ( Iterator ifIt = superinterfacesIterator(); ifIt.hasNext(); ) {
 			TypeDecl iface = (TypeDecl) ifIt.next();
 			superTypes.add(iface);
@@ -84,7 +82,7 @@ aspect TypeStructure
 		= Collections.emptySet();
 	
 	eq ClassDecl.typedefClosure() {
-		HashSet<TypeDecl> set = new HashSet<TypeDecl>();
+		Set<TypeDecl> set = ASTUtils.createSet();
 		set.add(this);
 		for(int j=0; j < getNumBodyDecl(); j++) {
 			set.addAll(getBodyDecl(j).typedefClosure());
@@ -93,7 +91,7 @@ aspect TypeStructure
 	}
 
 	eq InterfaceDecl.typedefClosure() {
-		HashSet<TypeDecl> set = new HashSet<TypeDecl>();
+		Set<TypeDecl> set = ASTUtils.createSet();
 		set.add(this);
 		for(int j=0; j < getNumBodyDecl(); j++) {
 			set.addAll(getBodyDecl(j).typedefClosure());
@@ -102,7 +100,7 @@ aspect TypeStructure
 	}
 	
 	eq ParTypeDecl.typedefClosure() {
-		HashSet<TypeDecl> set = new HashSet<TypeDecl>();
+		Set<TypeDecl> set = ASTUtils.createSet();
 		for (int i = 0; i<getNumArgument(); i++) {
 			set.addAll(getArgument(i).type().typedefClosure());
 		}
@@ -124,7 +122,7 @@ aspect TypeStructure
 	eq FieldDeclaration.typedefClosure() = type().typedefClosure();
 	
 	eq MethodDecl.typedefClosure() {
-		HashSet<TypeDecl> set = new HashSet<TypeDecl>();
+		Set<TypeDecl> set = ASTUtils.createSet();
 		set.addAll(type().typedefClosure());
 		for (int i=0; i<getNumParameter(); i++) {
 			set.addAll(getParameter(i).type().typedefClosure());

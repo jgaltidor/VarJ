@@ -21,7 +21,7 @@ aspect AnalyzeSig
 
 	eq ClassDecl.varBoundsSig(TypeVariable tv)
 	{
-		java.util.List<VExpr> bounds = new ArrayList<VExpr>();
+		java.util.List<VExpr> bounds = ASTUtils.createList();
 		String fullname = fullName();
 		VExpr bound;
 		// analyze super type declarations
@@ -60,7 +60,7 @@ aspect AnalyzeSig
 
 	eq InterfaceDecl.varBoundsSig(TypeVariable tv)
 	{
-		java.util.List<VExpr> bounds = new ArrayList<VExpr>();
+		java.util.List<VExpr> bounds = ASTUtils.createList();
 		String fullname = fullName();
 		VExpr bound;
 		// analyze super type declarations
@@ -99,7 +99,7 @@ aspect AnalyzeSig
 
 	eq GenericTypeDecl.varBoundsSig(TypeVariable tv)
 	{
-		java.util.List<VExpr> bounds = new ArrayList<VExpr>();
+		java.util.List<VExpr> bounds = ASTUtils.createList();
 		bounds.addAll(super.varBoundsSig(tv));
 		String fullname = fullName();
 		VExpr bound;
@@ -134,7 +134,7 @@ aspect AnalyzeSig
 
 	eq FieldDeclaration.varBoundsSig(TypeVariable tv)
 	{
-		java.util.List<VExpr> bounds = new ArrayList<VExpr>();
+		java.util.List<VExpr> bounds = ASTUtils.createList();
 		String fullname = fullName();
 
 		// field type
@@ -162,7 +162,7 @@ aspect AnalyzeSig
 
 	eq MethodDecl.varBoundsSig(TypeVariable tv)
 	{
-		java.util.List<VExpr> bounds = new ArrayList<VExpr>();
+		java.util.List<VExpr> bounds = ASTUtils.createList();
 		bounds.addAll(boundsFromReturnType(tv));
 		bounds.addAll(boundsFromArgTypes(tv));
 		return bounds;
@@ -192,7 +192,7 @@ aspect AnalyzeSig
 		if(numParams == 0) {
 			return Collections.emptyList();
 		}
-		ArrayList<VExpr> bounds = new ArrayList<VExpr>();
+		java.util.List<VExpr> bounds = ASTUtils.createList();
 		String fullname = fullName();
 		for (int i = 0; i < numParams; i++) {
 			TypeDecl argType = getParameter(i).type();
@@ -210,7 +210,7 @@ aspect AnalyzeSig
 	eq GenericMethodDecl.varBoundsSig(TypeVariable tv)
 	{
 		// Collect bounds from return and argument types
-		java.util.List<VExpr> bounds = new ArrayList<VExpr>();
+		java.util.List<VExpr> bounds = ASTUtils.createList();
 		bounds.addAll(super.varBoundsSig(tv));
 		String fullname = fullName();
 

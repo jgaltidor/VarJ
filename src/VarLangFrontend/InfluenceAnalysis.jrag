@@ -1,24 +1,21 @@
 import java.util.Set;
-import java.util.HashSet;
 
 aspect DependsAnalysis
 {
-	// Will need a more general interface representing a node
-	// in this type influence graph
-	
-	interface TINode
+	/** Interface representing a node in a type influence graph */
+	interface InfluenceNode
 	{
-		public Set<TINode> succ();
+		public Set<InfluenceNode> succ();
 		public String fullName();
 		public boolean isFromSource();
 	}
 	
-	Variable extends TINode;
-	MethodDecl implements TINode; // Represents really the return type of a method
+	Variable extends InfluenceNode;
+	MethodDecl implements InfluenceNode; // Represents really the return type of a method
 
 
-	public Set<TINode> Variable.succ() {
-		Set<TINode> nodes = new HashSet<TINode>();
+	public Set<InfluenceNode> Variable.succ() {
+		Set<InfluenceNode> nodes = ASTUtils.createSet();
 		nodes.addAll(getAssignedTo());
 		for(MethodDecl meth : returnedFrom()) {
 			nodes.addAll(meth.overridingMethods());
@@ -28,7 +25,7 @@ aspect DependsAnalysis
 
 
 	/** The variables accessed in return expressions of the method declaration. */
-	coll Set<Variable> MethodDecl.returnedVars() [new HashSet<Variable>()]
+	coll Set<Variable> MethodDecl.returnedVars() [ASTUtils.createSet()]
 		with addAll root MethodDecl;
 	
 	ReturnStmt
@@ -38,7 +35,7 @@ aspect DependsAnalysis
 		for ((MethodDecl) enclosingBodyDecl());
 
 
-	coll Set<MethodDecl> Variable.returnedFrom() [new HashSet<MethodDecl>()] with add root Program;
+	coll Set<MethodDecl> Variable.returnedFrom() [ASTUtils.createSet()] with add root Program;
 	
 	MethodDecl
 		contributes this
@@ -49,7 +46,7 @@ aspect DependsAnalysis
 	// accessedVarDecls
 	
 	syn Set<Variable> ASTNode.accessedVarDecls() {
-		Set<Variable> decls = new HashSet<Variable>();
+		Set<Variable> decls = ASTUtils.createSet();
     for(int i = 0; i < getNumChild(); i++) {
     	decls.addAll(getChild(i).accessedVarDecls());
     }
@@ -132,32 +129,32 @@ aspect DependsAnalysis
 	// implementation for each direct implementing subclass
 	
 	protected Set<Variable> VariableDeclaration.assignedTo =
-		new HashSet<Variable>();
+		ASTUtils.createSet();
 	
 	public Set<Variable> VariableDeclaration.partialAssignedTo() {
 		return assignedTo;
 	}
 	 
 	protected Set<Variable> FieldDeclaration.assignedTo =
-		new HashSet<Variable>();
+		ASTUtils.createSet();
 	
 	public Set<Variable> FieldDeclaration.partialAssignedTo() {
 		return assignedTo;
 	}
 	 
 	protected Set<Variable> ParameterDeclaration.assignedTo =
-		new HashSet<Variable>();
+		ASTUtils.createSet();
 	
 	public Set<Variable> ParameterDeclaration.partialAssignedTo() {
 		return assignedTo;
 	}
 	
 	
-	public Set<TINode> MethodDecl.succ() {
+	public Set<InfluenceNode> MethodDecl.succ() {
 		return assignedTo();
 	}
 
-	coll Set<TINode> MethodDecl.assignedTo() [new HashSet<TINode>()]
+	coll Set<InfluenceNode> MethodDecl.assignedTo() [ASTUtils.createSet()]
 		with add root MethodDecl;
 	
 	AssignExpr
@@ -168,7 +165,7 @@ aspect DependsAnalysis
 	// accessedMethDecls
 	
 	syn Set<MethodDecl> ASTNode.accessedMethDecls() {
-		Set<MethodDecl> decls = new HashSet<MethodDecl>();
+		Set<MethodDecl> decls = ASTUtils.createSet();
     for(int i = 0; i < getNumChild(); i++) {
     	decls.addAll(getChild(i).accessedMethDecls());
     }
@@ -176,7 +173,7 @@ aspect DependsAnalysis
 	}
 	
 	eq MethodAccess.accessedMethDecls() {
-		Set<MethodDecl> decls = new HashSet<MethodDecl>();
+		Set<MethodDecl> decls = ASTUtils.createSet();
 		decls.addAll(decl().originalDecl().overridingMethods());
 		decls.addAll(super.accessedMethDecls());
 		return decls;
@@ -184,11 +181,11 @@ aspect DependsAnalysis
 
 	// reachable
 	
-	syn Set<TINode> TINode.reachableTINodes() circular [succ()] {
-		Set<TINode> nodes = new HashSet<TINode>();
-		for(TINode node : succ()) {
+	syn Set<InfluenceNode> InfluenceNode.reachableInfluenceNodes() circular [succ()] {
+		Set<InfluenceNode> nodes = ASTUtils.createSet();
+		for(InfluenceNode node : succ()) {
 			nodes.add(node);
-			nodes.addAll(node.reachableTINodes());
+			nodes.addAll(node.reachableInfluenceNodes());
 		}
 		return nodes;
 	}
@@ -196,16 +193,16 @@ aspect DependsAnalysis
 	// Bug w/ JastAdd forcing me to repeat definition
 	// for subclasses of Variable
 
-	syn Set<TINode> Variable.reachableTINodes() circular [succ()] {
-		Set<TINode> nodes = new HashSet<TINode>();
-		for(TINode node : succ()) {
+	syn Set<InfluenceNode> Variable.reachableInfluenceNodes() circular [succ()] {
+		Set<InfluenceNode> nodes = ASTUtils.createSet();
+		for(InfluenceNode node : succ()) {
 			nodes.add(node);
-			nodes.addAll(node.reachableTINodes());
+			nodes.addAll(node.reachableInfluenceNodes());
 		}
 		return nodes;
 	}
 		
-	// syn lazy Set<TINode> Variable.flowsTo() = reachableTINodes();
+	// syn lazy Set<InfluenceNode> Variable.flowsTo() = reachableInfluenceNodes();
 
 	
 	syn boolean BodyDecl.isFromSource() = hostType().compilationUnit().fromSource();
@@ -234,7 +231,7 @@ aspect DependsAnalysis
 		String name = fullName();
 		System.out.printf("logging flowsto for %s", name);
 		System.out.println();
-		for(TINode tinode : reachableTINodes()) {
+		for(InfluenceNode tinode : reachableInfluenceNodes()) {
 			String declname = tinode.fullName();
 			ASTNode node = (ASTNode) tinode;
 			// Add source file info if it exists
@@ -251,7 +248,7 @@ aspect DependsAnalysis
 		String name = fullName();
 		System.out.printf("logging flowsto for %s", name);
 		System.out.println();
-		for(TINode tinode : reachableTINodes()) {
+		for(InfluenceNode tinode : reachableInfluenceNodes()) {
 			String declname = tinode.fullName();
 			ASTNode node = (ASTNode) tinode;
 			// Add source file info if it exists
