@@ -1,23 +1,11 @@
 package tame;
 
-/*
-import com.beust.jcommander.JCommander;
-import com.beust.jcommander.Parameter;
-import com.beust.jcommander.DynamicParameter;
-import com.beust.jcommander.ParameterException;
-*/
-
 import AST.Frontend;
 import AST.Program;
 import AST.CompilationUnit;
 import AST.BytecodeParser;
 import AST.JavaParser;
 
-/*
-import AST.Options;
-import AST.ASTNode;
-import AST.AnalysisStrategy;
-*/
 
 public class VarFrontend extends Frontend
 {
@@ -38,32 +26,10 @@ public class VarFrontend extends Frontend
 		});
 	}
 
-
-	/*	
-	public static void main(String args[])
-	{
+	// For testing purposes
+	public static void main(String args[]) {
   	VarFrontend vf = new VarFrontend();
-  	JCommander jc = new JCommander(vf);
-  	jc.setProgramName(vf.getClass().getName());
-		try {
-			jc.parse(args);
-			if(vf.help) {
-				jc.usage();
-				vf.printUsage();
-				System.exit(0);
-			}
-			else {
-				String[] newArgs = vf.preprocessArgs(args);
-				VarFrontend.compile(vf, newArgs);
-			}
-		}
-		catch (ParameterException e)
-		{
-			System.err.println(e.getMessage());
-			jc.usage();
-			vf.printUsage();
-			System.exit(1);
-		}
+  	BaseParams params = new FilesParams();
+  	BaseParams.processArgsAndCompile(args, vf, params, "tame.VarFrontend");
 	}
-	*/
 }
