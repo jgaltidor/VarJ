@@ -32,12 +32,18 @@ public class FileLines
 	public void replace(int startLine, int startCol,
 		int endLine, int endCol, String newText)
 	{
+		if(isFakeReplacement(startLine))
+			return;
 		boolean isSingleLineReplacement =
 			(startLine == endLine) && !containsLineTerminator(newText);
 		if(isSingleLineReplacement)
 			singlelineReplace(startLine, startCol, endCol, newText);
 		else
 			multilineReplace(startLine, startCol, endLine, endCol, newText);
+	}
+	
+	public static boolean isFakeReplacement(int startLine) {
+		return startLine < 0;
 	}
 	
 	public void multilineReplace(int startLine, int startCol,

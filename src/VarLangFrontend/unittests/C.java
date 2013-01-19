@@ -1,5 +1,6 @@
 package test;
 
+// Example from PLDI paper
 public interface C<X>
 {
 	X foo(C<? super X> csx);

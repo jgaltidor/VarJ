@@ -4,6 +4,8 @@ import scala.collection.JavaConversions._
 import com.beust.jcommander.Parameter
 import com.beust.jcommander.ParameterException
 import AST.ASTNode
+import java.io.File
+import java.io.IOException
 
 object Tester
 {
@@ -76,16 +78,19 @@ object AnalyzeType extends FilesParams
 }
 
 
-object GenerateRewrites extends FilesParams
+object RewriteSources extends FilesParams
 {
 	@Parameter(names = Array("-r", "--rewrite"), required = true,
 	           description = "Type defs to rewrite separated by ','")
 	var typesToRewriteStr:String = null
 
-	@Parameter(names = Array("-o", "--outfile"), required = true,
+	@Parameter(names = Array("-m", "--modfile"), required = true,
 	           description = "File to write modification specification")
-	var rewriteOutFileName:String = null
+	var modificationSpec:String = null
 
+	@Parameter(names = Array("-d", "--outdir"), required = true,
+	           description = "Directory containing rewritten files")
+	var newSourcesDirName:String = null
 
 	/** Set of input type defs that the user specified to rewrite.
 	  * Should be accessed only after command line arguments are processed.
@@ -93,7 +98,7 @@ object GenerateRewrites extends FilesParams
 	var typesToRewriteNames:Seq[String] = null
 
 	@throws(classOf[ParameterException])
-	@throws(classOf[java.io.IOException])
+	@throws(classOf[IOException])
 	override def preprocessArgs(args:Array[String]):Unit = {
 		super.preprocessArgs(args)
 		
@@ -101,12 +106,18 @@ object GenerateRewrites extends FilesParams
 		if(typesToRewriteNames.isEmpty)
 			throw new ParameterException("No types specified for rewrite")
 		
-		ASTNode.rewriteOut = new java.io.PrintStream(rewriteOutFileName)
+		val newSourcesDir = new File(newSourcesDirName)
+		if(newSourcesDir.isFile)
+			throw new ParameterException(String.format(
+				"%s is an existing file", newSourcesDirName))
+
+		ASTNode.rewriteOut = new java.io.PrintStream(modificationSpec)
 	}
 	
+	@throws(classOf[IOException])
 	def main(args:Array[String]):Unit = {
 		val vf = new VarFrontend
-		BaseParams.processArgsAndCompile(args, vf, this, "tame.GenerateRewrites")
+		BaseParams.processArgsAndCompile(args, vf, this, "tame.RewriteSources")
 		val typesToRewrite = new java.util.LinkedList[AST.TypeDecl]
 		for(typeName <- typesToRewriteNames) {
 			IterSeq.getType(vf.getProgram, typeName) match
@@ -116,6 +127,22 @@ object GenerateRewrites extends FilesParams
 					Console.err.println("Class/Interface not found: " + typeName)
 			}
 		}
+		// Generate modificationSpec
 		ASTNode generateRewrites typesToRewrite
+		// write fake replacement info so that all input source files
+		// are copied to the target directory (newSourcesDir) even if
+		// some source files did not require any rewrites
+		vf.getProgram.writeFakeReplaceInfo
+		// all writes to ASTNode.rewriteOut performed so closing the file
+		ASTNode.rewriteOut.close
+		
+		
+		val modificationSpecFile = new File(modificationSpec)
+		val newSourcesDir = new File(newSourcesDirName)
+		if(!newSourcesDir.isDirectory) {
+			println("Creating directory: " + newSourcesDir.mkdirs)
+		}
+		println("Performing rewrites specified in: " + modificationSpecFile)
+		txtreplace.ReplaceText.rewriteFiles(modificationSpecFile, newSourcesDir)
 	}
 }
