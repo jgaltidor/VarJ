@@ -181,11 +181,11 @@ aspect DependsAnalysis
 
 	// reachable
 	
-	syn Set<InfluenceNode> InfluenceNode.reachableInfluenceNodes() circular [succ()] {
+	syn Set<InfluenceNode> InfluenceNode.reachableINodes() circular [succ()] {
 		Set<InfluenceNode> nodes = ASTUtils.createSet();
 		for(InfluenceNode node : succ()) {
 			nodes.add(node);
-			nodes.addAll(node.reachableInfluenceNodes());
+			nodes.addAll(node.reachableINodes());
 		}
 		return nodes;
 	}
@@ -193,16 +193,16 @@ aspect DependsAnalysis
 	// Bug w/ JastAdd forcing me to repeat definition
 	// for subclasses of Variable
 
-	syn Set<InfluenceNode> Variable.reachableInfluenceNodes() circular [succ()] {
+	syn Set<InfluenceNode> Variable.reachableINodes() circular [succ()] {
 		Set<InfluenceNode> nodes = ASTUtils.createSet();
 		for(InfluenceNode node : succ()) {
 			nodes.add(node);
-			nodes.addAll(node.reachableInfluenceNodes());
+			nodes.addAll(node.reachableINodes());
 		}
 		return nodes;
 	}
 		
-	// syn lazy Set<InfluenceNode> Variable.flowsTo() = reachableInfluenceNodes();
+	// syn lazy Set<InfluenceNode> Variable.flowsTo() = reachableINodes();
 
 	
 	syn boolean BodyDecl.isFromSource() = hostType().compilationUnit().fromSource();
@@ -231,9 +231,9 @@ aspect DependsAnalysis
 		String name = fullName();
 		System.out.printf("logging flowsto for %s", name);
 		System.out.println();
-		for(InfluenceNode tinode : reachableInfluenceNodes()) {
-			String declname = tinode.fullName();
-			ASTNode node = (ASTNode) tinode;
+		for(InfluenceNode inode : reachableINodes()) {
+			String declname = inode.fullName();
+			ASTNode node = (ASTNode) inode;
 			// Add source file info if it exists
 			String srcfile = node.sourceFile();
 			if(!srcfile.equals("Unknown file"))
@@ -248,9 +248,9 @@ aspect DependsAnalysis
 		String name = fullName();
 		System.out.printf("logging flowsto for %s", name);
 		System.out.println();
-		for(InfluenceNode tinode : reachableInfluenceNodes()) {
-			String declname = tinode.fullName();
-			ASTNode node = (ASTNode) tinode;
+		for(InfluenceNode inode : reachableINodes()) {
+			String declname = inode.fullName();
+			ASTNode node = (ASTNode) inode;
 			// Add source file info if it exists
 			String srcfile = node.sourceFile();
 			if(!srcfile.equals("Unknown file"))

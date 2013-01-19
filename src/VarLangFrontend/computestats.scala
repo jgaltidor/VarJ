@@ -21,7 +21,7 @@ object InferStats extends BaseParams
 	/** Should be accessed only after command line arguments are processed */
 	var pathNamePairs:Seq[(String,String)] = null
 	
-	/** Should be called after command line arguments are processed */
+	/** Should be accessed only after command line arguments are processed */
 	var optionArgs:Seq[String] = null
 	
 	@throws(classOf[ParameterException])

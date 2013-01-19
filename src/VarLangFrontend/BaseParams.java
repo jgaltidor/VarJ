@@ -129,13 +129,7 @@ public class BaseParams
 		}
 	}
 
-	/** Method for reducing boilerplate code. */
-	public static void compile(VarFrontend vf, BaseParams params)
-	{
-		String[] compilerArgs =
-			params.createCompilerArgs().toArray(new String[0]);
-		VarFrontend.compile(vf, compilerArgs);
-	}
+	// Method for reducing boilerplate code
 	
 	public static void processArgsAndCompile(String[] args, VarFrontend vf,
 		BaseParams params)
@@ -148,5 +142,11 @@ public class BaseParams
 	{
 		parseAndPreProcess(args, vf, params, programName);
 		compile(vf, params);
+	}
+
+	public static void compile(VarFrontend vf, BaseParams params) {
+		String[] compilerArgs =
+			params.createCompilerArgs().toArray(new String[0]);
+		VarFrontend.compile(vf, compilerArgs);
 	}
 }

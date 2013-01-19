@@ -2,7 +2,8 @@ package tame
 // import implicit conversion for converting java.util collections
 import scala.collection.JavaConversions._
 import com.beust.jcommander.Parameter
-
+import com.beust.jcommander.ParameterException
+import AST.ASTNode
 
 object Tester
 {
@@ -17,7 +18,7 @@ object Tester
 		for(index <- 0 until gtd.getNumTypeParameter) {
 			val param = gtd getTypeParameter index
 			val dvar = gtd getDVar param
-			val bounds = AST.ASTNode.strategy.varBounds(gtd, param).toList
+			val bounds = ASTNode.strategy.varBounds(gtd, param).toList
 			println(dvar + ": " + dvar.eval())
 			println("-"*32)
 			println("bounds:")
@@ -71,5 +72,50 @@ object AnalyzeType extends FilesParams
 	def analyzeTypeDec(typeDecl:AST.TypeDecl):Unit = {
 		println("type: " + typeDecl.fullName)
 		typeDecl.logFieldFlowsTo
+	}
+}
+
+
+object GenerateRewrites extends FilesParams
+{
+	@Parameter(names = Array("-r", "--rewrite"), required = true,
+	           description = "Type defs to rewrite separated by ','")
+	var typesToRewriteStr:String = null
+
+	@Parameter(names = Array("-o", "--outfile"), required = true,
+	           description = "File to write modification specification")
+	var rewriteOutFileName:String = null
+
+
+	/** Set of input type defs that the user specified to rewrite.
+	  * Should be accessed only after command line arguments are processed.
+	  */
+	var typesToRewriteNames:Seq[String] = null
+
+	@throws(classOf[ParameterException])
+	@throws(classOf[java.io.IOException])
+	override def preprocessArgs(args:Array[String]):Unit = {
+		super.preprocessArgs(args)
+		
+		typesToRewriteNames = typesToRewriteStr split ","
+		if(typesToRewriteNames.isEmpty)
+			throw new ParameterException("No types specified for rewrite")
+		
+		ASTNode.rewriteOut = new java.io.PrintStream(rewriteOutFileName)
+	}
+	
+	def main(args:Array[String]):Unit = {
+		val vf = new VarFrontend
+		BaseParams.processArgsAndCompile(args, vf, this, "tame.GenerateRewrites")
+		val typesToRewrite = new java.util.LinkedList[AST.TypeDecl]
+		for(typeName <- typesToRewriteNames) {
+			IterSeq.getType(vf.getProgram, typeName) match
+			{
+				case Some(typeDecl) => typesToRewrite add typeDecl
+				case None =>
+					Console.err.println("Class/Interface not found: " + typeName)
+			}
+		}
+		ASTNode generateRewrites typesToRewrite
 	}
 }

@@ -53,16 +53,16 @@ aspect ConstraintSystem
 		for (int i = 0; i < getNumArgument(); i++) {
 			TypeDecl typeArg = getArgument(i).type();
 			if(typeArg.structurallyContains(tv)) {
-				DVar gtdVar = gtd.getDVar(i);
-				Value annotationVar;
+				DVar defSiteVar = gtd.getDVar(i);
+				Value useSiteVar;
 				if (typeArg.isWildcardExtendsType())
-					annotationVar = COVARIANT;
+					useSiteVar = COVARIANT;
 				else if (typeArg.isWildcardSuperType())
-					annotationVar = CONTRAVARIANT;
+					useSiteVar = CONTRAVARIANT;
 				else
-					annotationVar = INVARIANT;
+					useSiteVar = INVARIANT;
 				VExpr newVar = new Transform(
-					new Join(gtdVar, annotationVar),
+					new Join(defSiteVar, useSiteVar),
 					typeArg.varExpr(tv));
 				result = (result == null) ?
 					newVar : new Meet(result, newVar);
@@ -103,7 +103,7 @@ aspect ConstraintSystem
 	}
 
 	/** Returns the set of VVars in a variance expression. */
-	syn Set<VVar> VExpr.getVars() = Collections.emptySet();
+	syn Set<VVar> VExpr.getVars();
 	
 	eq Transform.getVars() {
 		Set<VVar> set = ASTUtils.createSet();
@@ -127,6 +127,8 @@ aspect ConstraintSystem
 	}
 	
 	eq VVar.getVars() = ASTUtils.singletonSet(this);
+	
+	eq Value.getVars() = Collections.emptySet();
 
 
 	/*

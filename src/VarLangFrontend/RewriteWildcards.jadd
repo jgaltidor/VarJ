@@ -1,0 +1,189 @@
+import txtreplace.ReplaceInfo;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Set;
+
+aspect RewriteWildcard
+{
+	/** Output stream to the rewrite specification file */
+	public static java.io.PrintStream ASTNode.rewriteOut = null;
+
+	public static void ASTNode.generateRewrites(Collection<? extends TypeDecl> typesToRewrite)
+	{
+		for(TypeDecl typedef : typesToRewrite) {
+			for(ASTNode node : typedef.affectedNodes()) {
+				node.writeToWildcards();
+			}
+		}
+	}
+
+	/** Should be dispatched on the node that is being rewritten */
+	public void ASTNode.writeWildcardReplaceInfo(String oldAccess, String newAccess, int colOffset)
+	{
+		if(oldAccess.equals(newAccess))
+			return;
+		ReplaceInfo replacement = new ReplaceInfo(
+			sourceFile(),
+			getLine(getStart()),
+			getColumn(getStart()),
+			getLine(getEnd()),
+			colOffset + getColumn(getEnd()),
+			oldAccess,
+			newAccess);
+		LOG.log(INFO, "rewrite: " + replacement);
+		rewriteOut.println(replacement);
+	}
+	
+	public void ASTNode.writeWildcardReplaceInfo(String oldAccess, String newAccess) {
+		writeWildcardReplaceInfo(oldAccess, newAccess, 0);
+	}
+
+	/** Returns the set of ASTNodes that requires updating,
+	  * if this node is updated
+	  */
+	syn lazy Set<ASTNode> TypeDecl.affectedNodes() {
+		Set<ASTNode> nodes = ASTUtils.createSet();
+		// collect affectsNodes appropriate members
+		for (int j=0; j < getNumBodyDecl(); j++) {
+			BodyDecl b = getBodyDecl(j);
+			nodes.addAll(b.affectedNodes());
+		}
+		return nodes;
+	}
+
+
+	syn lazy Set<ASTNode> BodyDecl.affectedNodes() =
+		Collections.emptySet();
+	
+	eq FieldDeclaration.affectedNodes() {
+		Set<ASTNode> nodes = ASTUtils.<ASTNode>singletonSet(this);
+		for(InfluenceNode inode : reachableINodes()) {
+			nodes.add((ASTNode) inode);
+		}
+		return nodes;
+	}
+
+	eq MethodDecl.affectedNodes() {
+		Set<ASTNode> nodes = ASTUtils.<ASTNode>singletonSet(this);
+		for(int i = 0; i < getNumParameter(); i++) {
+			nodes.addAll(getParameter(i).affectedNodes());
+		}
+		for(InfluenceNode inode : reachableINodes()) {
+			nodes.add((ASTNode) inode);
+		}
+		return nodes;
+	}
+
+	syn lazy Set<ASTNode> ParameterDeclaration.affectedNodes() {
+		Set<ASTNode> nodes = ASTUtils.<ASTNode>singletonSet(this);
+		for(InfluenceNode inode : reachableINodes()) {
+			nodes.add((ASTNode) inode);
+		}
+		return nodes;
+	}
+
+
+	public void ASTNode.writeToWildcards() { }
+	
+	// need to determine criteria for selecting ASTNodes to rewrite
+	
+	public void FieldDeclaration.writeToWildcards() {
+		Access type = getTypeAccess();
+		String oldAccess = type.toString();
+		String newAccess = type.wildString();
+		type.writeWildcardReplaceInfo(oldAccess, newAccess);
+	}
+
+
+	public void VariableDeclaration.writeToWildcards() {
+		Access type = getTypeAccess();
+		String oldAccess = type.toString();
+		String newAccess = type.wildString();
+		type.writeWildcardReplaceInfo(oldAccess, newAccess);
+	}
+
+
+	public void ParameterDeclaration.writeToWildcards() {
+		Access type = getTypeAccess();
+		String oldAccess = type.toString();
+		String newAccess = type.wildString();
+		type.writeWildcardReplaceInfo(oldAccess, newAccess);
+	}
+
+
+	/** Only rewrites the return type of the method */
+	public void MethodDecl.writeToWildcards() {
+		Access returnType = getTypeAccess();
+		String oldAccess = returnType.toString();
+		String newAccess = returnType.wildString();
+		returnType.writeWildcardReplaceInfo(oldAccess, newAccess);
+	}
+
+
+	/** Returns new type access to have wildcards based on
+	  * inferred def-site variances.
+	  */
+	syn String Access.wildString() = toString();
+	
+	eq ArrayTypeAccess.wildString() {
+		StringBuffer newAccess = new StringBuffer();
+		newAccess.append(getAccess().wildString());
+		newAccess.append("[]");
+		return newAccess.toString();
+	}
+
+	eq ParTypeAccess.wildString() {
+		if(isRaw()) {
+			return toString();
+		}
+		StringBuffer newAccess = new StringBuffer();
+		getTypeAccess().toString(newAccess);
+		newAccess.append('<');
+		// rewriting type arguments
+		GenericTypeDecl gtd = (GenericTypeDecl) genericDecl();
+		for(int i = 0; i < gtd.getNumTypeParameter(); i++) {
+			Access oldArg = getTypeArgument(i);
+			Value inferredDVar = gtd.computeVar(i);
+			Value oldUVar;
+			if(oldArg instanceof WildcardSuper)
+				oldUVar = CONTRAVARIANT;
+			else if(oldArg instanceof WildcardExtends)
+				oldUVar = COVARIANT;
+			else if(oldArg instanceof Wildcard)
+				oldUVar = BIVARIANT;
+			else
+				oldUVar = INVARIANT;
+			Value newUVar = inferredDVar.join(oldUVar);
+			String oldArgRewrite = oldArg.wildString();
+			String newArg;
+			if(newUVar.equals(BIVARIANT))
+				newArg = "?";
+			else if(newUVar.equals(CONTRAVARIANT))
+				newArg = "? super "   + oldArgRewrite;
+			else if(newUVar.equals(COVARIANT))
+				newArg = "? extends " + oldArgRewrite;
+			else // newUVar == INVARIANT
+				newArg = oldArgRewrite;
+			if(i > 0)
+				newAccess.append(", ");
+			newAccess.append(newArg);
+		}
+		newAccess.append('>');
+		return newAccess.toString();
+	}
+
+	eq WildcardSuper.wildString() {
+		StringBuffer newAccess = new StringBuffer();
+		newAccess.append("? super ");
+		newAccess.append(getAccess().wildString());
+		return newAccess.toString();
+	}
+
+	eq WildcardExtends.wildString() {
+		StringBuffer newAccess = new StringBuffer();
+		newAccess.append("? extends ");
+		newAccess.append(getAccess().wildString());
+		return newAccess.toString();
+	}
+}
+
