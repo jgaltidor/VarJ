@@ -27,7 +27,7 @@ public class Seller<P>
 	}
 	
 	public void printInventory(
-		Seller<String> seller, Pair<Integer, P> other)
+		Seller<String> seller, Pair<Integer, String> other)
 	{
 		RList<String> list = seller.new Inventory();
 		System.out.println("Inner classes are covariant");

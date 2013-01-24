@@ -10,8 +10,18 @@ aspect InfluenceAnalysis
 		public boolean isFromSource();
 	}
 	
-	Variable extends InfluenceNode;
 	MethodDecl implements InfluenceNode; // Represents really the return type of a method
+	
+	Variable extends InfluenceNode;
+	// Bug w/ JastAdd forcing me to specify implicit implements
+	// declarations.
+	// Although next 3 classes implement Variable,
+	// have to add these implements declarations
+	// to avoid having to repeat method definitions
+	// from InfluenceNode in classes implementing Variable
+	VariableDeclaration  implements InfluenceNode;
+	FieldDeclaration     implements InfluenceNode;
+	ParameterDeclaration implements InfluenceNode;
 
 
 	public Set<InfluenceNode> Variable.succ() {
@@ -22,7 +32,6 @@ aspect InfluenceAnalysis
 		}
 		return nodes;
 	}
-
 
 	/** The variables accessed in return expressions of the method declaration. */
 	coll Set<Variable> MethodDecl.returnedVars() [ASTUtils.createSet()]
@@ -172,19 +181,7 @@ aspect InfluenceAnalysis
 
 	// reachableINodes
 	
-	syn Set<InfluenceNode> InfluenceNode.reachableINodes() circular [succ()] {
-		Set<InfluenceNode> nodes = ASTUtils.createSet();
-		for(InfluenceNode node : succ()) {
-			nodes.add(node);
-			nodes.addAll(node.reachableINodes());
-		}
-		return nodes;
-	}
-
-	// Bug w/ JastAdd forcing me to repeat definition
-	// for subclasses of Variable
-
-	syn Set<InfluenceNode> Variable.reachableINodes() circular [succ()] {
+	syn lazy Set<InfluenceNode> InfluenceNode.reachableINodes() circular [succ()] {
 		Set<InfluenceNode> nodes = ASTUtils.createSet();
 		for(InfluenceNode node : succ()) {
 			nodes.add(node);

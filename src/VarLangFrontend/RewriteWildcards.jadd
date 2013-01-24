@@ -1,5 +1,4 @@
 import txtreplace.ReplaceInfo;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
 
@@ -7,12 +6,20 @@ aspect RewriteWildcard
 {
 	/** Output stream to the rewrite specification file */
 	public static java.io.PrintStream ASTNode.rewriteOut = null;
-
-	public static void ASTNode.generateRewrites(Collection<? extends TypeDecl> typesToRewrite)
-	{
-		for(TypeDecl typedef : typesToRewrite) {
-			for(ASTNode node : typedef.affectedNodes()) {
-				node.writeToWildcards();
+	
+	public void Program.rewriteAllSources() {
+		for(int i = 0; i < getNumCompilationUnit(); i++) {
+			CompilationUnit unit = getCompilationUnit(i);
+			if(unit.fromSource()) {
+				for(int j = 0; j < unit.getNumTypeDecl(); j++) {
+					TypeDecl typedef = unit.getTypeDecl(j);
+					typedef.generateRewrites();
+				}
+				// write fake replacement info to ensure this
+				// unit's source file is copied to the new
+				// directory even if no types in this unit
+				// required an update
+				unit.writeFakeReplaceInfo();
 			}
 		}
 	}
@@ -28,8 +35,17 @@ aspect RewriteWildcard
 	public void CompilationUnit.writeFakeReplaceInfo() {
 		ReplaceInfo fakeReplacement = new ReplaceInfo(
 			sourceFile(), -1, -1, -1, -1, " ", " ");
-		// LOG.log(INFO, "fake rewrite: " + replacement);
+		LOG.log(INFO, "fake rewrite: " + fakeReplacement);
 		rewriteOut.println(fakeReplacement);
+	}
+
+
+	public void TypeDecl.generateRewrites() {
+		for(InfluenceNode node : affectedNodes()) {
+			if(node.isRewritable()) {
+				((ASTNode) node).writeToWildcards();
+			}
+		}
 	}
 
 	/** Should be dispatched on the node that is being rewritten */
@@ -52,12 +68,21 @@ aspect RewriteWildcard
 	public void ASTNode.writeWildcardReplaceInfo(String oldAccess, String newAccess) {
 		writeWildcardReplaceInfo(oldAccess, newAccess, 0);
 	}
+	
+	syn lazy boolean InfluenceNode.isRewritable() {
+		for(InfluenceNode inode : affectedNodes()) {
+			if(!inode.isFromSource()) {
+				return false;
+			}
+		}
+		return true;
+	}
 
-	/** Returns the set of ASTNodes that requires updating,
-	  * if this node is updated
+	/** Returns the set of InfluenceNodes that requires
+	  * updating, if this node is updated
 	  */
-	syn lazy Set<ASTNode> TypeDecl.affectedNodes() {
-		Set<ASTNode> nodes = ASTUtils.createSet();
+	syn lazy Set<InfluenceNode> TypeDecl.affectedNodes() {
+		Set<InfluenceNode> nodes = ASTUtils.createSet();
 		// collect affectsNodes appropriate members
 		for (int j=0; j < getNumBodyDecl(); j++) {
 			BodyDecl b = getBodyDecl(j);
@@ -67,39 +92,33 @@ aspect RewriteWildcard
 	}
 
 
-	syn lazy Set<ASTNode> BodyDecl.affectedNodes() =
+	syn lazy Set<InfluenceNode> BodyDecl.affectedNodes() =
 		Collections.emptySet();
 	
-	eq FieldDeclaration.affectedNodes() {
-		Set<ASTNode> nodes = ASTUtils.<ASTNode>singletonSet(this);
-		for(InfluenceNode inode : reachableINodes()) {
-			if(inode.isFromSource())
-				nodes.add((ASTNode) inode);
-		}
+	syn lazy Set<InfluenceNode> InfluenceNode.affectedNodes();
+	
+	/** Adding a "base method" for affectedNodes
+	  * to interface InfluenceNode
+	  */
+	public static Set<InfluenceNode> ASTNode.affectedNodes(InfluenceNode thisNode)
+	{
+		Set<InfluenceNode> nodes = ASTUtils.singletonSet(thisNode);
+		nodes.addAll(thisNode.reachableINodes());
 		return nodes;
 	}
+	
+	eq Variable.affectedNodes() = affectedNodes(this);
+	
+	// syn lazy Set<InfluenceNode> Variable.affectedNodes() = affectedNodes(this);
 
 	eq MethodDecl.affectedNodes() {
-		Set<ASTNode> nodes = ASTUtils.<ASTNode>singletonSet(this);
+		Set<InfluenceNode> nodes = ASTUtils.createSet();
+		nodes.addAll(affectedNodes(this));
 		for(int i = 0; i < getNumParameter(); i++) {
 			nodes.addAll(getParameter(i).affectedNodes());
 		}
-		for(InfluenceNode inode : reachableINodes()) {
-			if(inode.isFromSource())
-				nodes.add((ASTNode) inode);
-		}
 		return nodes;
 	}
-
-	syn lazy Set<ASTNode> ParameterDeclaration.affectedNodes() {
-		Set<ASTNode> nodes = ASTUtils.<ASTNode>singletonSet(this);
-		for(InfluenceNode inode : reachableINodes()) {
-			if(inode.isFromSource())
-				nodes.add((ASTNode) inode);
-		}
-		return nodes;
-	}
-
 
 	public void ASTNode.writeToWildcards() { }
 	
@@ -163,26 +182,34 @@ aspect RewriteWildcard
 			Access oldArg = getTypeArgument(i);
 			Value inferredDVar = gtd.computeVar(i);
 			Value oldUVar;
-			if(oldArg instanceof WildcardSuper)
+			String typeActual;
+			if(oldArg instanceof WildcardSuper) {
 				oldUVar = CONTRAVARIANT;
-			else if(oldArg instanceof WildcardExtends)
+				typeActual = ((WildcardSuper) oldArg).getAccess().wildString();
+			}
+			else if(oldArg instanceof WildcardExtends) {
 				oldUVar = COVARIANT;
-			else if(oldArg instanceof Wildcard)
+				typeActual = ((WildcardExtends) oldArg).getAccess().wildString();
+			}
+			else if(oldArg instanceof Wildcard) {
 				oldUVar = BIVARIANT;
-			else
+				typeActual = null;
+			}
+			else {
 				oldUVar = INVARIANT;
+				typeActual = oldArg.wildString();
+			}
 			// inferred use-site annotation
 			Value newUVar = inferredDVar.join(oldUVar);
-			String oldArgRewrite = oldArg.wildString();
 			String newArg; // new type argument
 			if(newUVar.equals(BIVARIANT))
 				newArg = "?";
 			else if(newUVar.equals(CONTRAVARIANT))
-				newArg = "? super "   + oldArgRewrite;
+				newArg = "? super "   + typeActual;
 			else if(newUVar.equals(COVARIANT))
-				newArg = "? extends " + oldArgRewrite;
+				newArg = "? extends " + typeActual;
 			else // newUVar == INVARIANT
-				newArg = oldArgRewrite;
+				newArg = typeActual;
 			// append delimeter if needed
 			if(i > 0) {
 				newAccess.append(", ");
@@ -207,4 +234,3 @@ aspect RewriteWildcard
 		return newAccess.toString();
 	}
 }
-
