@@ -1,4 +1,4 @@
-package tame;
+package ui;
 
 import AST.Frontend;
 import AST.Program;
@@ -30,6 +30,6 @@ public class VarFrontend extends Frontend
 	public static void main(String args[]) {
   	VarFrontend vf = new VarFrontend();
   	BaseParams params = new FilesParams();
-  	BaseParams.processArgsAndCompile(args, vf, params, "tame.VarFrontend");
+  	BaseParams.processArgsAndCompile(args, vf, params, "ui.VarFrontend");
 	}
 }

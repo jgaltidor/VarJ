@@ -1,4 +1,4 @@
-package tame;
+package ui;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;

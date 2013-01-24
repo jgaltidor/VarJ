@@ -1,4 +1,4 @@
-package tame;
+package ui;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
@@ -94,7 +94,7 @@ public class FilesParams extends BaseParams
 	public static void main(String[] args) {
 		VarFrontend vf = new VarFrontend();
 		FilesParams params = new FilesParams();
-		parseAndPreProcess(args, vf, params, "tame.FilesParams");
+		parseAndPreProcess(args, vf, params, "ui.FilesParams");
 		compile(vf, params);
 	}
 }

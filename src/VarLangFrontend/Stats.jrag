@@ -1,5 +1,3 @@
-import tame.*;
-
 aspect Stats
 {
 	// uselessWildCardsInSig

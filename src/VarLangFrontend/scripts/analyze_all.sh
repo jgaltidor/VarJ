@@ -10,7 +10,7 @@ TROVE=$ROOTOFLIBS/trove-2.1.0/src
 # Add Scala library to class
 CLASSPATH=$SCALA_HOME/lib/scala-library.jar:$CLASSPATH
 
-echo java -Xmx1g -classpath $CLASSPATH tame.InferStats --texout testtex/table.tex \
+echo java -Xmx1g -classpath $CLASSPATH ui.InferStats --texout testtex/table.tex \
   $JAVASTAR:Java \
   $JSCIENCE:JScience \
   $APACHE:Apache \
@@ -19,7 +19,7 @@ echo java -Xmx1g -classpath $CLASSPATH tame.InferStats --texout testtex/table.te
   $JPAUL:JPaul 
 
 
-java -Xmx1g -classpath $CLASSPATH tame.InferStats --texout testtex/table.tex \
+java -Xmx1g -classpath $CLASSPATH ui.InferStats --texout testtex/table.tex \
   $JAVASTAR:Java \
   $JSCIENCE:JScience \
   $APACHE:Apache \

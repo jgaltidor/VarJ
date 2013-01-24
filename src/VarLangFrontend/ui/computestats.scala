@@ -1,4 +1,4 @@
-package tame
+package ui
 
 import com.beust.jcommander.Parameter
 import com.beust.jcommander.ParameterException
@@ -49,7 +49,7 @@ object InferStats extends BaseParams
 
 	def main(args:Array[String]):Unit = {
 		BaseParams.parseAndPreProcess(args,
-			new VarFrontend, this, "tame.InferStats")
+			new VarFrontend, this, "ui.InferStats")
 
 		val allLibStats:Seq[LibStats] =
 			for((libpath, libname) <- pathNamePairs) yield {
@@ -156,7 +156,7 @@ object ComputeStats
 	def main(args:Array[String]):Unit = {
 		val vf = new VarFrontend
 		val params = new FilesParams
-		BaseParams.processArgsAndCompile(args, vf, params, "tame.ComputeStats")
+		BaseParams.processArgsAndCompile(args, vf, params, "ui.ComputeStats")
 		val typeDecls = IterSeq getSrcTypes vf.getProgram
 		val libstats = computeStats(typeDecls)
 		val allstats = new AllStats(List(libstats))

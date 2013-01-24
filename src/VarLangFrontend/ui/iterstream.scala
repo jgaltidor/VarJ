@@ -1,4 +1,4 @@
-package tame
+package ui
 
 import AST.GenericTypeDecl
 import AST.TypeVariable

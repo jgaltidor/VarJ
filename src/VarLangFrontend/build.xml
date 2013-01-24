@@ -9,10 +9,10 @@
 <project name="VarLangFrontend" default="build">
 <!-- root directory of source -->
 <property name="src" value=".." />
-<!-- location of JastAddJ -->
+<!-- name of JastAddJ folder -->
 <property name="JastAddJ" value="JastAddJ_R9329"/>
 
-<!-- location of JCommander distribution -->
+<!-- name of JCommander folder -->
 <property name="jcommander" value="jcommander-master" />
 
 <!-- location of Java1.4Frontend -->
@@ -181,7 +181,6 @@
     <delete>
       <fileset dir="." includes="**/*.class"/>
     </delete>
-    <delete quiet="true" dir="tame" />
     <delete quiet="true" dir="parser" />
     <delete quiet="true" dir="scanner" />
     <delete quiet="true" dir="com" />
@@ -207,7 +206,7 @@
 <target name="jar" depends="build">
   <jar destfile="VarLang.jar" basedir="." includes="**/*.class" excludes="unittests/**">
     <manifest>
-      <attribute name="Main-Class" value="tame.Tester"/>
+      <attribute name="Main-Class" value="ui.Tester"/>
     </manifest>
   </jar>
 </target>

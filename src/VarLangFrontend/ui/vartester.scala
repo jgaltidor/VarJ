@@ -1,4 +1,4 @@
-package tame
+package ui
 // import implicit conversion for converting java.util collections
 import scala.collection.JavaConversions._
 import com.beust.jcommander.Parameter
@@ -14,7 +14,7 @@ object Tester
 	def main(args:Array[String]):Unit = {
 		val vf = new VarFrontend
 		val params = new FilesParams
-		BaseParams.processArgsAndCompile(args, vf, params, "tame.Tester")
+		BaseParams.processArgsAndCompile(args, vf, params, "ui.Tester")
 		IterSeq.getSrcGenerics(vf.getProgram).foreach(processGeneric)
 	}
 
@@ -44,7 +44,7 @@ object LookupVar extends FilesParams
 
 	def main(args:Array[String]):Unit = {
 		val vf = new VarFrontend
-		BaseParams.processArgsAndCompile(args, vf, this, "tame.LookupVar")
+		BaseParams.processArgsAndCompile(args, vf, this, "ui.LookupVar")
 		IterSeq.getGeneric(vf.getProgram, genericName) match
 		{
 			case Some(gtd) => Tester.processGeneric(gtd)
@@ -64,7 +64,7 @@ object AnalyzeType extends FilesParams
 
 	def main(args:Array[String]):Unit = {
 		val vf = new VarFrontend
-		BaseParams.processArgsAndCompile(args, vf, this, "tame.AnalyzeType")
+		BaseParams.processArgsAndCompile(args, vf, this, "ui.AnalyzeType")
 		IterSeq.getType(vf.getProgram, typeName) match
 		{
 			case Some(typeDecl) => analyzeTypeDec(typeDecl)
@@ -122,7 +122,7 @@ object RewriteSources extends FilesParams
 	@throws(classOf[IOException])
 	def main(args:Array[String]):Unit = {
 		val vf = new VarFrontend
-		BaseParams.processArgsAndCompile(args, vf, this, "tame.RewriteSources")
+		BaseParams.processArgsAndCompile(args, vf, this, "ui.RewriteSources")
 		val typesToRewrite = new java.util.LinkedList[TypeDecl]
 		for(typeName <- typesToRewriteNames) {
 			IterSeq.getType(vf.getProgram, typeName) match
@@ -183,7 +183,7 @@ object RewriteAllSources extends FilesParams
 	@throws(classOf[IOException])
 	def main(args:Array[String]):Unit = {
 		val vf = new VarFrontend
-		BaseParams.processArgsAndCompile(args, vf, this, "tame.RewriteAllSources")
+		BaseParams.processArgsAndCompile(args, vf, this, "ui.RewriteAllSources")
 		// Generate modificationSpec
 		vf.getProgram.rewriteAllSources
 		// all writes to ASTNode.rewriteOut performed so closing the file

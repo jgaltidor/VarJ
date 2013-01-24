@@ -1,4 +1,4 @@
-package tame
+package ui
 // import String.format
 
 object Table1
