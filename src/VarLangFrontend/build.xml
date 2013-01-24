@@ -62,13 +62,13 @@
 <target name="build" depends="gen,init-scala,jcommander">
   <!-- Compile Java sources -->
 	<javac debug="true" nowarn="true" srcdir="." destdir="." includes="**/*.java"
-	       excludes="unittests/**,notyet/**,old/**"
+	       excludes="unittests/**,notyet/**,old/**,rewrittenSources/**"
          classpath=".:${tools}/beaver-rt.jar:${tools}/junit.jar:"
          includeantruntime="false"/>
   <!-- Compile Scala sources -->
   <scalac classpathref="scala.classpath" srcdir="."
           includes="**/*.scala"
-          excludes="unittests/**,notyet/**,old/**" />
+          excludes="unittests/**,notyet/**,old/**,rewrittenSources/**" />
 </target>
 
 <target name="jcommander">
@@ -100,6 +100,7 @@
 			<include name="**/*.jadd"/>
 			<exclude name="old/**"/>
 			<exclude name="notyet/**"/>
+			<exclude name="rewrittenSources/**"/>
 		</fileset>
   </jastadd>
   <!-- copy library files-->
@@ -229,6 +230,7 @@
   		<exclude name="VarLangFrontend/old/**" />
   		<exclude name="VarLangFrontend/notyet/**" />
   		<exclude name="VarLangFrontend/unittests/**" />
+  		<exclude name="VarLangFrontend/rewrittenSources/**" />
   		
   		<!-- exclude binary files -->
   		<exclude name="VarLangFrontend/**/*.class" />

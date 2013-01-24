@@ -80,7 +80,7 @@ object AnalyzeType extends FilesParams
 
 object RewriteSources extends FilesParams
 {
-	@Parameter(names = Array("-r", "--rewrite"), required = true,
+	@Parameter(names = Array("-t", "--types"), required = true,
 	           description = "Type defs to rewrite separated by ','")
 	var typesToRewriteStr:String = null
 

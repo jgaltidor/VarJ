@@ -1,6 +1,6 @@
 import java.util.Set;
 
-aspect DependsAnalysis
+aspect InfluenceAnalysis
 {
 	/** Interface representing a node in a type influence graph */
 	interface InfluenceNode
@@ -73,7 +73,14 @@ aspect DependsAnalysis
 	  * Clients of the Variable interface should not call this method
 	  * to get access to the assigned to set.
 	  */
-	public Set<Variable> Variable.partialAssignedTo();
+	public Set<Variable> Variable.partialAssignedTo() {
+		if(this.Variable_assignedTo == null) {
+			this.Variable_assignedTo = ASTUtils.createSet();
+		}
+		return this.Variable_assignedTo;
+	}
+	
+	protected Set<Variable> ASTNode.Variable_assignedTo = null;
 
 	protected boolean Program.computedVariableGetAssignedTo = false;
 	
@@ -94,10 +101,19 @@ aspect DependsAnalysis
 	
 	protected void AssignExpr.computeVariableGetAssignedTo() {
 		Variable dest = getDest().varDecl();
-		for(Variable accessedVar : getSource().accessedVarDecls())
+		for(Variable accessedVar : getSource().accessedVarDecls()) {
 			accessedVar.partialAssignedTo().add(dest);
+		}
 	}
-	
+
+	protected void VariableDeclaration.computeVariableGetAssignedTo() {
+		if(hasInit()) {
+			for(Variable accessedVar : getInit().accessedVarDecls()) {
+				accessedVar.partialAssignedTo().add(this);
+			}
+		}
+	}
+
 	/** Contributions made for m(e_1, e_2, ..., e_n) are:
 	  * For each i in [1, n],
 	  *  overrideArgParameters(m, i) are contributed to
@@ -124,32 +140,7 @@ aspect DependsAnalysis
 		}
 	}
 
-	// Final technical detail of implementing Variable.getAssignedTo().
-	// Since Variable is an interface, need to provide a separate
-	// implementation for each direct implementing subclass
-	
-	protected Set<Variable> VariableDeclaration.assignedTo =
-		ASTUtils.createSet();
-	
-	public Set<Variable> VariableDeclaration.partialAssignedTo() {
-		return assignedTo;
-	}
-	 
-	protected Set<Variable> FieldDeclaration.assignedTo =
-		ASTUtils.createSet();
-	
-	public Set<Variable> FieldDeclaration.partialAssignedTo() {
-		return assignedTo;
-	}
-	 
-	protected Set<Variable> ParameterDeclaration.assignedTo =
-		ASTUtils.createSet();
-	
-	public Set<Variable> ParameterDeclaration.partialAssignedTo() {
-		return assignedTo;
-	}
-	
-	
+
 	public Set<InfluenceNode> MethodDecl.succ() {
 		return assignedTo();
 	}
@@ -179,7 +170,7 @@ aspect DependsAnalysis
 		return decls;
 	}
 
-	// reachable
+	// reachableINodes
 	
 	syn Set<InfluenceNode> InfluenceNode.reachableINodes() circular [succ()] {
 		Set<InfluenceNode> nodes = ASTUtils.createSet();
@@ -201,15 +192,12 @@ aspect DependsAnalysis
 		}
 		return nodes;
 	}
-		
-	// syn lazy Set<InfluenceNode> Variable.flowsTo() = reachableINodes();
-
 	
 	syn boolean BodyDecl.isFromSource() = hostType().compilationUnit().fromSource();
 	
 	syn boolean Variable.isFromSource();
-	
-	eq FieldDeclaration.isFromSource() = hostType().compilationUnit().fromSource();
+
+	eq FieldDeclaration.isFromSource() = super.isFromSource();
 
 	eq ParameterDeclaration.isFromSource() = enclosingBodyDecl().isFromSource();
 	
@@ -227,11 +215,18 @@ aspect DependsAnalysis
 	
 	public void BodyDecl.logFieldFlowsTo() { }
 	
-	public void FieldDeclaration.logFieldFlowsTo() {
-		String name = fullName();
+	public void InfluenceNode.logFieldFlowsTo();
+
+	/** This method allows simulating a "super" call to
+	  * to InfluenceNode.logFieldFlowsTo; a direct super
+	  * call is not allowed because InfluenceNode is an
+	  * interface.
+	  */
+	public static void ASTNode.logFieldFlowsTo(InfluenceNode thisNode) {
+		String name = thisNode.fullName();
 		System.out.printf("logging flowsto for %s", name);
 		System.out.println();
-		for(InfluenceNode inode : reachableINodes()) {
+		for(InfluenceNode inode : thisNode.reachableINodes()) {
 			String declname = inode.fullName();
 			ASTNode node = (ASTNode) inode;
 			// Add source file info if it exists
@@ -242,21 +237,14 @@ aspect DependsAnalysis
 			System.out.println();
 		}
 	}
-
+	
+	public void Variable.logFieldFlowsTo() { logFieldFlowsTo(this); }
 
 	public void MethodDecl.logFieldFlowsTo() {
-		String name = fullName();
-		System.out.printf("logging flowsto for %s", name);
-		System.out.println();
-		for(InfluenceNode inode : reachableINodes()) {
-			String declname = inode.fullName();
-			ASTNode node = (ASTNode) inode;
-			// Add source file info if it exists
-			String srcfile = node.sourceFile();
-			if(!srcfile.equals("Unknown file"))
-					declname += String.format(" from %s:%s", srcfile, node.location());
-			System.out.printf("%s flowsto %s", name, declname);
-			System.out.println();
+		logFieldFlowsTo(this);
+		// log flowsto for parameters
+		for(int i = 0; i < getNumParameter(); i++) {
+			getParameter(i).logFieldFlowsTo();
 		}
 	}
 }

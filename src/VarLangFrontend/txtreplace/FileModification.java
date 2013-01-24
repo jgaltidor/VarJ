@@ -29,11 +29,19 @@ public class FileModification
 	}
 	
 	public boolean add(ReplaceInfo info) {
-		return replacements.add(info);
+		boolean replacementAdded = replacements.add(info);
+		if(!replacementAdded) {
+			System.err.println("Replacement not added: " + info);
+		}
+		return replacementAdded;
 	}
 
 	public boolean addAll(Collection<? extends ReplaceInfo> otherReplacements) {
-		return replacements.addAll(otherReplacements);
+		boolean replacementAdded = false;
+		for(ReplaceInfo info : otherReplacements) {
+			replacementAdded |= this.add(info);
+		}
+		return replacementAdded;
 	}
 
 	public void rewriteFile(File outFile) throws java.io.IOException

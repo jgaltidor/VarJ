@@ -1,6 +1,8 @@
 package test;
 import java.util.*;
 
+// Testing Inner Class variance analysis
+
 public class Seller<P>
 {
 	String name;

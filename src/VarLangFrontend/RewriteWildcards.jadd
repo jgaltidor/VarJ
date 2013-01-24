@@ -171,9 +171,10 @@ aspect RewriteWildcard
 				oldUVar = BIVARIANT;
 			else
 				oldUVar = INVARIANT;
+			// inferred use-site annotation
 			Value newUVar = inferredDVar.join(oldUVar);
 			String oldArgRewrite = oldArg.wildString();
-			String newArg;
+			String newArg; // new type argument
 			if(newUVar.equals(BIVARIANT))
 				newArg = "?";
 			else if(newUVar.equals(CONTRAVARIANT))
@@ -182,8 +183,10 @@ aspect RewriteWildcard
 				newArg = "? extends " + oldArgRewrite;
 			else // newUVar == INVARIANT
 				newArg = oldArgRewrite;
-			if(i > 0)
+			// append delimeter if needed
+			if(i > 0) {
 				newAccess.append(", ");
+			}
 			newAccess.append(newArg);
 		}
 		newAccess.append('>');

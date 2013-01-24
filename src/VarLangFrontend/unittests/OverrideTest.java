@@ -18,6 +18,13 @@ class Cat implements Animal
 	}
 }
 
+class Frog implements Animal
+{
+	public void speak() {
+		System.out.println("ribbit");
+	}
+}
+
 public class OverrideTest
 {
 	public static void foo(int num) {
