@@ -1,2 +1,3 @@
-javac -d . *.java beaver/*.java scanner/*.java parser/*.java logutil/*.java
-scalac *.scala
+ant gen jcommander
+javac -d . */*.java
+scalac */*.scala
