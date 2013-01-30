@@ -110,6 +110,9 @@ aspect InfluenceAnalysis
 	
 	protected void AssignExpr.computeVariableGetAssignedTo() {
 		Variable dest = getDest().varDecl();
+		if(dest == null) {
+			return;
+		}
 		for(Variable accessedVar : getSource().accessedVarDecls()) {
 			accessedVar.partialAssignedTo().add(dest);
 		}
@@ -159,6 +162,7 @@ aspect InfluenceAnalysis
 	
 	AssignExpr
 		contributes getDest().varDecl()
+		when getDest().varDecl() != null
 		to MethodDecl.assignedTo()
 		for each getSource().accessedMethDecls();
 

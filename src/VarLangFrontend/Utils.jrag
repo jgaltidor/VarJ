@@ -67,7 +67,7 @@ aspect Utils
 		}
 		
 		public static <E> Set<E> createSet() {
-			return new java.util.HashSet<E>();
+			return new DebugHashSet<E>();
 		}
 
 		public static <E> java.util.List<E> singletonList(E elem) {
@@ -80,6 +80,15 @@ aspect Utils
 			Set<E> set = createSet();
 			set.add(elem);
 			return set;
+		}
+	}
+	
+	
+	public class DebugHashSet<E> extends java.util.HashSet<E>
+	{
+		public boolean add(E e) {
+			if(e == null) throw new NullPointerException("nulls not allowed");
+			return super.add(e);
 		}
 	}
 }

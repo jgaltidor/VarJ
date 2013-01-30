@@ -38,7 +38,8 @@ public class ReplaceText
 			getFileModifications(replaceSpecFile);
 		for(FileModification fileMod : fileMods) {
 			File sourceFile = new File(fileMod.filename);
-			File outputFile = new File(outputDir, sourceFile.getName());
+			File outputFile = join(outputDir, new File(pathWithOnlyNames(sourceFile)));
+			ensureParentDirExists(outputFile);
 			System.out.printf("Rewrites of %s written to %s",
 			 fileMod.filename, outputFile);
 			System.out.println();
@@ -107,6 +108,44 @@ public class ReplaceText
 	  	endCol,
 	  	oldText,
 	  	newText);
+	}
+	
+	public static File join(File prefix, File suffix) {
+		String prefixPath = prefix.toString().trim();
+		return prefixPath.equals("") ?
+			suffix :
+			new File(prefixPath + File.separator + suffix.toString());
+	}
+
+	/** Removes ancestor dirs so that no dots are included in the path
+	  * Example:
+	  * pathWithOnlyNames('../../tmp/../gnu/trove/TIntStack.java')
+	  *   = 'gnu/trove/TIntStack.java'
+	  */
+	public static String pathWithOnlyNames(File file) {
+		String path = file.getName();
+		File currentFile = file;
+		while(true) {
+			File parentDir = currentFile.getParentFile();
+			if(parentDir == null) {
+				return path;
+			}
+			String dirname = parentDir.getName();
+			if(dirname.length() == 0 || !Character.isLetter(dirname.charAt(0))) {
+				return path;
+			}
+			else {
+				path = parentDir.getName() + File.separator + path;
+				currentFile = parentDir;
+			}
+		}
+	}
+
+	public static void ensureParentDirExists(File file) {
+		File parent = file.getParentFile();
+		if(parent != null && !parent.exists()) {
+			parent.mkdirs();
+		}
 	}
 }
 

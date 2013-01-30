@@ -69,14 +69,18 @@ aspect RewriteWildcard
 		writeWildcardReplaceInfo(oldAccess, newAccess, 0);
 	}
 	
-	syn lazy boolean InfluenceNode.isRewritable() {
+	syn lazy boolean InfluenceNode.isRewritable() circular [true] {
+		if(!isFromSource()) {
+			return false;
+		}
 		for(InfluenceNode inode : affectedNodes()) {
-			if(!inode.isFromSource()) {
+			if(!inode.isRewritable()) {
 				return false;
 			}
 		}
 		return true;
 	}
+
 
 	/** Returns the set of InfluenceNodes that requires
 	  * updating, if this node is updated
@@ -117,6 +121,11 @@ aspect RewriteWildcard
 		for(int i = 0; i < getNumParameter(); i++) {
 			nodes.addAll(getParameter(i).affectedNodes());
 		}
+		Iterator itr = hostType().ancestorMethods(signature()).iterator();
+		while(itr.hasNext()) {
+			nodes.add((MethodDecl) itr.next());
+		}
+		nodes.addAll(overridingMethods());
 		return nodes;
 	}
 
