@@ -32,8 +32,9 @@ object RewriteAllSources extends FilesParams
 	def main(args:Array[String]):Unit = {
 		val vf = new VarFrontend
 		BaseParams.processArgsAndCompile(args, vf, this, "ui.RewriteAllSources")
+		println("Computing rewrites to perform")
 		// Generate modificationSpec
-		vf.getProgram.rewriteAllSources
+		vf.getProgram.rewriteAllVarTypes
 		// all writes to ASTNode.rewriteOut performed so closing the file
 		ASTNode.rewriteOut.close
 		
@@ -41,7 +42,8 @@ object RewriteAllSources extends FilesParams
 		val modificationSpecFile = new File(modificationSpec)
 		val newSourcesDir = new File(newSourcesDirName)
 		if(!newSourcesDir.isDirectory) {
-			println("Creating directory: " + newSourcesDir.mkdirs)
+			println("Creating directory: " + newSourcesDir)
+			newSourcesDir.mkdirs
 		}
 		println("Performing rewrites specified in: " + modificationSpecFile)
 		txtreplace.ReplaceText.rewriteFiles(modificationSpecFile, newSourcesDir)

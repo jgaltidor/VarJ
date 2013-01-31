@@ -58,8 +58,9 @@ object RewriteSources extends FilesParams
 					Console.err.println("Class/Interface not found: " + typeName)
 			}
 		}
+		println("Computing rewrites to perform")
 		// Generate modificationSpec
-		typesToRewrite.foreach(_.generateRewrites)
+		typesToRewrite.foreach(_.rewriteMemberTypes)
 		// write fake replacement info so that all input source files
 		// are copied to the target directory (newSourcesDir) even if
 		// some source files did not require any rewrites
@@ -71,7 +72,8 @@ object RewriteSources extends FilesParams
 		val modificationSpecFile = new File(modificationSpec)
 		val newSourcesDir = new File(newSourcesDirName)
 		if(!newSourcesDir.isDirectory) {
-			println("Creating directory: " + newSourcesDir.mkdirs)
+			println("Creating directory: " + newSourcesDir)
+			newSourcesDir.mkdirs
 		}
 		println("Performing rewrites specified in: " + modificationSpecFile)
 		txtreplace.ReplaceText.rewriteFiles(modificationSpecFile, newSourcesDir)

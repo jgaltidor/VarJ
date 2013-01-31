@@ -7,14 +7,18 @@ aspect RewriteWildcard
 	/** Output stream to the rewrite specification file */
 	public static java.io.PrintStream ASTNode.rewriteOut = null;
 	
-	public void Program.rewriteAllSources() {
+	
+	public void ASTNode.rewriteAllVarTypes() {
+    for(int i = 0; i < getNumChild(); i++) {
+    	getChild(i).rewriteAllVarTypes();
+    }
+	}
+	
+	public void Program.rewriteAllVarTypes() {
 		for(int i = 0; i < getNumCompilationUnit(); i++) {
 			CompilationUnit unit = getCompilationUnit(i);
 			if(unit.fromSource()) {
-				for(int j = 0; j < unit.getNumTypeDecl(); j++) {
-					TypeDecl typedef = unit.getTypeDecl(j);
-					typedef.generateRewrites();
-				}
+				unit.rewriteAllVarTypes();
 				// write fake replacement info to ensure this
 				// unit's source file is copied to the new
 				// directory even if no types in this unit
@@ -24,6 +28,13 @@ aspect RewriteWildcard
 		}
 	}
 	
+	public void InfluenceNode.rewriteAllVarTypes() {
+		if(isRewritable()) {
+			writeToWildcards();
+			super.rewriteAllVarTypes();
+		}
+	}
+
 	public void Program.writeFakeReplaceInfo() {
 		for(int i = 0; i < getNumCompilationUnit(); i++) {
 			CompilationUnit unit = getCompilationUnit(i);
@@ -40,7 +51,7 @@ aspect RewriteWildcard
 	}
 
 
-	public void TypeDecl.generateRewrites() {
+	public void TypeDecl.rewriteMemberTypes() {
 		for(InfluenceNode node : affectedNodes()) {
 			if(node.isRewritable()) {
 				((ASTNode) node).writeToWildcards();

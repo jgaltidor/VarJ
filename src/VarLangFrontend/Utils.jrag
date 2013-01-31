@@ -1,4 +1,5 @@
 import java.util.Set;
+import java.util.Collection;
 
 /** This aspect contains utility methods used by multiple clients (aspects)
   * other than itself.
@@ -80,6 +81,22 @@ aspect Utils
 			Set<E> set = createSet();
 			set.add(elem);
 			return set;
+		}
+		
+		public static String toString(Collection<?> collec) {
+			StringBuilder sb = new StringBuilder("[");
+			Iterator<?> itr = collec.iterator();
+			// append string of first element in collec
+			if(itr.hasNext()) {
+				sb.append(itr.next().toString());
+			}
+			// append string of remaining elements
+			while(itr.hasNext()) {
+				sb.append(", ");
+				sb.append(itr.next());
+			}
+			sb.append(']');
+			return sb.toString();
 		}
 	}
 	

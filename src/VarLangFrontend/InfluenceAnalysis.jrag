@@ -5,7 +5,6 @@ aspect InfluenceAnalysis
 	/** Interface representing a node in a type influence graph */
 	interface InfluenceNode
 	{
-		public Set<InfluenceNode> succ();
 		public String fullName();
 		public boolean isFromSource();
 	}
@@ -24,7 +23,7 @@ aspect InfluenceAnalysis
 	ParameterDeclaration implements InfluenceNode;
 
 
-	public Set<InfluenceNode> Variable.succ() {
+	syn lazy Set<InfluenceNode> InfluenceNode.succ() {
 		Set<InfluenceNode> nodes = ASTUtils.createSet();
 		nodes.addAll(getAssignedTo());
 		for(MethodDecl meth : returnedFrom()) {
@@ -33,23 +32,34 @@ aspect InfluenceAnalysis
 		return nodes;
 	}
 
-	/** The variables accessed in return expressions of the method declaration. */
-	coll Set<Variable> MethodDecl.returnedVars() [ASTUtils.createSet()]
-		with addAll root MethodDecl;
-	
-	ReturnStmt
-		contributes getResult().accessedVarDecls()
-		when (hasResult() && enclosingBodyDecl().isMethodDecl())
-		to MethodDecl.returnedVars()
-		for ((MethodDecl) enclosingBodyDecl());
 
-
-	coll Set<MethodDecl> Variable.returnedFrom() [ASTUtils.createSet()] with add root Program;
+	coll Set<MethodDecl> InfluenceNode.returnedFrom() [ASTUtils.createSet()]
+		with add root Program;
 	
 	MethodDecl
 		contributes this
-		to Variable.returnedFrom()
-		for each returnedVars();
+		to InfluenceNode.returnedFrom()
+		for each returnedINodes();
+
+
+	/** The inodes accessed in return expressions of the method declaration. */
+	coll Set<InfluenceNode> MethodDecl.returnedINodes() [ASTUtils.createSet()]
+		with addAll root MethodDecl;
+	
+	ReturnStmt
+		contributes getResult().accessedINodes()
+		when (hasResult() && enclosingBodyDecl().isMethodDecl())
+		to MethodDecl.returnedINodes()
+		for ((MethodDecl) enclosingBodyDecl());
+
+	// accessedINodes
+	
+	syn Set<InfluenceNode> ASTNode.accessedINodes() {
+		Set<InfluenceNode> nodes = ASTUtils.createSet();
+		nodes.addAll(accessedVarDecls());
+		nodes.addAll(accessedMethDecls());
+		return nodes;
+	}
 
 
 	// accessedVarDecls
@@ -64,107 +74,6 @@ aspect InfluenceAnalysis
 	
 	eq VarAccess.accessedVarDecls() = ASTUtils.singletonSet(decl());
 
-	
-	/** Variable.getAssignedTo() is really a collection attribute
-	  * but cannot be implemented as an JastAdd collection attribute
-	  * due to its limited syntax.
-	  */
-	public Set<Variable> Variable.getAssignedTo() {
-		if(!program().computedVariableGetAssignedTo)
-			program().computeVariableGetAssignedTo();
-		return partialAssignedTo();
-	}
-	
-	/** Returns a reference to the possibly partially computed
-	  * assigned to set. This method should only be accessed in
-	  * computeVariableGetAssignedTo methods, so this set can be
-	  * computed, and in the public Variable.getAssignedTo() method.
-	  * Clients of the Variable interface should not call this method
-	  * to get access to the assigned to set.
-	  */
-	public Set<Variable> Variable.partialAssignedTo() {
-		if(this.Variable_assignedTo == null) {
-			this.Variable_assignedTo = ASTUtils.createSet();
-		}
-		return this.Variable_assignedTo;
-	}
-	
-	protected Set<Variable> ASTNode.Variable_assignedTo = null;
-
-	protected boolean Program.computedVariableGetAssignedTo = false;
-	
-	protected void ASTNode.computeVariableGetAssignedTo() {
-    for(int i = 0; i < getNumChild(); i++) {
-    	getChild(i).computeVariableGetAssignedTo();
-    }
-	}
-
-	protected void Program.computeVariableGetAssignedTo() {
-		super.computeVariableGetAssignedTo();
-		this.computedVariableGetAssignedTo = true;
-	}
-
-
-	// Implementing the collection routines for special cases
-	// of ASTNodes
-	
-	protected void AssignExpr.computeVariableGetAssignedTo() {
-		Variable dest = getDest().varDecl();
-		if(dest == null) {
-			return;
-		}
-		for(Variable accessedVar : getSource().accessedVarDecls()) {
-			accessedVar.partialAssignedTo().add(dest);
-		}
-	}
-
-	protected void VariableDeclaration.computeVariableGetAssignedTo() {
-		if(hasInit()) {
-			for(Variable accessedVar : getInit().accessedVarDecls()) {
-				accessedVar.partialAssignedTo().add(this);
-			}
-		}
-	}
-
-	/** Contributions made for m(e_1, e_2, ..., e_n) are:
-	  * For each i in [1, n],
-	  *  overrideArgParameters(m, i) are contributed to
-	  *  assignedto vars(e_i)
-	  */
-	protected void MethodAccess.computeVariableGetAssignedTo() {
-		MethodDecl meth = decl().originalDecl();
-		// Only collect if the method is from source
-		if(!meth.isFromSource()) {
-			return;
-		}
-		int numParams = meth.getNumParameter();
-		int minNumArgs = (!meth.isVariableArity() || invokesVariableArityAsArray()) ?
-			numParams : Math.max(0, numParams-1);
-		for(int i = 0; i < minNumArgs; i++) {
-			for(Variable var : getArg(i).accessedVarDecls()) {
-				var.partialAssignedTo().addAll(meth.overridingParams(i));
-			}
-		}
-		for(int j = minNumArgs; j < getNumArg(); j++) {
-			for(Variable var : getArg(j).accessedVarDecls()) {
-				var.partialAssignedTo().addAll(meth.overridingParams(numParams-1));
-			}
-		}
-	}
-
-
-	public Set<InfluenceNode> MethodDecl.succ() {
-		return assignedTo();
-	}
-
-	coll Set<InfluenceNode> MethodDecl.assignedTo() [ASTUtils.createSet()]
-		with add root MethodDecl;
-	
-	AssignExpr
-		contributes getDest().varDecl()
-		when getDest().varDecl() != null
-		to MethodDecl.assignedTo()
-		for each getSource().accessedMethDecls();
 
 	// accessedMethDecls
 	
@@ -178,10 +87,119 @@ aspect InfluenceAnalysis
 	
 	eq MethodAccess.accessedMethDecls() {
 		Set<MethodDecl> decls = ASTUtils.createSet();
+
+		/*
+		java.util.List<MethodDecl> methods =
+			decl().originalDecl().overridingMethods();
+		assert !methods.isEmpty();
+		for(MethodDecl meth : methods) {
+			LOG.log(DEBUG, String.format("%s accessed from %s",
+				meth.fullName(), enclosingBodyDecl().fullName()));
+		}
+		decls.addAll(methods);
+		*/
+	
 		decls.addAll(decl().originalDecl().overridingMethods());
 		decls.addAll(super.accessedMethDecls());
 		return decls;
 	}
+
+
+	/** Variable.getAssignedTo() is really a collection attribute
+	  * but cannot be implemented as an JastAdd collection attribute
+	  * due to its limited syntax.
+	  */
+	public Set<InfluenceNode> InfluenceNode.getAssignedTo() {
+		if(!program().computed_InfluenceNode_AssignedTo)
+			program().compute_InfluenceNode_AssignedTo();
+		return partialAssignedTo();
+	}
+	
+	/** Returns a reference to the possibly partially computed
+	  * assigned to set. This method should only be accessed in
+	  * compute_InfluenceNode_AssignedTo methods, so this set can be
+	  * computed, and in the public Variable.getAssignedTo() method.
+	  * Clients of the Variable interface should not call this method
+	  * to get access to the assigned to set.
+	  */
+	public Set<InfluenceNode> InfluenceNode.partialAssignedTo() {
+		if(this.InfluenceNode_AssignedTo == null) {
+			this.InfluenceNode_AssignedTo = ASTUtils.createSet();
+		}
+		return this.InfluenceNode_AssignedTo;
+	}
+	
+	protected Set<InfluenceNode> ASTNode.InfluenceNode_AssignedTo = null;
+
+	protected boolean Program.computed_InfluenceNode_AssignedTo = false;
+	
+	protected void ASTNode.compute_InfluenceNode_AssignedTo() {
+    for(int i = 0; i < getNumChild(); i++) {
+    	getChild(i).compute_InfluenceNode_AssignedTo();
+    }
+	}
+
+	protected void Program.compute_InfluenceNode_AssignedTo() {
+		super.compute_InfluenceNode_AssignedTo();
+		this.computed_InfluenceNode_AssignedTo = true;
+	}
+
+
+	// Implementing the collection routines for special cases
+	// of ASTNodes
+	
+	protected void AssignExpr.compute_InfluenceNode_AssignedTo() {
+		Variable dest = getDest().varDecl();
+		if(dest == null) {
+			return;
+		}
+		for(InfluenceNode accessedNode : getSource().accessedINodes()) {
+			accessedNode.partialAssignedTo().add(dest);
+		}
+	}
+
+	protected void VariableDeclaration.compute_InfluenceNode_AssignedTo() {
+		if(hasInit()) {
+			for(InfluenceNode accessedNode : getInit().accessedINodes()) {
+				accessedNode.partialAssignedTo().add(this);
+			}
+		}
+	}
+
+	protected void FieldDeclaration.compute_InfluenceNode_AssignedTo() {
+		if(hasInit()) {
+			for(InfluenceNode accessedNode : getInit().accessedINodes()) {
+				accessedNode.partialAssignedTo().add(this);
+			}
+		}
+	}
+
+	/** Contributions made for m(e_1, e_2, ..., e_n) are:
+	  * For each i in [1, n],
+	  *  overrideArgParameters(m, i) are contributed to
+	  *  assignedto vars(e_i)
+	  */
+	protected void MethodAccess.compute_InfluenceNode_AssignedTo() {
+		MethodDecl meth = decl().originalDecl();
+		// Only collect if the method is from source
+		if(!meth.isFromSource()) {
+			return;
+		}
+		int numParams = meth.getNumParameter();
+		int minNumArgs = (!meth.isVariableArity() || invokesVariableArityAsArray()) ?
+			numParams : Math.max(0, numParams-1);
+		for(int i = 0; i < minNumArgs; i++) {
+			for(InfluenceNode accessedNode : getArg(i).accessedINodes()) {
+				accessedNode.partialAssignedTo().addAll(meth.overridingParams(i));
+			}
+		}
+		for(int j = minNumArgs; j < getNumArg(); j++) {
+			for(InfluenceNode accessedNode : getArg(j).accessedINodes()) {
+				accessedNode.partialAssignedTo().addAll(meth.overridingParams(numParams-1));
+			}
+		}
+	}
+
 
 	// reachableINodes
 	
@@ -206,24 +224,23 @@ aspect InfluenceAnalysis
 
 	// Methods for testing
 	
-	public void TypeDecl.logFieldFlowsTo() {
+	public void TypeDecl.logFlowsTo() {
 		for (int j=0; j < getNumBodyDecl(); j++) {
-			getBodyDecl(j).logFieldFlowsTo();
+			getBodyDecl(j).logFlowsTo();
 			System.out.println();
 		}
 	}
 	
+	public void BodyDecl.logFlowsTo() { }
 	
-	public void BodyDecl.logFieldFlowsTo() { }
-	
-	public void InfluenceNode.logFieldFlowsTo();
+	public void InfluenceNode.logFlowsTo();
 
 	/** This method allows simulating a "super" call to
-	  * to InfluenceNode.logFieldFlowsTo; a direct super
+	  * to InfluenceNode.logFlowsTo; a direct super
 	  * call is not allowed because InfluenceNode is an
 	  * interface.
 	  */
-	public static void ASTNode.logFieldFlowsTo(InfluenceNode thisNode) {
+	public static void ASTNode.logFlowsTo(InfluenceNode thisNode) {
 		String name = thisNode.fullName();
 		System.out.printf("logging flowsto for %s", name);
 		System.out.println();
@@ -238,14 +255,31 @@ aspect InfluenceAnalysis
 			System.out.println();
 		}
 	}
-	
-	public void Variable.logFieldFlowsTo() { logFieldFlowsTo(this); }
 
-	public void MethodDecl.logFieldFlowsTo() {
-		logFieldFlowsTo(this);
+	public void Variable.logFlowsTo() { logFlowsTo(this); }
+
+	public void MethodDecl.logFlowsTo() {
+		logFlowsTo(this);
 		// log flowsto for parameters
 		for(int i = 0; i < getNumParameter(); i++) {
-			getParameter(i).logFieldFlowsTo();
+			getParameter(i).logFlowsTo();
+		}
+	}
+
+
+	public static void ASTNode.logAssignedTo(InfluenceNode thisNode) {
+		String name = thisNode.fullName();
+		System.out.printf("logging assignedTo for %s", name);
+		System.out.println();
+		for(InfluenceNode inode : thisNode.succ()) {
+			String declname = inode.fullName();
+			ASTNode node = (ASTNode) inode;
+			// Add source file info if it exists
+			String srcfile = node.sourceFile();
+			if(!srcfile.equals("Unknown file"))
+					declname += String.format(" from %s:%s", srcfile, node.location());
+			System.out.printf("%s assignedTo %s", name, declname);
+			System.out.println();
 		}
 	}
 }
