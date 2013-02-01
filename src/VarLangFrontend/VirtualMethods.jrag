@@ -47,29 +47,45 @@ aspect VirtualMethods
 		while(itr.hasNext()) itr.next();
 		sourceFilesLoaded = true;
 	}
+	
+	
+	syn lazy java.util.List<MethodDecl> MethodDecl.overriddenMethods() {
+		java.util.List<MethodDecl> overriddenMeths = ASTUtils.createList();
+		Iterator itr = hostType().ancestorMethods(signature()).iterator();
+		while(itr.hasNext()) {
+			overriddenMeths.add((MethodDecl) itr.next());
+		}
+		return overriddenMeths;
+	}
+	
+	
+	syn lazy java.util.List<MethodDecl> MethodDecl.hierarchyMethods() {
+		java.util.List<MethodDecl> methods = ASTUtils.createList();
+		// adding overridden methods, which does not include this method
+		methods.addAll(overriddenMethods());
+		// adding overriding methods, which includes this method
+		methods.addAll(overridingMethods());
+		return methods;
+	}
 
+	// hierarchyParams
 
-	// overridingParams
-
-
-	syn lazy java.util.List<ParameterDeclaration> MethodDecl.overridingParams(int i) {
+	syn lazy java.util.List<ParameterDeclaration> MethodDecl.hierarchyParams(int i) {
 		java.util.List<ParameterDeclaration> params = ASTUtils.createList();
-		for(MethodDecl overridingMethod : overridingMethods()) {
-			params.add(overridingMethod.getParameter(i));
+		for(MethodDecl meth : hierarchyMethods()) {
+			params.add(meth.getParameter(i));
 		}
 		return params;
 	}
 	
-	inh lazy java.util.List<ParameterDeclaration> ParameterDeclaration.overridingParams();
+	inh lazy java.util.List<ParameterDeclaration> ParameterDeclaration.hierarchyParams();
 
-	// eq ASTNode.getChild(int i).overridingParams() = Collections.empty();
-
-	eq MethodDecl.getParameter(int i).overridingParams() = overridingParams(i);
+	eq MethodDecl.getParameter(int i).hierarchyParams() = this.hierarchyParams(i);
 	
-	eq ConstructorDecl.getParameter(int i).overridingParams() =
+	eq ConstructorDecl.getParameter(int i).hierarchyParams() =
 		ASTUtils.singletonList(getParameter(i));
 	
-	eq BasicCatch.getParameter().overridingParams() =
+	eq BasicCatch.getParameter().hierarchyParams() =
 		ASTUtils.singletonList(getParameter());
 
 

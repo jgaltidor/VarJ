@@ -124,8 +124,8 @@ aspect AnalyzeSig
 		return bounds;
 	}
 	
-	eq ParClassDecl.varBoundsSig(TypeVariable tv) = original().varBoundsSig(tv);
-
+	eq ParClassDecl.varBoundsSig(TypeVariable tv) =
+		sourceTypeDecl().varBoundsSig(tv);
 
 	// BodyDecl.varBoundsSig
 

@@ -7,6 +7,7 @@ aspect InfluenceAnalysis
 	{
 		public String fullName();
 		public boolean isFromSource();
+		syn lazy Set<InfluenceNode> succ();
 	}
 	
 	MethodDecl implements InfluenceNode; // Represents really the return type of a method
@@ -23,34 +24,32 @@ aspect InfluenceAnalysis
 	ParameterDeclaration implements InfluenceNode;
 
 
-	syn lazy Set<InfluenceNode> InfluenceNode.succ() {
+	eq VariableDeclaration.succ() = getAssignedTo();
+	eq FieldDeclaration.succ() = getAssignedTo();
+	
+	eq ParameterDeclaration.succ() {
 		Set<InfluenceNode> nodes = ASTUtils.createSet();
 		nodes.addAll(getAssignedTo());
-		for(MethodDecl meth : returnedFrom()) {
-			nodes.addAll(meth.overridingMethods());
+		for(ParameterDeclaration param : hierarchyParams()) {
+			Variable sourceParam = param.sourceVariableDecl();
+			if(sourceParam != this) {
+				nodes.add(sourceParam);
+			}
 		}
 		return nodes;
 	}
 
-
-	coll Set<MethodDecl> InfluenceNode.returnedFrom() [ASTUtils.createSet()]
-		with add root Program;
-	
-	MethodDecl
-		contributes this
-		to InfluenceNode.returnedFrom()
-		for each returnedINodes();
-
-
-	/** The inodes accessed in return expressions of the method declaration. */
-	coll Set<InfluenceNode> MethodDecl.returnedINodes() [ASTUtils.createSet()]
-		with addAll root MethodDecl;
-	
-	ReturnStmt
-		contributes getResult().accessedINodes()
-		when (hasResult() && enclosingBodyDecl().isMethodDecl())
-		to MethodDecl.returnedINodes()
-		for ((MethodDecl) enclosingBodyDecl());
+	eq MethodDecl.succ() {
+		Set<InfluenceNode> nodes = ASTUtils.createSet();
+		nodes.addAll(getAssignedTo());
+		for(MethodDecl meth : hierarchyMethods()) {
+			MethodDecl sourceMeth = meth.sourceMethodDecl();
+			if(sourceMeth != this) {
+				nodes.add(sourceMeth);
+			}
+		}
+		return nodes;
+	}
 
 	// accessedINodes
 	
@@ -72,8 +71,17 @@ aspect InfluenceAnalysis
     return decls;
 	}
 	
-	eq VarAccess.accessedVarDecls() = ASTUtils.singletonSet(decl());
-
+	eq VarAccess.accessedVarDecls() {
+		Variable varDecl = decl().sourceVariableDecl();
+		// for efficiency, we only care about variables
+		// of parameterized types
+		if(varDecl.type().isParameterizedType()) {
+			return ASTUtils.singletonSet(varDecl);
+		}
+		else {
+			return Collections.emptySet();
+		}
+	}
 
 	// accessedMethDecls
 	
@@ -87,38 +95,34 @@ aspect InfluenceAnalysis
 	
 	eq MethodAccess.accessedMethDecls() {
 		Set<MethodDecl> decls = ASTUtils.createSet();
-
-		/*
-		java.util.List<MethodDecl> methods =
-			decl().originalDecl().overridingMethods();
-		assert !methods.isEmpty();
-		for(MethodDecl meth : methods) {
-			LOG.log(DEBUG, String.format("%s accessed from %s",
-				meth.fullName(), enclosingBodyDecl().fullName()));
+		MethodDecl methDecl = decl().sourceMethodDecl();
+		// for efficiency, we only care about methods
+		// with return parameterized types
+		if(methDecl.type().isParameterizedType()) {
+			decls.add(methDecl);
 		}
-		decls.addAll(methods);
-		*/
-	
-		decls.addAll(decl().originalDecl().overridingMethods());
 		decls.addAll(super.accessedMethDecls());
 		return decls;
 	}
 
 
-	/** Variable.getAssignedTo() is really a collection attribute
+	/** InfluenceNode.getAssignedTo() is really a collection attribute
 	  * but cannot be implemented as an JastAdd collection attribute
 	  * due to its limited syntax.
 	  */
 	public Set<InfluenceNode> InfluenceNode.getAssignedTo() {
-		if(!program().computed_InfluenceNode_AssignedTo)
+		if(!program().computed_InfluenceNode_AssignedTo) {
+			System.out.println("Computing assignedTo for program");
 			program().compute_InfluenceNode_AssignedTo();
+			System.out.println("Computed assignedTo for program");
+		}
 		return partialAssignedTo();
 	}
 	
 	/** Returns a reference to the possibly partially computed
 	  * assigned to set. This method should only be accessed in
 	  * compute_InfluenceNode_AssignedTo methods, so this set can be
-	  * computed, and in the public Variable.getAssignedTo() method.
+	  * computed, and in the public InfluenceNode.getAssignedTo() method.
 	  * Clients of the Variable interface should not call this method
 	  * to get access to the assigned to set.
 	  */
@@ -140,17 +144,29 @@ aspect InfluenceAnalysis
 	}
 
 	protected void Program.compute_InfluenceNode_AssignedTo() {
-		super.compute_InfluenceNode_AssignedTo();
+		for(int i = 0; i < getNumCompilationUnit(); i++) {
+			CompilationUnit unit = getCompilationUnit(i);
+			if(unit.fromSource()) {
+				unit.compute_InfluenceNode_AssignedTo();
+			}
+		}
 		this.computed_InfluenceNode_AssignedTo = true;
 	}
-
 
 	// Implementing the collection routines for special cases
 	// of ASTNodes
 	
 	protected void AssignExpr.compute_InfluenceNode_AssignedTo() {
+		super.compute_InfluenceNode_AssignedTo();
 		Variable dest = getDest().varDecl();
 		if(dest == null) {
+			return;
+		}
+		dest = dest.sourceVariableDecl();
+		// For efficiency:
+		// We only care about assignments to dest if
+		// its type is parameterized
+		if(!dest.type().isParameterizedType()) {
 			return;
 		}
 		for(InfluenceNode accessedNode : getSource().accessedINodes()) {
@@ -159,47 +175,76 @@ aspect InfluenceAnalysis
 	}
 
 	protected void VariableDeclaration.compute_InfluenceNode_AssignedTo() {
+		super.compute_InfluenceNode_AssignedTo();
 		if(hasInit()) {
+			Variable thisVar = sourceVariableDecl();
+			// optimization
+			if(!thisVar.type().isParameterizedType()) {
+				return;
+			}
 			for(InfluenceNode accessedNode : getInit().accessedINodes()) {
-				accessedNode.partialAssignedTo().add(this);
+				accessedNode.partialAssignedTo().add(thisVar);
 			}
 		}
 	}
 
 	protected void FieldDeclaration.compute_InfluenceNode_AssignedTo() {
+		super.compute_InfluenceNode_AssignedTo();
 		if(hasInit()) {
+			Variable thisVar = sourceVariableDecl();
+			// optimization
+			if(!thisVar.type().isParameterizedType()) {
+				return;
+			}
 			for(InfluenceNode accessedNode : getInit().accessedINodes()) {
-				accessedNode.partialAssignedTo().add(this);
+				accessedNode.partialAssignedTo().add(thisVar);
 			}
 		}
 	}
 
 	/** Contributions made for m(e_1, e_2, ..., e_n) are:
 	  * For each i in [1, n],
-	  *  overrideArgParameters(m, i) are contributed to
+	  *  hierarchyParams(m, i) are contributed to
 	  *  assignedto vars(e_i)
 	  */
 	protected void MethodAccess.compute_InfluenceNode_AssignedTo() {
-		MethodDecl meth = decl().originalDecl();
-		// Only collect if the method is from source
-		if(!meth.isFromSource()) {
-			return;
-		}
+		super.compute_InfluenceNode_AssignedTo();
+		MethodDecl meth = decl().sourceMethodDecl();
 		int numParams = meth.getNumParameter();
 		int minNumArgs = (!meth.isVariableArity() || invokesVariableArityAsArray()) ?
 			numParams : Math.max(0, numParams-1);
 		for(int i = 0; i < minNumArgs; i++) {
+			ParameterDeclaration param = meth.getParameter(i);
+			// optimization
+			if(!param.type().isParameterizedType()) {
+				continue;
+			}
 			for(InfluenceNode accessedNode : getArg(i).accessedINodes()) {
-				accessedNode.partialAssignedTo().addAll(meth.overridingParams(i));
+				accessedNode.partialAssignedTo().add(param);
 			}
 		}
 		for(int j = minNumArgs; j < getNumArg(); j++) {
 			for(InfluenceNode accessedNode : getArg(j).accessedINodes()) {
-				accessedNode.partialAssignedTo().addAll(meth.overridingParams(numParams-1));
+				accessedNode.partialAssignedTo().add(meth.getParameter(numParams-1));
 			}
 		}
 	}
 
+	protected void ReturnStmt.compute_InfluenceNode_AssignedTo() {
+		if(hasResult()) {
+			super.compute_InfluenceNode_AssignedTo();
+			if(enclosingBodyDecl().isMethodDecl()) {
+				MethodDecl meth = (MethodDecl) enclosingBodyDecl();
+				// optimization
+				if(!meth.type().isParameterizedType()) {
+					return;
+				}
+				for(InfluenceNode accessedNode : getResult().accessedINodes()) {
+					accessedNode.partialAssignedTo().add(meth);
+				}
+			}
+		}
+	}
 
 	// reachableINodes
 	
@@ -212,9 +257,9 @@ aspect InfluenceAnalysis
 		return nodes;
 	}
 	
-	syn boolean BodyDecl.isFromSource() = hostType().compilationUnit().fromSource();
+	syn lazy boolean BodyDecl.isFromSource() = hostType().compilationUnit().fromSource();
 	
-	syn boolean Variable.isFromSource();
+	syn lazy boolean Variable.isFromSource();
 
 	eq FieldDeclaration.isFromSource() = super.isFromSource();
 
@@ -223,15 +268,12 @@ aspect InfluenceAnalysis
 	eq VariableDeclaration.isFromSource() = enclosingBodyDecl().isFromSource();
 
 	// Methods for testing
-	
-	public void TypeDecl.logFlowsTo() {
-		for (int j=0; j < getNumBodyDecl(); j++) {
-			getBodyDecl(j).logFlowsTo();
-			System.out.println();
-		}
+	public void ASTNode.logFlowsTo() {
+    for(int i = 0; i < getNumChild(); i++) {
+    	getChild(i).logFlowsTo();
+    	// System.out.println();
+    }
 	}
-	
-	public void BodyDecl.logFlowsTo() { }
 	
 	public void InfluenceNode.logFlowsTo();
 

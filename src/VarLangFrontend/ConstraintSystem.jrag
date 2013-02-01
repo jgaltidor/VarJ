@@ -47,8 +47,7 @@ aspect ConstraintSystem
 	  * type actual T_i.
 	  */
 	eq ParTypeDecl.varExpr(TypeVariable tv) {
-		GenericTypeDecl gtd =
-			(GenericTypeDecl) ((TypeDecl) this).original();
+		GenericTypeDecl gtd = (GenericTypeDecl) sourceTypeDecl();
 		VExpr result = null;
 		for (int i = 0; i < getNumArgument(); i++) {
 			TypeDecl typeArg = getArgument(i).type();

@@ -34,7 +34,7 @@ aspect Stats
 
 	eq ParTypeDecl.uselessWildCards() {
 		int total = 0;
-		GenericTypeDecl gtd = (GenericTypeDecl) original();
+		GenericTypeDecl gtd = (GenericTypeDecl) sourceTypeDecl();
 		for (int i = 0; i < getNumArgument(); i++) {
 			TypeDecl typeArg = getArgument(i).type();
 			Value formalVariance = gtd.computeVar(i);
@@ -148,7 +148,7 @@ aspect Stats
 
 	eq ParTypeDecl.overSpecified() {
 		int total = 0;
-		GenericTypeDecl gtd = (GenericTypeDecl) original();
+		GenericTypeDecl gtd = (GenericTypeDecl) sourceTypeDecl();
 		for (int i = 0; i < getNumArgument(); i++) {
 			TypeDecl typeArg = getArgument(i).type();
 			Value formalVariance = gtd.computeVar(i);

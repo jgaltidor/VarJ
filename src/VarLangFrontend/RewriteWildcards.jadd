@@ -27,7 +27,7 @@ aspect RewriteWildcard
 			}
 		}
 	}
-	
+
 	public void InfluenceNode.rewriteAllVarTypes() {
 		if(isRewritable()) {
 			writeToWildcards();
@@ -81,16 +81,28 @@ aspect RewriteWildcard
 	}
 	
 	syn lazy boolean InfluenceNode.isRewritable() circular [true] {
-		if(!isFromSource()) {
+		if(!rewriteCheck()) {
 			return false;
 		}
-		for(InfluenceNode inode : affectedNodes()) {
-			if(!inode.isRewritable()) {
+		for(InfluenceNode inode : reachableINodes()) {
+			if(!inode.rewriteCheck()) {
 				return false;
 			}
 		}
 		return true;
 	}
+
+	syn lazy boolean InfluenceNode.rewriteCheck();
+	
+	eq VariableDeclaration.rewriteCheck() = isFromSource();
+	eq FieldDeclaration.rewriteCheck() = isFromSource();
+	eq MethodDecl.rewriteCheck() = isFromSource();
+	
+	/** Checking if param's type is a type variable
+	  * because of erasure.
+	  */
+	eq ParameterDeclaration.rewriteCheck() = 
+		type().isTypeVariable() ? false : isFromSource();
 
 
 	/** Returns the set of InfluenceNodes that requires
@@ -123,8 +135,6 @@ aspect RewriteWildcard
 	}
 	
 	eq Variable.affectedNodes() = affectedNodes(this);
-	
-	// syn lazy Set<InfluenceNode> Variable.affectedNodes() = affectedNodes(this);
 
 	eq MethodDecl.affectedNodes() {
 		Set<InfluenceNode> nodes = ASTUtils.createSet();
@@ -132,11 +142,6 @@ aspect RewriteWildcard
 		for(int i = 0; i < getNumParameter(); i++) {
 			nodes.addAll(getParameter(i).affectedNodes());
 		}
-		Iterator itr = hostType().ancestorMethods(signature()).iterator();
-		while(itr.hasNext()) {
-			nodes.add((MethodDecl) itr.next());
-		}
-		nodes.addAll(overridingMethods());
 		return nodes;
 	}
 

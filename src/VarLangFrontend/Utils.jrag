@@ -39,11 +39,8 @@ aspect Utils
 	syn lazy boolean BodyDecl.isMethodDecl() = false;
 	eq MethodDecl.isMethodDecl() = true;
 
-	syn lazy MethodDecl MethodDecl.originalDecl() = this;
-	eq MethodDeclSubstituted.originalDecl() = getOriginal().originalDecl();
-
-	syn lazy FieldDeclaration FieldDeclaration.originalDecl() = this;
-	eq FieldDeclarationSubstituted.originalDecl() = getOriginal().originalDecl();
+	// syn lazy MethodDecl MethodDecl.originalDecl() = sourceMethodDecl();
+	// syn lazy Variable Variable.originalDecl() = sourceVariableDecl();
 	
 	/** Needed to added some utility methods to this class because JastAdd
 		* fails to parse some legal Java methods, such as generic methods
