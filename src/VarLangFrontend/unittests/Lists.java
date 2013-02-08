@@ -38,6 +38,8 @@ class WList<E>
 	
 	int size() { return elems.size(); }
 	
+	int size2() { return this.size(); }
+	
 	// public void doNothing(Comparator<E> comp) {}
 
 	// public <T extends E> void whatever(Iterable<T> itr) { }
