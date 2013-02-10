@@ -39,6 +39,12 @@ aspect Utils
 	syn lazy boolean BodyDecl.isMethodDecl() = false;
 	eq MethodDecl.isMethodDecl() = true;
 
+	syn lazy boolean BodyDecl.isMemberDecl() = false;
+	eq MemberDecl.isMemberDecl() = true;
+
+	syn lazy boolean BodyDecl.isMemberTypeDecl() = false;
+	eq MemberTypeDecl.isMemberTypeDecl() = true;
+
 	// syn lazy MethodDecl MethodDecl.originalDecl() = sourceMethodDecl();
 	// syn lazy Variable Variable.originalDecl() = sourceVariableDecl();
 	

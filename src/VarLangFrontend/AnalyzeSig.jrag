@@ -51,8 +51,12 @@ aspect AnalyzeSig
 				if((!m.isPrivate() || chkPrivateMembers) && !m.isStatic())
 					bounds.addAll(strategy.varBounds(m, tv));
 			}
-			else
+			else if(b.isMemberDecl() && !((MemberDecl) b).isStatic()) {
 				bounds.addAll(strategy.varBounds(b, tv));
+			}
+			else {
+				bounds.addAll(strategy.varBounds(b, tv));
+			}
 		}
 		return bounds;
 	}
@@ -90,8 +94,12 @@ aspect AnalyzeSig
 				if((!m.isPrivate() || chkPrivateMembers) && !m.isStatic())
 					bounds.addAll(strategy.varBounds(m, tv));
 			}
-			else
+			else if(b.isMemberDecl() && !((MemberDecl) b).isStatic()) {
 				bounds.addAll(strategy.varBounds(b, tv));
+			}
+			else {
+				bounds.addAll(strategy.varBounds(b, tv));
+			}
 		}
 		return bounds;
 	}
@@ -234,11 +242,8 @@ aspect AnalyzeSig
 		return bounds;
 	}
 	
-	eq MemberClassDecl.varBoundsSig(TypeVariable tv) =
-		getClassDecl().varBoundsSig(tv);
-		
-	eq MemberInterfaceDecl.varBoundsSig(TypeVariable tv) =
-		getInterfaceDecl().varBoundsSig(tv);
+	eq MemberTypeDecl.varBoundsSig(TypeVariable tv) =
+		typeDecl().varBoundsSig(tv);
 
 
 	/** Determine whether or not to check private members */
@@ -252,6 +257,9 @@ aspect AnalyzeSig
 	  * Otherwise, return true
 	  */
 	syn lazy boolean TypeDecl.needToCheckPrivateMembers() {
+		if(!isTopLevelType()) {
+			return true;
+		}
 		for (int j=0; j < getNumBodyDecl(); j++) {
 			BodyDecl b = getBodyDecl(j);
 			if(b.isMethodDecl()) {
@@ -262,6 +270,9 @@ aspect AnalyzeSig
 							return true;
 					}
 				}
+			}
+			else if(b.isMemberTypeDecl() && !((MemberTypeDecl) b).isStatic()) {
+				return true;
 			}
 		}
 		return false;

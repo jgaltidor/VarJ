@@ -4,6 +4,6 @@ SRC=$JSCIENCE/src
 LIBS=$SCALA_HOME/lib/scala-library.jar
 
 set -ex
-# Rewriting Trove
-echo Generating rewritten trove library
+# Analyze Trove Type
+echo Analyzing Trove Type $1
 java -Xmx1g -classpath $LIBS:$CLASSPATH  ui.AnalyzeType -t $1  $TROVE/src  $TROVE/output/gen_src

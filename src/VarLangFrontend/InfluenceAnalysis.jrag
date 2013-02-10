@@ -27,14 +27,20 @@ aspect InfluenceAnalysis
 	ParameterDeclaration implements InfluenceNode;
 
 
-	inh InfluenceNode Expr.destinationNode();
+	inh lazy InfluenceNode Expr.destinationNode();
 
 	eq Program.getChild().destinationNode() = null;
 
 	eq MethodAccess.getArg(int i).destinationNode() =
 		getParameter(i);
+	
+	eq ConstructorAccess.getArg(int i).destinationNode() =
+		getParameter(i);
 
-	eq AssignExpr.getSource().destinationNode() = getDest().varDecl();
+	eq ClassInstanceExpr.getArg(int i).destinationNode() =
+		getParameter(i);
+
+	eq AssignExpr.getSource().destinationNode() = getDest().destDecl();
 
 	eq VariableDeclaration.getInit().destinationNode() = this;
 
@@ -45,7 +51,12 @@ aspect InfluenceAnalysis
 			(MethodDecl) enclosingBodyDecl() : null;
 
 
-	syn boolean Expr.hasDestinationNode() = (destinationNode() != null);
+	syn lazy Variable Expr.destDecl() = varDecl();
+
+	eq AbstractDot.destDecl() =
+		isArrayAccess() ? getLeft().destDecl() : super.destDecl();
+
+	syn lazy boolean Expr.hasDestinationNode() = (destinationNode() != null);
 
 
 	coll Set<InfluenceNode> InfluenceNode.assignedTo() [ASTUtils.createSet()]
@@ -55,7 +66,6 @@ aspect InfluenceAnalysis
 		when hasDestinationNode() && isUseful(destinationNode())
 		to InfluenceNode.assignedTo()
 		for each getUsefulNodes(accessedINodes());
-	
 	
 	public static Set<InfluenceNode>
 		ASTNode.getUsefulNodes(Set<InfluenceNode> nodes)
@@ -71,24 +81,45 @@ aspect InfluenceAnalysis
 	}
 	
 	public static boolean ASTNode.isUseful(InfluenceNode node) {
-		// return true;
-		TypeDecl type = node.sourceDecl().type();
-		return type.isParameterizedType() || type.isTypeVariable();
+		return node.sourceDecl().type().involvesGeneric();
 	}
 	
+	syn lazy boolean TypeDecl.involvesGeneric() = false;
+	eq ParTypeDecl.involvesGeneric() = true;
+	eq TypeVariable.involvesGeneric() = true;
+	eq ArrayDecl.involvesGeneric() = componentType().involvesGeneric();
+
+
+	// sourceDecl
+
 	eq Variable.sourceDecl() = sourceVariableDecl();
 	eq MethodDecl.sourceDecl() = sourceMethodDecl();
+
 
 	syn lazy ParameterDeclaration MethodAccess.getParameter(int index) {
 		MethodDecl meth = decl();
 		int numParams = meth.getNumParameter();
-		if(numParams == 0) {
+		if(numParams == 0 || index >= numParams) {
 			return null;
 		}
 		int minNumArgs = (!meth.isVariableArity() || invokesVariableArityAsArray()) ?
 			numParams : Math.max(0, numParams-1);
 		return index < minNumArgs ?
 			meth.getParameter(index) : meth.getParameter(numParams-1);
+	}
+
+	syn lazy ParameterDeclaration ConstructorAccess.getParameter(int index) {
+		ConstructorDecl con = decl();
+		int numParams = con.getNumParameter();
+		return (numParams == 0 || index >= numParams) ?
+			null : con.getParameter(index);
+	}
+
+	syn lazy ParameterDeclaration ClassInstanceExpr.getParameter(int index) {
+		ConstructorDecl con = decl();
+		int numParams = con.getNumParameter();
+		return (numParams == 0 || index >= numParams) ?
+			null : con.getParameter(index);
 	}
 
 
@@ -205,8 +236,10 @@ aspect InfluenceAnalysis
 	  */
 	public static void ASTNode.logFlowsTo(InfluenceNode thisNode) {
 		String name = thisNode.fullName();
-		System.out.printf("logging flowsto for %s", name);
-		System.out.println();
+		if(!isUseful(thisNode)) {
+			System.out.println("skipping flowsto logging for " + name);
+		}
+		System.out.println("logging flowsto for " + name);
 		for(InfluenceNode inode : thisNode.reachableINodes()) {
 			System.out.printf("%s flowsto %s", name, inode.fullName());
 			// Add source file info if it exists
@@ -230,8 +263,10 @@ aspect InfluenceAnalysis
 
 	public static void ASTNode.logAssignedTo(InfluenceNode thisNode) {
 		String name = thisNode.fullName();
-		System.out.printf("logging assignedTo for %s", name);
-		System.out.println();
+		if(!isUseful(thisNode)) {
+			System.out.println("skipping assignedTo logging for " + name);
+		}
+		System.out.println("logging assignedTo for " + name);
 		for(InfluenceNode inode : thisNode.assignedTo()) {
 			System.out.printf("%s assignedTo %s", name, inode.fullName());
 			// Add source file info if it exists

@@ -92,18 +92,25 @@ aspect RewriteWildcard
 		return true;
 	}
 
+
 	syn lazy boolean InfluenceNode.rewriteCheck();
 	
 	eq VariableDeclaration.rewriteCheck() = isFromSource();
 	eq FieldDeclaration.rewriteCheck() = isFromSource();
-	eq MethodDecl.rewriteCheck() = isFromSource();
 	
+	/** Checking if return type is a type variable
+	  * because of overriding.
+	  */
+	eq MethodDecl.rewriteCheck() =
+		type().isTypeVariable() ? false : isFromSource();
+		
 	/** Checking if param's type is a type variable
-	  * because of erasure.
+	  * because of overriding.
 	  */
 	eq ParameterDeclaration.rewriteCheck() = 
 		type().isTypeVariable() ? false : isFromSource();
 
+	eq VariableArityParameterDeclaration.rewriteCheck() = false;
 
 	/** Returns the set of InfluenceNodes that requires
 	  * updating, if this node is updated
@@ -207,25 +214,42 @@ aspect RewriteWildcard
 			Access oldArg = getTypeArgument(i);
 			Value inferredDVar = gtd.computeVar(i);
 			Value oldUVar;
-			String typeActual;
 			if(oldArg instanceof WildcardSuper) {
 				oldUVar = CONTRAVARIANT;
-				typeActual = ((WildcardSuper) oldArg).getAccess().wildString();
 			}
 			else if(oldArg instanceof WildcardExtends) {
 				oldUVar = COVARIANT;
-				typeActual = ((WildcardExtends) oldArg).getAccess().wildString();
 			}
 			else if(oldArg instanceof Wildcard) {
 				oldUVar = BIVARIANT;
-				typeActual = null;
 			}
 			else {
 				oldUVar = INVARIANT;
-				typeActual = oldArg.wildString();
 			}
 			// inferred use-site annotation
 			Value newUVar = inferredDVar.join(oldUVar);
+			String typeActual = null;
+			if(newUVar.equals(COVARIANT)) {
+				if(oldUVar.equals(INVARIANT)) {
+					typeActual = oldArg.wildString();
+				}
+				else if(oldUVar.equals(COVARIANT)) {
+					typeActual = ((WildcardExtends) oldArg).getAccess().wildString();
+				}
+				// one of the above assignments must have been executed
+				assert typeActual != null;
+			}
+			else {
+				if(oldUVar.equals(CONTRAVARIANT)) {
+					typeActual = ((WildcardSuper) oldArg).getAccess().toString();
+				}
+				else if(oldUVar.equals(INVARIANT)) {
+					typeActual = oldArg.toString();
+				}
+				else {
+					assert newUVar.equals(BIVARIANT);
+				}
+			}
 			String newArg; // new type argument
 			if(newUVar.equals(BIVARIANT))
 				newArg = "?";
@@ -233,7 +257,7 @@ aspect RewriteWildcard
 				newArg = "? super "   + typeActual;
 			else if(newUVar.equals(COVARIANT))
 				newArg = "? extends " + typeActual;
-			else // newUVar == INVARIANT
+			else // newUVar.equals(INVARIANT)
 				newArg = typeActual;
 			// append delimeter if needed
 			if(i > 0) {

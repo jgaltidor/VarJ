@@ -1,3 +1,5 @@
+set -ex
+
 scala ui.Tester unittests/Lists.java
 scala ui.Tester unittests
 scala ui.Tester --verbose 3 unittests
@@ -9,3 +11,8 @@ scala ui.AnalyzeType --type test.Animal unittests
 scala ui.AnalyzeType --type test.IList unittests
 scala ui.RewriteSources -m rewriteinfo.txt -d rewrittenSources -t test.Seller unittests
 
+echo Compiling generated sources
+cd rewrittenSources/unittests
+javac *.java
+echo Going back to original directory
+cd ../..
