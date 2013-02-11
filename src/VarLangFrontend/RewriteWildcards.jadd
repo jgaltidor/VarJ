@@ -101,14 +101,21 @@ aspect RewriteWildcard
 	/** Checking if return type is a type variable
 	  * because of overriding.
 	  */
-	eq MethodDecl.rewriteCheck() =
-		type().isTypeVariable() ? false : isFromSource();
+	eq MethodDecl.rewriteCheck() {
+		TypeDecl typ = type();
+		return (typ.isTypeVariable() || typ.containsMethodTypeVariable()) ?
+			false : isFromSource();
+	}
+
 		
 	/** Checking if param's type is a type variable
 	  * because of overriding.
 	  */
-	eq ParameterDeclaration.rewriteCheck() = 
-		type().isTypeVariable() ? false : isFromSource();
+	eq ParameterDeclaration.rewriteCheck() {
+		TypeDecl typ = type();
+		return (typ.isTypeVariable() || typ.containsMethodTypeVariable()) ?
+			false : isFromSource();
+	}
 
 	eq VariableArityParameterDeclaration.rewriteCheck() = false;
 
@@ -282,4 +289,31 @@ aspect RewriteWildcard
 		newAccess.append(getAccess().wildString());
 		return newAccess.toString();
 	}
+
+	inh lazy boolean TypeDecl.isMethodTypeVariable();
+	eq GenericMethodDecl.getTypeParameter(int i).isMethodTypeVariable() = true;
+	eq GenericConstructorDecl.getTypeParameter(int i).isMethodTypeVariable() = true;
+	eq Program.getChild().isMethodTypeVariable() = false;
+	
+		
+	syn lazy boolean TypeDecl.containsMethodTypeVariable() = false;
+
+	eq TypeVariable.containsMethodTypeVariable() = isMethodTypeVariable();
+
+	eq ParTypeDecl.containsMethodTypeVariable() {
+		for (int i = 0; i < getNumArgument(); i++) {
+			if(getArgument(i).type().containsMethodTypeVariable())
+				return true;
+		}
+		return false;
+	}
+
+	eq ArrayDecl.containsMethodTypeVariable() =
+		componentType().containsMethodTypeVariable();
+
+	eq WildcardExtendsType.containsMethodTypeVariable() =
+		getAccess().type().containsMethodTypeVariable();
+
+	eq WildcardSuperType.containsMethodTypeVariable() =
+		getAccess().type().containsMethodTypeVariable();
 }

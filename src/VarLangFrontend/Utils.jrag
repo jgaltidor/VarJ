@@ -44,9 +44,24 @@ aspect Utils
 
 	syn lazy boolean BodyDecl.isMemberTypeDecl() = false;
 	eq MemberTypeDecl.isMemberTypeDecl() = true;
-
-	// syn lazy MethodDecl MethodDecl.originalDecl() = sourceMethodDecl();
-	// syn lazy Variable Variable.originalDecl() = sourceVariableDecl();
+	
+	
+	/** Get nested type decls */
+	syn java.util.List<TypeDecl> TypeDecl.getNestedTypeDecls() {
+		java.util.List<TypeDecl> nestedTypes = ASTUtils.createList();
+		for (int i = 0; i < getNumBodyDecl(); i++) {
+			BodyDecl b = getBodyDecl(i);
+			if(b.isMemberTypeDecl()) {
+				nestedTypes.add( ((MemberTypeDecl) b).typeDecl());
+			}
+		}
+		return nestedTypes;
+	}
+	
+	/** Defined by TypeDecl.getNestedTypeDecls() */
+	syn java.util.List<TypeDecl> GenericTypeDecl.getNestedTypeDecls()
+		= super.getNestedTypeDecls();
+	
 	
 	/** Needed to added some utility methods to this class because JastAdd
 		* fails to parse some legal Java methods, such as generic methods
@@ -71,7 +86,7 @@ aspect Utils
 		}
 		
 		public static <E> Set<E> createSet() {
-			return new DebugHashSet<E>();
+			return new java.util.HashSet<E>();
 		}
 
 		public static <E> java.util.List<E> singletonList(E elem) {

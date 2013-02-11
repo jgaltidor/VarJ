@@ -247,6 +247,9 @@ aspect InfluenceAnalysis
 				ASTNode node = (ASTNode) inode;
 				System.out.printf(" from %s:%s", node.sourceFile(), node.location());
 			}
+			else {
+				System.out.print(" from binary");
+			}
 			System.out.println();
 		}
 	}
@@ -273,6 +276,9 @@ aspect InfluenceAnalysis
 			if(inode.isFromSource()) {
 				ASTNode node = (ASTNode) inode;
 				System.out.printf(" from %s:%s", node.sourceFile(), node.location());
+			}
+			else {
+				System.out.print(" from binary");
 			}
 			System.out.println();
 		}

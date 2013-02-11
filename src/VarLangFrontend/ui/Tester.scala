@@ -17,8 +17,9 @@ object Tester
 		for(index <- 0 until gtd.getNumTypeParameter) {
 			val param = gtd getTypeParameter index
 			val dvar = gtd getDVar param
-			val bounds = ASTNode.strategy.varBounds(gtd, param).toList
-			println(dvar + ": " + dvar.eval())
+			// val bounds = ASTNode.strategy.varBounds(gtd, param).toList
+			val bounds = dvar.bounds.toList
+			println(dvar + ": " + dvar.eval)
 			println("-"*32)
 			println("bounds:")
 			for((bound, j) <- bounds.zipWithIndex) {
@@ -27,5 +28,7 @@ object Tester
 			println("dvar.dvarBoundClosure: " + dvar.varBoundClosure)
 			println("dvar.isRecursivelyBounded: " + dvar.isRecursivelyBounded)
 		}
+		// process nested generic types too
+		gtd.getNestedTypeDecls.filter(_.isGenericType).map(_.asInstanceOf[GenericTypeDecl]).foreach(processGeneric)
 	}
 }

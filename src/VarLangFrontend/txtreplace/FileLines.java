@@ -15,6 +15,7 @@ import java.util.regex.Matcher;
 public class FileLines
 {
 	private List<String> lines;
+	private final File infile;
 	
 	public FileLines(String filename) throws IOException {
 		this(new File(filename));
@@ -22,22 +23,23 @@ public class FileLines
 	
 	public FileLines(File file) throws IOException {
 		lines = readLines(file);
+		infile = file;
 	}
 
 	public void replace(ReplaceInfo info) {
 		replace(info.startLine, info.startCol, info.endLine,
-			info.endCol, info.newText);
+			info.endCol, info.newText, info.oldText);
 	}
 	
 	public void replace(int startLine, int startCol,
-		int endLine, int endCol, String newText)
+		int endLine, int endCol, String newText, String oldText)
 	{
 		if(isFakeReplacement(startLine))
 			return;
 		boolean isSingleLineReplacement =
 			(startLine == endLine) && !containsLineTerminator(newText);
 		if(isSingleLineReplacement)
-			singlelineReplace(startLine, startCol, endCol, newText);
+			singlelineReplace(startLine, startCol, endCol, newText, oldText);
 		else
 			multilineReplace(startLine, startCol, endLine, endCol, newText);
 	}
@@ -118,13 +120,38 @@ public class FileLines
 	}
 	
 	
-	public void singlelineReplace(int linenum, int startCol, int endCol, String newText)
+	public void singlelineReplace(int linenum, int startCol, int endCol, String newText, String oldText)
 	{
 		// remember that indicies in lines List are shifted one less
 		// than corresponding line numbers
 		// e.g., lines.get(startLine-1) retrieves text at line number startLine
 		// Similarly, for column numbers
+		
 		String line = lines.get(linenum-1);
+		
+		// Error checking
+		// First have to handle very rare case of when JastAdd reports the wrong line number
+		int lineLen = line.length();
+		if(startCol < 0 || startCol > lineLen) {
+			System.err.printf("ERROR: startCol %d not within line length: %d%n", startCol, lineLen);
+			System.err.println("line from source: " + line);
+			return;
+		}
+		if(endCol < 0 || endCol > lineLen) {
+			System.err.printf("ERROR: endCol %d not within line length: %d%n", endCol, lineLen);
+			System.err.println("line from source: " + line);
+			return;
+		}
+		/*
+		String txtInRegion = line.substring(startCol-1, endCol);
+		if(!txtInRegion.equals(oldText)) {
+			System.err.println("WARNING: Text in region does not match old text");
+			System.err.println("Text in region: " + txtInRegion);
+			System.err.println("old text: " + oldText);
+		}
+		*/
+		// done with error checking
+
 		String prefix = line.substring(0, startCol-1);
 		String suffix = line.substring(endCol, line.length());
 		String newline = prefix + newText + suffix;

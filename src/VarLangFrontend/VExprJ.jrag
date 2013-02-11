@@ -14,7 +14,7 @@ aspect VExprJ
 	}
 
 	public boolean UVar.equals(Object other) {
-		return (other instanceof DVar) ?
+		return (other instanceof UVar) ?
 			toString().equals(other.toString())
 			: false;
 	}

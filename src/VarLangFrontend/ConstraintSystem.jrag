@@ -5,12 +5,10 @@ aspect ConstraintSystem
 {
 	syn lazy DVar GenericTypeDecl.getDVar(int index) =
 		getDVar(getTypeParameter(index));
-
-	syn lazy DVar GenericTypeDecl.getDVar(TypeVariable tv) =
-		new DVar(this, tv);
 	
-	syn lazy UVar ParameterDeclaration.getUVar(int index) =
-		new UVar(this, index);
+	syn nta DVar GenericTypeDecl.getDVar(TypeVariable tv) = new DVar(this, tv);
+	
+	syn nta UVar ParameterDeclaration.getUVar(int index) = new UVar(this, index);
 
 	syn lazy Value GenericTypeDecl.computeVar(int index)
 		= computeVar(getTypeParameter(index));
@@ -19,10 +17,8 @@ aspect ConstraintSystem
 		= getDVar(tv).eval();
 
 	syn lazy Value VVar.eval() circular [BIVARIANT]  {
-		// Value var = this.eval();
 		Value var = BIVARIANT;
-		java.util.List<VExpr> ubounds = this.bounds();
-		for(VExpr bound : bounds()) {
+		for(VExpr bound : bounds()) {			
 			var = var.meet(bound.eval());
 			if(var.equals(INVARIANT))
 				return INVARIANT;
@@ -128,13 +124,4 @@ aspect ConstraintSystem
 	eq VVar.getVars() = ASTUtils.singletonSet(this);
 	
 	eq Value.getVars() = Collections.emptySet();
-
-
-	/*
-	syn lazy Set<VVar> GenericTypeDecl.dvarBoundClosure(int index) =
-		dvarBoundClosure(getTypeParameter(index));
-
-	syn lazy Set<VVar> GenericTypeDecl.dvarBoundClosure(TypeVariable tv) =
-		getDVar(tv).varBoundClosure();
-	*/
 }
