@@ -1,5 +1,4 @@
-
-APACHE=../../libs_nov2010_work/collections-generic-4.01
+APACHE=../../libs_nov2010_fix/collections-generic-4.01
 SRC=$APACHE/src/java
 LIBS=$SCALA_HOME/lib/scala-library.jar
 

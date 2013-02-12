@@ -1,5 +1,4 @@
-
-JPAUL=../../libs_nov2010_work/jpaul
+JPAUL=../../libs_nov2010_fix/jpaul
 SRC=$JPAUL/src
 LIBS=$SCALA_HOME/lib/scala-library.jar
 
@@ -10,7 +9,7 @@ java -Xmx2g -classpath $LIBS:$CLASSPATH  ui.RewriteAllSources -m rewriteinfo.txt
 exit
 
 echo Going to directory containing rewritten jpaul
-cd rewrittenSources/libs_nov2010_work/jpaul/src
+cd rewrittenSources/libs_nov2010_fix/jpaul/src
 
 echo Compiling generated sources
 mkdir -p build
@@ -18,4 +17,3 @@ javac -d build `pathlist_recursive.py '*.java' jpaul`
 
 echo Going back to original directory
 cd ../../../../..
-

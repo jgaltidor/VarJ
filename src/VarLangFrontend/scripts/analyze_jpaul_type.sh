@@ -1,5 +1,4 @@
-
-JPAUL=../../libs_nov2010_work/jpaul
+JPAUL=../../libs_nov2010_fix/jpaul
 SRC=$JPAUL/src
 LIBS=$SCALA_HOME/lib/scala-library.jar
 

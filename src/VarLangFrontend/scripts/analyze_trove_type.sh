@@ -1,5 +1,4 @@
-
-TROVE=../../libs_nov2010_work/trove-2.1.0
+TROVE=../../libs_nov2010_fix/trove-2.1.0
 SRC=$JSCIENCE/src
 LIBS=$SCALA_HOME/lib/scala-library.jar
 
