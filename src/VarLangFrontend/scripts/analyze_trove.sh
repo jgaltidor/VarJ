@@ -1,11 +1,4 @@
-JAVA_OPTS="-Xmx2g"
-ROOTOFLIBS=../../libs_nov2010_fix
-APACHE=$ROOTOFLIBS/collections-generic-4.01/src/java/org/apache/commons
-GUAVA=$ROOTOFLIBS/guava-libraries-read-only/src
-JAVASTAR=$ROOTOFLIBS/jdk1.6.0_06_src
-JPAUL=$ROOTOFLIBS/jpaul/src
-JSCIENCE=$ROOTOFLIBS/jscience-4.3/src
-TROVE=$ROOTOFLIBS/trove-2.1.0/src
+source ./scripts/setenv.sh
 
-echo scala ui.InferStats --texout testtex/table.tex $TROVE:Trove
-scala ui.InferStats --texout testtex/table.tex $TROVE:Trove
+set -ex
+java $JAVA_OPTS ui.InferStats --texout testtex/table.tex $TROVE/src:Trove
