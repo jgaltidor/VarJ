@@ -1,8 +1,6 @@
 JScience
 ----------
-Accessed November 18, 2010
-Checked out revision 49 from SVN Repository using URL
-  https://svn.kenai.com/svn/jscience~subversion
+Accessed Version 4.3
 
 Guava
 -------
@@ -12,12 +10,12 @@ Checked out revision 142 from SVN Repository using command
 
 GNU Trove
 ----------
-Version 3.0.0a5
+Required generating source files from template
 
 
 Java
 -------
-jdk1.6.0_06 - Windows version
+jdk1.6.0_06 - only using source files from java.* package now
 
 JPaul
 -----
