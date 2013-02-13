@@ -21,6 +21,5 @@ echo Compiling generated sources
 mkdir -p build
 javac -encoding utf8 -classpath $LIBS:$CLASSPATH -d build `pathlist_recursive.py '*.java' org:javax`
 
-exit 
 echo Going back to original directory
 cd ../../../..

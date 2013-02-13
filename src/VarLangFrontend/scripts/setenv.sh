@@ -2,13 +2,14 @@ ROOTOFLIBS=../../libs_nov2010_fix
 APACHE=$ROOTOFLIBS/collections-generic-4.01
 GUAVA=$ROOTOFLIBS/guava-libraries-read-only
 JAVASTAR=$ROOTOFLIBS/jdk1.6.0_06_src
-JPAUL=$ROOTOFLIBS/jpaul
+JPAUL=$ROOTOFLIBS/jpaul-2.5.1
 JSCIENCE=$ROOTOFLIBS/jscience-4.3
 TROVE=$ROOTOFLIBS/trove-2.1.0
 
 # Add Scala library to class
 CLASSPATH=$SCALA_HOME/lib/scala-library.jar:$CLASSPATH
 # Adding libraries used by Trove
+# junit also used by JPaul
 CLASSPATH=$CLASSPATH:$TROVE/lib/junit.jar
 # Adding libraries used by JScience
 CLASSPATH=$CLASSPATH:$JSCIENCE/lib/javolution.jar
