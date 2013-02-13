@@ -1,0 +1,8 @@
+2. DiGraph.generateImage - generate an input file for one of the graph
+   vizualization tools
+
+3. jpaul.Misc.IdentityWrapper +
+   update RegExp.java to use this new class
+
+
+
