@@ -31,8 +31,8 @@ aspect RewriteWildcard
 	public void InfluenceNode.rewriteAllVarTypes() {
 		if(isRewritable()) {
 			writeToWildcards();
-			super.rewriteAllVarTypes();
 		}
+		super.rewriteAllVarTypes();
 	}
 
 	public void Program.writeFakeReplaceInfo() {
