@@ -1,4 +1,4 @@
 source ./scripts/setenv.sh
 
 set -ex
-java $JAVA_OPTS ui.InferStats --texout testtex/table.tex $JSCIENCE/src:JScience
+java $JAVA_OPTS ui.InferStats -j -classpath -j $LIBCP --texout testtex/table.tex $JSCIENCE/src:JScience

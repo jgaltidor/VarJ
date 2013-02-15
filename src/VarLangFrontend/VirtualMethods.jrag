@@ -83,10 +83,10 @@ aspect VirtualMethods
 	eq MethodDecl.getParameter(int i).hierarchyParams() = this.hierarchyParams(i);
 	
 	eq ConstructorDecl.getParameter(int i).hierarchyParams() =
-		ASTUtils.singletonList(getParameter(i));
+		Collections.singletonList(getParameter(i));
 	
 	eq BasicCatch.getParameter().hierarchyParams() =
-		ASTUtils.singletonList(getParameter());
+		Collections.singletonList(getParameter());
 
 
 	// Method for Testing

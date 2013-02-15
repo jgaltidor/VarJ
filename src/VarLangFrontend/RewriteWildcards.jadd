@@ -35,6 +35,7 @@ aspect RewriteWildcard
 		super.rewriteAllVarTypes();
 	}
 
+
 	public void Program.writeFakeReplaceInfo() {
 		for(int i = 0; i < getNumCompilationUnit(); i++) {
 			CompilationUnit unit = getCompilationUnit(i);
@@ -62,8 +63,15 @@ aspect RewriteWildcard
 	/** Should be dispatched on the node that is being rewritten */
 	public void ASTNode.writeWildcardReplaceInfo(String oldAccess, String newAccess, int colOffset)
 	{
-		if(oldAccess.equals(newAccess))
+		// ignoring nodes not generated from the parser
+		// such as nodes generated from AST rewrites
+		if(getStart() == 0 && getEnd() == 0) {
+			LOG.log(INFO, "ignoring node with invalid source file location");
 			return;
+		}
+		if(oldAccess.equals(newAccess)) {
+			return;
+		}
 		ReplaceInfo replacement = new ReplaceInfo(
 			sourceFile(),
 			getLine(getStart()),
@@ -96,6 +104,7 @@ aspect RewriteWildcard
 	syn lazy boolean InfluenceNode.rewriteCheck();
 	
 	eq VariableDeclaration.rewriteCheck() = isFromSource();
+	
 	eq FieldDeclaration.rewriteCheck() = isFromSource();
 	
 	/** Checking if return type is a type variable
@@ -103,8 +112,7 @@ aspect RewriteWildcard
 	  */
 	eq MethodDecl.rewriteCheck() {
 		TypeDecl typ = type();
-		return (typ.isTypeVariable() || typ.containsMethodTypeVariable()) ?
-			false : isFromSource();
+		return typ.isTypeVariable() ? false : isFromSource();
 	}
 
 		
@@ -113,16 +121,19 @@ aspect RewriteWildcard
 	  */
 	eq ParameterDeclaration.rewriteCheck() {
 		TypeDecl typ = type();
-		return (typ.isTypeVariable() || typ.containsMethodTypeVariable()) ?
-			false : isFromSource();
+		return typ.isTypeVariable() ? false : isFromSource();
 	}
 
 	eq VariableArityParameterDeclaration.rewriteCheck() = false;
 
+
+	syn lazy Set<InfluenceNode> ASTNode.affectedNodes() =
+		Collections.emptySet();
+	
 	/** Returns the set of InfluenceNodes that requires
 	  * updating, if this node is updated
 	  */
-	syn lazy Set<InfluenceNode> TypeDecl.affectedNodes() {
+	eq TypeDecl.affectedNodes() {
 		Set<InfluenceNode> nodes = ASTUtils.createSet();
 		// collect affectsNodes appropriate members
 		for (int j=0; j < getNumBodyDecl(); j++) {
@@ -131,33 +142,15 @@ aspect RewriteWildcard
 		}
 		return nodes;
 	}
-
-
-	syn lazy Set<InfluenceNode> BodyDecl.affectedNodes() =
-		Collections.emptySet();
 	
-	syn lazy Set<InfluenceNode> InfluenceNode.affectedNodes();
-	
-	/** Adding a "base method" for affectedNodes
-	  * to interface InfluenceNode
-	  */
-	public static Set<InfluenceNode> ASTNode.affectedNodes(InfluenceNode thisNode)
-	{
-		Set<InfluenceNode> nodes = ASTUtils.singletonSet(thisNode);
-		nodes.addAll(thisNode.reachableINodes());
-		return nodes;
-	}
-	
-	eq Variable.affectedNodes() = affectedNodes(this);
-
-	eq MethodDecl.affectedNodes() {
+	syn lazy Set<InfluenceNode> InfluenceNode.affectedNodes() {
 		Set<InfluenceNode> nodes = ASTUtils.createSet();
-		nodes.addAll(affectedNodes(this));
-		for(int i = 0; i < getNumParameter(); i++) {
-			nodes.addAll(getParameter(i).affectedNodes());
-		}
+		nodes.add(this);
+		nodes.addAll(reachableINodes());
+		nodes.addAll(super.affectedNodes());
 		return nodes;
 	}
+
 
 	public void ASTNode.writeToWildcards() { }
 	
@@ -289,31 +282,4 @@ aspect RewriteWildcard
 		newAccess.append(getAccess().wildString());
 		return newAccess.toString();
 	}
-
-	inh lazy boolean TypeDecl.isMethodTypeVariable();
-	eq GenericMethodDecl.getTypeParameter(int i).isMethodTypeVariable() = true;
-	eq GenericConstructorDecl.getTypeParameter(int i).isMethodTypeVariable() = true;
-	eq Program.getChild().isMethodTypeVariable() = false;
-	
-		
-	syn lazy boolean TypeDecl.containsMethodTypeVariable() = false;
-
-	eq TypeVariable.containsMethodTypeVariable() = isMethodTypeVariable();
-
-	eq ParTypeDecl.containsMethodTypeVariable() {
-		for (int i = 0; i < getNumArgument(); i++) {
-			if(getArgument(i).type().containsMethodTypeVariable())
-				return true;
-		}
-		return false;
-	}
-
-	eq ArrayDecl.containsMethodTypeVariable() =
-		componentType().containsMethodTypeVariable();
-
-	eq WildcardExtendsType.containsMethodTypeVariable() =
-		getAccess().type().containsMethodTypeVariable();
-
-	eq WildcardSuperType.containsMethodTypeVariable() =
-		getAccess().type().containsMethodTypeVariable();
 }

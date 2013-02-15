@@ -6,16 +6,27 @@ JPAUL=$ROOTOFLIBS/jpaul-2.5.1
 JSCIENCE=$ROOTOFLIBS/jscience-4.3
 TROVE=$ROOTOFLIBS/trove-2.1.0
 
-# Add Scala library to class
-CLASSPATH=$SCALA_HOME/lib/scala-library.jar:$CLASSPATH
+# Classpath passed to Java
+JAVACP=$SCALA_HOME/lib/scala-library.jar:$CLASSPATH
 # Adding libraries used by Trove
-# junit also used by JPaul
-CLASSPATH=$CLASSPATH:$TROVE/lib/junit.jar
-# Adding libraries used by JScience
-CLASSPATH=$CLASSPATH:$JSCIENCE/lib/javolution.jar
-CLASSPATH=$CLASSPATH:$JSCIENCE/lib/geoapi.jar
-# Adding libraries used by Guava
-CLASSPATH=$CLASSPATH:/System/Library/Frameworks/JavaVM.framework/Versions/1.5/Classes/classes.jar
-CLASSPATH=$CLASSPATH:$GUAVA/lib/jsr305.jar
 
-JAVA_OPTS="-Xmx2g -classpath $CLASSPATH"
+# Get full (canonical) paths of lib directories
+APACHE_FP=`./scripts/realpath.py $APACHE`
+GUAVA_FP=`./scripts/realpath.py $GUAVA`
+JAVASTAR_FP=`./scripts/realpath.py $JAVASTAR`
+JPAUL_FP=`./scripts/realpath.py $JPAUL`
+JSCIENCE_FP=`./scripts/realpath.py $JSCIENCE`
+TROVE_FP=`./scripts/realpath.py $TROVE`
+
+# Classpath passed to Jastadd
+# junit also used by JPaul
+LIBCP=$LIBCP:$TROVE_FP/lib/junit.jar
+# Adding libraries used by JScience
+LIBCP=$LIBCP:$JSCIENCE_FP/lib/javolution.jar
+LIBCP=$LIBCP:$JSCIENCE_FP/lib/geoapi.jar
+# Adding libraries used by Guava
+JAVA5_CLASSES=/System/Library/Frameworks/JavaVM.framework/Versions/1.5/Classes/classes.jar
+LIBCP=$LIBCP:$JAVA5_CLASSES
+LIBCP=$LIBCP:$GUAVA_FP/lib/jsr305.jar
+
+JAVA_OPTS="-Xmx2g -classpath $JAVACP"

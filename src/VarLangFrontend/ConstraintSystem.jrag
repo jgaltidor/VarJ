@@ -121,7 +121,7 @@ aspect ConstraintSystem
 		return set;
 	}
 	
-	eq VVar.getVars() = ASTUtils.singletonSet(this);
+	eq VVar.getVars() = Collections.singleton(this);
 	
 	eq Value.getVars() = Collections.emptySet();
 }

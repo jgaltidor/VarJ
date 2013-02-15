@@ -1,4 +1,6 @@
 import java.util.Set;
+import java.util.Collection;
+import java.util.Collections;
 
 aspect InfluenceAnalysis
 {
@@ -12,7 +14,7 @@ aspect InfluenceAnalysis
 		public TypeDecl type();
 		syn lazy InfluenceNode sourceDecl();
 	}
-	
+
 	MethodDecl implements InfluenceNode; // Represents really the return type of a method
 	
 	Variable extends InfluenceNode;
@@ -63,27 +65,39 @@ aspect InfluenceAnalysis
 		with add root Program;
 	
 	Expr contributes destinationNode().sourceDecl()
-		when hasDestinationNode() && isUseful(destinationNode())
+		when hasDestinationNode() && destinationNode().isUseful()
 		to InfluenceNode.assignedTo()
 		for each getUsefulNodes(accessedINodes());
-	
+
+	MethodDecl contributes sourceMethodDecl()
+		when isUseful()
+		to InfluenceNode.assignedTo()
+		for each ASTUtils.subtract(getUsefulNodes(hierarchyMethods()), 
+		                           Collections.singleton(sourceMethodDecl()));
+
+	ParameterDeclaration contributes sourceVariableDecl()
+		when isUseful()
+		to InfluenceNode.assignedTo()
+		for each ASTUtils.subtract(getUsefulNodes(hierarchyParams()),
+		                           Collections.singleton(sourceVariableDecl()));
+
+
 	public static Set<InfluenceNode>
-		ASTNode.getUsefulNodes(Set<InfluenceNode> nodes)
+		ASTNode.getUsefulNodes(Collection<? extends InfluenceNode> nodes)
 	{
 		Set<InfluenceNode> usefulNodes = ASTUtils.createSet();
 		for(InfluenceNode node : nodes) {
 			InfluenceNode sourceNode = node.sourceDecl();
-			if(isUseful(sourceNode)) {
+			if(sourceNode.isUseful()) {
 				usefulNodes.add(sourceNode);
 			}
 		}
 		return usefulNodes;
 	}
 	
-	public static boolean ASTNode.isUseful(InfluenceNode node) {
-		return node.sourceDecl().type().involvesGeneric();
-	}
-	
+	syn lazy boolean InfluenceNode.isUseful() =
+		sourceDecl().type().involvesGeneric();
+
 	syn lazy boolean TypeDecl.involvesGeneric() = false;
 	eq ParTypeDecl.involvesGeneric() = true;
 	eq TypeVariable.involvesGeneric() = true;
@@ -145,7 +159,7 @@ aspect InfluenceAnalysis
 	
 	eq VarAccess.accessedVarDecls() {
 		if(decl() != null)
-			return ASTUtils.singletonSet(decl());
+			return Collections.singleton(decl());
 		else
 			return Collections.emptySet();
 	}
@@ -168,7 +182,6 @@ aspect InfluenceAnalysis
 		decls.addAll(super.accessedMethDecls());
 		return decls;
 	}
-
 
 	eq VariableDeclaration.succ() = assignedTo();
 	eq FieldDeclaration.succ() = assignedTo();
@@ -197,7 +210,6 @@ aspect InfluenceAnalysis
 		return nodes;
 	}
 
-
 	// reachableINodes
 	
 	syn lazy Set<InfluenceNode> InfluenceNode.reachableINodes() circular [succ()] {
@@ -223,24 +235,16 @@ aspect InfluenceAnalysis
 	public void ASTNode.logFlowsTo() {
     for(int i = 0; i < getNumChild(); i++) {
     	getChild(i).logFlowsTo();
-    	// System.out.println();
     }
 	}
 	
-	public void InfluenceNode.logFlowsTo();
-
-	/** This method allows simulating a "super" call to
-	  * to InfluenceNode.logFlowsTo; a direct super
-	  * call is not allowed because InfluenceNode is an
-	  * interface.
-	  */
-	public static void ASTNode.logFlowsTo(InfluenceNode thisNode) {
-		String name = thisNode.fullName();
-		if(!isUseful(thisNode)) {
+	public void InfluenceNode.logFlowsTo() {
+		String name = fullName();
+		if(!isUseful()) {
 			System.out.println("skipping flowsto logging for " + name);
 		}
 		System.out.println("logging flowsto for " + name);
-		for(InfluenceNode inode : thisNode.reachableINodes()) {
+		for(InfluenceNode inode : reachableINodes()) {
 			System.out.printf("%s flowsto %s", name, inode.fullName());
 			// Add source file info if it exists
 			if(inode.isFromSource()) {
@@ -252,25 +256,25 @@ aspect InfluenceAnalysis
 			}
 			System.out.println();
 		}
+		System.out.println();
+		super.logFlowsTo();
 	}
 
-	public void Variable.logFlowsTo() { logFlowsTo(this); }
 
-	public void MethodDecl.logFlowsTo() {
-		logFlowsTo(this);
-		// log flowsto for parameters
-		for(int i = 0; i < getNumParameter(); i++) {
-			getParameter(i).logFlowsTo();
-		}
+	// Methods for testing
+	public void ASTNode.logAssignedTo() {
+    for(int i = 0; i < getNumChild(); i++) {
+    	getChild(i).logAssignedTo();
+    }
 	}
 
-	public static void ASTNode.logAssignedTo(InfluenceNode thisNode) {
-		String name = thisNode.fullName();
-		if(!isUseful(thisNode)) {
+	public void InfluenceNode.logAssignedTo() {
+		String name = fullName();
+		if(!isUseful()) {
 			System.out.println("skipping assignedTo logging for " + name);
 		}
 		System.out.println("logging assignedTo for " + name);
-		for(InfluenceNode inode : thisNode.assignedTo()) {
+		for(InfluenceNode inode : assignedTo()) {
 			System.out.printf("%s assignedTo %s", name, inode.fullName());
 			// Add source file info if it exists
 			if(inode.isFromSource()) {
@@ -282,5 +286,7 @@ aspect InfluenceAnalysis
 			}
 			System.out.println();
 		}
+		System.out.println();
+		super.logAssignedTo();
 	}
 }

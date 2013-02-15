@@ -34,25 +34,15 @@ aspect AnalyzeSig
 				bounds.add(bound);
 			}
 		}
-		boolean chkPrivateMembers = checkPrivateMembers();
-
-		LOG.log(INFO, fullname + ".checkPrivateMembers: " + chkPrivateMembers);
-		
 		// analyze type signatures of appropriate members
-		for (int j=0; j < getNumBodyDecl(); j++) {
-			BodyDecl b = getBodyDecl(j);
-			if(b.isFieldDeclaration()) {
-				FieldDeclaration f = (FieldDeclaration) b;
-				if((!f.isPrivate() || chkPrivateMembers) && !f.isStatic())
-					bounds.addAll(strategy.varBounds(f, tv));
-			}
-			else if(b.isMethodDecl()) {
-				MethodDecl m = (MethodDecl) b;
-				if((!m.isPrivate() || chkPrivateMembers) && !m.isStatic())
-					bounds.addAll(strategy.varBounds(m, tv));
-			}
-			else if(b.isMemberDecl() && !((MemberDecl) b).isStatic()) {
-				bounds.addAll(strategy.varBounds(b, tv));
+		for (int i = 0; i < getNumBodyDecl(); i++) {
+			BodyDecl b = getBodyDecl(i);
+			if(b.isMemberDecl()) {
+				MemberDecl m = (MemberDecl) b;
+				if(m.isStatic() || m.isPrivateThis()) {
+					continue;
+				}
+				bounds.addAll(strategy.varBounds(m, tv));
 			}
 			else {
 				bounds.addAll(strategy.varBounds(b, tv));
@@ -77,29 +67,10 @@ aspect AnalyzeSig
 				bounds.add(bound);
 			}
 		}
-
-		boolean chkPrivateMembers = checkPrivateMembers();
-		LOG.log(INFO, fullname + ".checkPrivateMembers: " + chkPrivateMembers);
-		
 		// analyze type signatures of appropriate members
-		for (int j=0; j < getNumBodyDecl(); j++) {
-			BodyDecl b = getBodyDecl(j);
-			if(b.isFieldDeclaration()) {
-				FieldDeclaration f = (FieldDeclaration) b;
-				if((!f.isPrivate() || chkPrivateMembers) && !f.isStatic())
-					bounds.addAll(strategy.varBounds(f, tv));
-			}
-			else if(b.isMethodDecl()) {
-				MethodDecl m = (MethodDecl) b;
-				if((!m.isPrivate() || chkPrivateMembers) && !m.isStatic())
-					bounds.addAll(strategy.varBounds(m, tv));
-			}
-			else if(b.isMemberDecl() && !((MemberDecl) b).isStatic()) {
-				bounds.addAll(strategy.varBounds(b, tv));
-			}
-			else {
-				bounds.addAll(strategy.varBounds(b, tv));
-			}
+		for(int i = 0; i < getNumBodyDecl(); i++) {
+			BodyDecl b = getBodyDecl(i);
+			bounds.addAll(strategy.varBounds(b, tv));
 		}
 		return bounds;
 	}
@@ -186,7 +157,7 @@ aspect AnalyzeSig
 			bound = returnType.varExpr(tv);
 			LOG.log(INFO, String.format("boundsFromReturnType(%s [return]): %s",
 				fullName(), bound));
-			return ASTUtils.singletonList(bound);
+			return Collections.singletonList(bound);
 		}
 		else return Collections.emptyList();
 	}
@@ -246,35 +217,30 @@ aspect AnalyzeSig
 		typeDecl().varBoundsSig(tv);
 
 
-	/** Determine whether or not to check private members */
-	syn lazy boolean TypeDecl.checkPrivateMembers() =
-		strategy.visibility == AnalysisStrategy.Visibility.ALL_PRIVATE
-			|| needToCheckPrivateMembers();
+	syn lazy boolean MemberDecl.isPrivateThis() = false;
+	
+	eq FieldDeclaration.isPrivateThis() =
+		isPrivate() && !hostType().quantifiesWithNonThis(this);
+
+	eq MethodDecl.isPrivateThis() =
+		isPrivate() && !hostType().quantifiesWithNonThis(this);
 
 
-	/** If any of the argument types contain this type in its closure,
-	  * then return false.
-	  * Otherwise, return true
-	  */
-	syn lazy boolean TypeDecl.needToCheckPrivateMembers() {
-		if(!isTopLevelType()) {
-			return true;
-		}
-		for (int j=0; j < getNumBodyDecl(); j++) {
-			BodyDecl b = getBodyDecl(j);
-			if(b.isMethodDecl()) {
-				MethodDecl meth = (MethodDecl) b;
-				if(!meth.isStatic()) {
-					for (int i=0; i < meth.getNumParameter(); i++) {
-						if(meth.getParameter(i).type().isInTypeClosure(this))
-							return true;
-					}
-				}
-			}
-			else if(b.isMemberTypeDecl() && !((MemberTypeDecl) b).isStatic()) {
-				return true;
-			}
-		}
-		return false;
+	syn lazy boolean ASTNode.quantifiesWithNonThis(MemberDecl member) {
+    for(int i = 0; i < getNumChild(); i++) {
+    	if(getChild(i).quantifiesWithNonThis(member))
+    		return true;
+    }
+    return false;
 	}
+	
+	eq VarAccess.quantifiesWithNonThis(MemberDecl member) =
+		decl().sourceVariableDecl() == member && isQualified() && !qualifier().isThisAccess() ?
+			true :
+			super.quantifiesWithNonThis(member);
+
+	eq MethodAccess.quantifiesWithNonThis(MemberDecl member) =
+		decl().sourceMethodDecl() == member && isQualified() && !qualifier().isThisAccess() ?
+			true :
+			super.quantifiesWithNonThis(member);
 }

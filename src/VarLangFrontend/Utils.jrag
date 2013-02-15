@@ -89,13 +89,13 @@ aspect Utils
 			return new java.util.HashSet<E>();
 		}
 
-		public static <E> java.util.List<E> singletonList(E elem) {
+		public static <E> java.util.List<E> createListWithElem(E elem) {
 			java.util.List<E> list = createList();
 			list.add(elem);
 			return list;
 		}
 	
-		public static <E> Set<E> singletonSet(E elem) {
+		public static <E> Set<E> createSetWithElem(E elem) {
 			Set<E> set = createSet();
 			set.add(elem);
 			return set;
@@ -116,10 +116,20 @@ aspect Utils
 			sb.append(']');
 			return sb.toString();
 		}
+
+		public static <E> Set<E> subtract(Set<? extends E> s1, Set<?> s2) {
+			Set<E> result = createSet();
+			for(E elem : s1) {
+				if(!s2.contains(elem)) {
+					result.add(elem);
+				}
+			}
+			return result;
+		}
 	}
 	
 	
-	public class DebugHashSet<E> extends java.util.HashSet<E>
+	public class NoNullsSet<E> extends java.util.HashSet<E>
 	{
 		public boolean add(E e) {
 			if(e == null) throw new NullPointerException("nulls not allowed");
