@@ -43,5 +43,19 @@ aspect AnalysisBase
 		}
 		
 		public abstract java.util.List<VExpr> varBounds(TypeContainer container, TypeVariable tv);
+		
+		public abstract VExpr varExpr(TypeVariable tv, TypeDecl typ);
+		
+		public abstract String wildString(TypeDecl typ);
+		
+		/** The inferred use-site variance annotations, used for rewriting
+		  * classes, must be consistent with the analysis used to generate
+		  * bounds on definition-site variances of class type parameters.
+		  */
+		public abstract Value inferredUseSite(ParTypeAccess access, int index);
 	}
+	
+
+	syn Value ParTypeAccess.inferredUseSite(int index)
+		= ASTNode.strategy.inferredUseSite(this, index);
 }

@@ -12,6 +12,27 @@ aspect AnalyzeSig
 		public java.util.List<VExpr> varBounds(TypeContainer container, TypeVariable tv) {
 			return container.varBoundsSig(tv);
 		}
+		
+		public Value inferredUseSite(ParTypeAccess access, int index) {
+			GenericTypeDecl gtd =
+				(GenericTypeDecl) access.genericDecl().sourceTypeDecl();
+			Access typeArg = getTypeArgument(index);
+			Value inferredDVar = gtd.computeVar(index);
+			Value specifiedUVar;
+			if(typeArg instanceof WildcardSuper) {
+				specifiedUVar = CONTRAVARIANT;
+			}
+			else if(typeArg instanceof WildcardExtends) {
+				specifiedUVar = COVARIANT;
+			}
+			else if(typeArg instanceof Wildcard) {
+				specifiedUVar = BIVARIANT;
+			}
+			else {
+				specifiedUVar = INVARIANT;
+			}
+			return inferredDVar.join(specifiedUVar); // inferred use-site annotation
+		}
 	}
 	
 	syn lazy java.util.List<VExpr> TypeContainer.varBoundsSig(TypeVariable tv);
@@ -42,10 +63,10 @@ aspect AnalyzeSig
 				if(m.isStatic() || m.isPrivateThis()) {
 					continue;
 				}
-				bounds.addAll(strategy.varBounds(m, tv));
+				bounds.addAll(ASTNode.strategy.varBounds(m, tv));
 			}
 			else {
-				bounds.addAll(strategy.varBounds(b, tv));
+				bounds.addAll(ASTNode.strategy.varBounds(b, tv));
 			}
 		}
 		return bounds;
@@ -70,7 +91,7 @@ aspect AnalyzeSig
 		// analyze type signatures of appropriate members
 		for(int i = 0; i < getNumBodyDecl(); i++) {
 			BodyDecl b = getBodyDecl(i);
-			bounds.addAll(strategy.varBounds(b, tv));
+			bounds.addAll(ASTNode.strategy.varBounds(b, tv));
 		}
 		return bounds;
 	}

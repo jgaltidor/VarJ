@@ -193,13 +193,6 @@ aspect RewriteWildcard
 	  * inferred def-site variances.
 	  */
 	syn String Access.wildString() = toString();
-	
-	eq ArrayTypeAccess.wildString() {
-		StringBuffer newAccess = new StringBuffer();
-		newAccess.append(getAccess().wildString());
-		newAccess.append("[]");
-		return newAccess.toString();
-	}
 
 	eq ParTypeAccess.wildString() {
 		if(isRaw()) {
@@ -209,56 +202,27 @@ aspect RewriteWildcard
 		getTypeAccess().toString(newAccess);
 		newAccess.append('<');
 		// rewriting type arguments
-		GenericTypeDecl gtd = (GenericTypeDecl) genericDecl();
-		for(int i = 0; i < gtd.getNumTypeParameter(); i++) {
+		for(int i = 0; i < getNumTypeArgument(); i++) {
 			Access oldArg = getTypeArgument(i);
-			Value inferredDVar = gtd.computeVar(i);
-			Value oldUVar;
-			if(oldArg instanceof WildcardSuper) {
-				oldUVar = CONTRAVARIANT;
-			}
-			else if(oldArg instanceof WildcardExtends) {
-				oldUVar = COVARIANT;
-			}
-			else if(oldArg instanceof Wildcard) {
-				oldUVar = BIVARIANT;
-			}
-			else {
-				oldUVar = INVARIANT;
-			}
-			// inferred use-site annotation
-			Value newUVar = inferredDVar.join(oldUVar);
-			String typeActual = null;
-			if(newUVar.equals(COVARIANT)) {
-				if(oldUVar.equals(INVARIANT)) {
-					typeActual = oldArg.wildString();
-				}
-				else if(oldUVar.equals(COVARIANT)) {
-					typeActual = ((WildcardExtends) oldArg).getAccess().wildString();
-				}
-				// one of the above assignments must have been executed
-				assert typeActual != null;
-			}
-			else {
-				if(oldUVar.equals(CONTRAVARIANT)) {
-					typeActual = ((WildcardSuper) oldArg).getAccess().toString();
-				}
-				else if(oldUVar.equals(INVARIANT)) {
-					typeActual = oldArg.toString();
-				}
-				else {
-					assert newUVar.equals(BIVARIANT);
-				}
-			}
-			String newArg; // new type argument
-			if(newUVar.equals(BIVARIANT))
+			Value newUseSite = inferredUseSite(i);
+			Access innerAccess;
+			if(oldArg.isWildcardExtends())
+				innerAccess = ((WildcardExtends) oldArg).getAccess();
+			else if(oldArg.isWildcardSuper())
+				innerAccess = ((WildcardSuper) oldArg).getAccess();
+			else if(oldArg.isWildcard())
+				innerAccess = null;
+			else
+				innerAccess = oldArg;
+			String newArg;
+			if(innerAccess == null) // oldUseSite == BIVARIANCE
 				newArg = "?";
-			else if(newUVar.equals(CONTRAVARIANT))
-				newArg = "? super "   + typeActual;
-			else if(newUVar.equals(COVARIANT))
-				newArg = "? extends " + typeActual;
-			else // newUVar.equals(INVARIANT)
-				newArg = typeActual;
+			else if(newUseSite.equals(COVARIANT))
+				newArg = "? extends " + innerAccess.wildString();
+			else if(newUseSite.equals(CONTRAVARIANT))
+				newArg = "? super " + innerAccess.toString();
+			else // oldUseSite == INVARIANCE
+				newArg = innerAccess.toString();
 			// append delimeter if needed
 			if(i > 0) {
 				newAccess.append(", ");
@@ -266,6 +230,13 @@ aspect RewriteWildcard
 			newAccess.append(newArg);
 		}
 		newAccess.append('>');
+		return newAccess.toString();
+	}
+
+	eq ArrayTypeAccess.wildString() {
+		StringBuffer newAccess = new StringBuffer();
+		newAccess.append(getAccess().wildString());
+		newAccess.append("[]");
 		return newAccess.toString();
 	}
 

@@ -1,0 +1,260 @@
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Set;
+import java.util.HashSet;
+
+aspect AnalyzeMethodBody
+{
+	public class MethodBodyAnalysis extends AnalysisStrategy
+	{
+		public MethodBodyAnalysis(Visibility visibility) { super(visibility); }
+
+		public java.util.List<VExpr> varBounds(TypeContainer container, TypeVariable tv) {
+			return container.varBoundsBodies(tv);
+		}
+
+		// @Override
+		public Value inferredUseSite(ParTypeAccess access, int index) {
+			GenericTypeDecl gtd =
+				(GenericTypeDecl) access.genericDecl().sourceTypeDecl();
+			Access typeArg = getTypeArgument(index);
+			Value inferredDVar = gtd.computeVar(index);
+			Value specifiedUVar;
+			if(typeArg instanceof WildcardSuper) {
+				specifiedUVar = CONTRAVARIANT;
+			}
+			else if(typeArg instanceof WildcardExtends) {
+				specifiedUVar = COVARIANT;
+			}
+			else if(typeArg instanceof Wildcard) {
+				specifiedUVar = BIVARIANT;
+			}
+			else {
+				specifiedUVar = INVARIANT;
+			}
+			return typeArg.is
+			return inferredDVar.join(specifiedUVar); // inferred use-site annotation
+		}
+	}
+
+	syn lazy java.util.List<VExpr> TypeContainer.varBoundsBodies(TypeVariable tv);
+
+	// TypeDecl.varBoundsBodies
+	
+	eq TypeDecl.varBoundsBodies(TypeVariable tv) = varBoundsSig(tv);
+
+	// BodyDecl.varBoundsBodies
+
+	eq BodyDecl.varBoundsBodies(TypeVariable tv) = varBoundsSig(tv);
+
+	eq MethodDecl.varBoundsBodies(TypeVariable tv) {
+		java.util.List<VExpr> bounds = new ArrayList<VExpr>();
+		String fullname = fullName();
+		VExpr bound;
+		
+		// Collect bounds from argument types, which will now contain unknowns
+		// denoting of the most general use-site variance annotations allowed
+		// for method bodies.
+		for (int i = 0; i < getNumParameter(); i++) {
+			ParameterDeclaration param = getParameter(i);
+			if(param.type().structurallyContains(tv)) {
+				VExpr paramTypeVar = param.varExprWithUVars(tv);
+				bound = new Transform(CONTRAVARIANT, paramTypeVar);
+				LOG.log(INFO, String.format("varBoundsBodies(%s [arg %d]): %s",
+					fullname, i, bound));
+				bounds.add(bound);
+			}
+		}
+		
+		bounds.addAll(boundsFromReturnType());
+		return bounds;
+	}
+	
+	
+	syn VExpr ParameterDeclaration.varExprWithUVars(TypeVariable tv) {
+		TypeDecl typ = type();
+		if(!typ.isParameterizedType(tv)) {
+			return typ.varExpr(tv);
+		}
+		GenericTypeDecl gtd = (GenericTypeDecl) typ.sourceTypeDecl();
+		ParTypeDecl ptyp = (ParTypeDecl) typ;
+		VExpr result = null;
+		for (int i = 0; i < ptyp.getNumArgument(); i++) {
+			TypeDecl typeArg = ptyp.getArgument(i).type();
+			if(typeArg.structurallyContains(tv)) {
+				DVar defSiteVar = gtd.getDVar(i);
+				Value specifiedUseSite;
+				TypeDecl innerType;
+				if(typeArg.isWildcardExtendsType()) {
+					specifiedUseSite = COVARIANT;
+					innerType = getAccess().type();
+				}
+				else if (typeArg.isWildcardSuperType()) {
+					specifiedUseSite = CONTRAVARIANT;
+					innerType = getAccess().type();
+				}
+				else {
+					assert !typeArg.isWildcardType();
+					specifiedUseSite = INVARIANT;
+					innerType = typeArg;
+				}
+				VExpr newVar;
+				if(innerType.isTypeVariable()) {
+					newVar = new Join(defSiteVar, new Join(specifiedUseSite, getUVar(tv)));
+				}
+				else {
+					newVar = new Transform(
+						new Join(defSiteVar, specifiedUseSite),
+						typeArg.varExpr(tv));
+				}
+				result = (result == null) ?
+					newVar : new Meet(result, newVar);
+			}
+		}
+		return (result == null) ? BIVARIANT : result;
+	}
+
+
+	eq GenericMethodDecl.varBoundsBodies(TypeVariable tv) {
+		java.util.List<VExpr> bounds = new ArrayList<VExpr>();
+		bounds.addAll(super.varBoundsBodies(tv));
+		String fullname = fullName();
+		
+		// Collect bounds from upper bounds of type parameters.
+		// Java does not allow lower bounds on type parameters.
+		// Upper bounds of method type parameters are in
+		// contravariant positions.
+		for(int j = 0; j < getNumTypeParameter(); j++) {
+			TypeVariable param = getTypeParameter(j);
+			for (int i = 0; i < param.getNumTypeBound(); i++) {
+				TypeDecl typ = param.getTypeBound(i).type();
+				if(typ.structurallyContains(tv)) {
+					VExpr bound = new Transform(CONTRAVARIANT, typ.varExpr(tv));
+					LOG.log(INFO, String.format(
+						"varBoundsBodies(%s [type arg bound (%d, %d)]): %s",
+						fullname, j, i, bound));
+					bounds.add(bound);
+				}
+			}
+		}
+		return bounds;
+	}
+
+
+	eq UVar.bounds() {
+		java.util.List<VExpr> vexprs = ASTUtils.createList();
+		for(TypeOccurrence occurrence : getParam().typeOccurrencesInMethod()) {
+			
+		}
+	}
+
+	public class TypeOccurrence
+	{
+		public final TypeDecl typ;
+		
+		/** Variance of the position the type, typ, occurs in */
+		public final Value position;
+		
+		public TypeOccurrence(TypeDecl typ, Value position) {
+			this.typ = typ; this.position = position;
+		}
+		
+		public VExpr varExpr() {
+			return new Transform(position, typ.varExpr())
+		}
+
+		public String toString() {
+			return String.format("TypeOccurrence(%s, %s)",
+				typ.fullName(), position);
+		}
+		
+		public boolean equals(Object o) {
+			if(o instanceof TypeOccurrence) {
+				TypeOccurence other = (TypeOccurrence) o;
+				return other.typ == this.typ &&
+					other.position.equals(this.position);
+			}
+			else return false;
+		}
+
+		public int hashCode() { return toString().hashCode(); }
+	}
+
+
+	syn lazy java.util.List<TypeOccurrence>
+		ParameterDeclaration.typeOccurrencesInMethod()
+	{
+		BodyDecl body = enclosingBodyDecl();
+		if(!body.isMethodDecl())
+			return Collections.emptyList();
+		MethodDecl meth = (MethodDecl) body;
+		if(meth.
+	}
+
+
+	syn java.util.List<TypeOccurrence> ASTNode.typeOccurrences(Variable v) {
+		java.util.List<TypeOccurrence> occurrences = ASTUtils.createList();
+    for(int i = 0; i < getNumChild(); i++) {
+    	occurrences.addAll(getChild(i).typeOccurrences(v));
+    }
+    return occurrences;
+	}
+	
+	eq Expr.typeOccurrences(Variable v) {
+		java.util.List<TypeOccurrence> occurrences = ASTUtils.createList();
+		if(qualifiedBy(v)) {
+			if(isWriteTarget()) {
+				// type of destination expr is in a contravariant position
+				occurrences.add(new TypeOccurrence(type(), CONTRAVARIANT));
+			}
+			else {
+				// type of expr is in a covariant position
+				occurrences.add(new TypeOccurrence(type(), COVARIANT));
+			}
+		}
+		occurrences.addAll(super.typeOccurrences(v));
+		return occurrences;
+	}
+	
+
+	eq AssignExpr.typeOccurrences(Variable v) {
+		java.util.List<TypeOccurrence> occurrences = ASTUtils.createList();
+		// type of AssignExpr = type of its destination expr,
+  	// so only collecting occurences from its children
+    for(int i = 0; i < getNumChild(); i++) {
+    	occurrences.addAll(getChild(i).typeOccurrences(v));
+    }
+    return occurrences;
+	}
+	
+	eq MethodAccess.typeOccurrences(Variable v) {
+		java.util.List<TypeOccurrence> occurrences = ASTUtils.createList();
+		if(qualifiedBy(v)) {
+			MethodDecl meth = decl();
+			// argument types of method are in contravariant position
+			for(int i = 0; i < meth.getNumParameter(); i++) {
+				TypeDecl paramType = meth.getParameter(i).type();
+				occurrences.add(new TypeOccurrence(paramType, CONTRAVARIANT));
+			}
+    }
+    // return type will be included in result of super call
+		occurrences.addAll(super.typeOccurrences(v));
+		return occurrences;
+	}
+
+	syn lazy boolean Expr.qualifiedBy(Variable v) = false;
+
+	eq VarAccess.qualifiedBy(Variable v) {
+		if (decl() == v) return true;
+		else if (isQualified()) return qualifier().qualifiedBy(v);
+		else return false;
+	}
+
+
+	inh lazy boolean VarAccess.isWriteTarget();
+
+	// if access is on the written end of an assign, then it is not being read
+	eq AssignExpr.getDest().isWriteTarget() = true;
+	// all other cases, it is read.
+	eq Program.getChild().isWriteTarget() = false;
+}

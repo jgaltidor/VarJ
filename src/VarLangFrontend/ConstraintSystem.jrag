@@ -8,7 +8,7 @@ aspect ConstraintSystem
 	
 	syn nta DVar GenericTypeDecl.getDVar(TypeVariable tv) = new DVar(this, tv);
 	
-	syn nta UVar ParameterDeclaration.getUVar(int index) = new UVar(this, index);
+	syn nta UVar ParameterDeclaration.getUVar(TypeVariable tv) = new UVar(this, tv);
 
 	syn lazy Value GenericTypeDecl.computeVar(int index)
 		= computeVar(getTypeParameter(index));
@@ -26,58 +26,12 @@ aspect ConstraintSystem
 		return var;
 	}
 
-	syn lazy java.util.List<VExpr> VVar.bounds()
-		= Collections.emptyList();
+	syn lazy java.util.List<VExpr> VVar.bounds() = Collections.emptyList();
 
 	eq DVar.bounds() =
-		strategy.varBounds(getGenericTypeDecl(), getTypeVariable());
-		
-
-	// varExpr computes var(X; T)
+		ASTNode.strategy.varBounds(getGenericTypeDecl(), getTypeVariable());
 	
-	syn VExpr TypeDecl.varExpr(TypeVariable tv) = BIVARIANT;
-	
-	/**
-	  * var(X; C<v_1 T_1, ..., v_n T_n>),
-	  * where v_i is the use-site annotation applied to
-	  * type actual T_i.
-	  */
-	eq ParTypeDecl.varExpr(TypeVariable tv) {
-		GenericTypeDecl gtd = (GenericTypeDecl) sourceTypeDecl();
-		VExpr result = null;
-		for (int i = 0; i < getNumArgument(); i++) {
-			TypeDecl typeArg = getArgument(i).type();
-			if(typeArg.structurallyContains(tv)) {
-				DVar defSiteVar = gtd.getDVar(i);
-				Value useSiteVar;
-				if (typeArg.isWildcardExtendsType())
-					useSiteVar = COVARIANT;
-				else if (typeArg.isWildcardSuperType())
-					useSiteVar = CONTRAVARIANT;
-				else
-					useSiteVar = INVARIANT;
-				VExpr newVar = new Transform(
-					new Join(defSiteVar, useSiteVar),
-					typeArg.varExpr(tv));
-				result = (result == null) ?
-					newVar : new Meet(result, newVar);
-			}
-		}
-		return (result == null) ? BIVARIANT : result;
-	}
-
-	eq TypeVariable.varExpr(TypeVariable tv) =
-		(this == tv) ? COVARIANT : BIVARIANT;
-
-	eq ArrayDecl.varExpr(TypeVariable tv) =
-		componentType().varExpr(tv);
-
-	eq WildcardExtendsType.varExpr(TypeVariable tv) =
-		getAccess().type().varExpr(tv);
-
-	eq WildcardSuperType.varExpr(TypeVariable tv) =
-		getAccess().type().varExpr(tv);
-
+	// TODO: UVar.bounds()
 		
 	syn lazy boolean VVar.isRecursivelyBounded()
 		= varBoundClosure().contains(this);

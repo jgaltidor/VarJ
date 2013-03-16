@@ -12,4 +12,4 @@ DVar : VVar ::= <GenericTypeDecl:GenericTypeDecl> <TypeVariable:TypeVariable>;
 // refer use-site annotations of variable types that could
 // possibly be relaxed
 
-UVar : VVar ::= <Param:ParameterDeclaration> <Index:Integer>;
+UVar : VVar ::= <Param:ParameterDeclaration> <TypeVariable:TypeVariable>;

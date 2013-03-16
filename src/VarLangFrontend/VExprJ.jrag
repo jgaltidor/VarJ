@@ -5,7 +5,7 @@ aspect VExprJ
 		getGenericTypeDecl().fullName(), getTypeVariable().name());
 
 	eq UVar.toString() = String.format("UVar(%s, %s)",
-		getParam().fullName(), getIndex());
+		getParam().fullName(), getTypeVariable().fullName());
 
 	public boolean DVar.equals(Object other) {
 		return (other instanceof DVar) ?
