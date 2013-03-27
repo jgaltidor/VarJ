@@ -5,42 +5,55 @@ import java.util.HashSet;
 
 aspect AnalyzeSig
 {
-	public class OnlySigAnalysis extends AnalysisStrategy
+	public class OnlySigAnalysis extends StrategyWithVisibility
 	{
-		public OnlySigAnalysis(Visibility visibility) { super(visibility); }
+		public OnlySigAnalysis(Visibility visibility) {
+			super(visibility);
+		}
+
+		public java.util.List<VExpr> varBounds(DVar dvar) {
+			return varBounds(dvar.getGenericTypeDecl(), dvar.getTypeVariable());
+		}
 
 		public java.util.List<VExpr> varBounds(TypeContainer container, TypeVariable tv) {
-			return container.varBoundsSig(tv);
+			return container.varBounds(tv, this);
 		}
-		
+
+		public java.util.List<VExpr> varBounds(UVar uvar) {
+			throw new UnsupportedOperationException();
+		}
+
+		public String wildString(Access typeAccess) {
+			return typeAccess.wildString(this);
+		}
+
 		public Value inferredUseSite(ParTypeAccess access, int index) {
-			GenericTypeDecl gtd =
-				(GenericTypeDecl) access.genericDecl().sourceTypeDecl();
-			Access typeArg = getTypeArgument(index);
+			GenericTypeDecl gtd = (GenericTypeDecl) access.genericDecl().sourceTypeDecl();
+			Access typeArg = access.getTypeArgument(index);
 			Value inferredDVar = gtd.computeVar(index);
 			Value specifiedUVar;
-			if(typeArg instanceof WildcardSuper) {
-				specifiedUVar = CONTRAVARIANT;
+			if(typeArg.isWildcardSuper()) {
+				specifiedUVar = ASTNode.CONTRAVARIANT;
 			}
-			else if(typeArg instanceof WildcardExtends) {
-				specifiedUVar = COVARIANT;
+			else if(typeArg.isWildcardExtends()) {
+				specifiedUVar = ASTNode.COVARIANT;
 			}
-			else if(typeArg instanceof Wildcard) {
-				specifiedUVar = BIVARIANT;
+			else if(typeArg.isWildcard()) {
+				specifiedUVar = ASTNode.BIVARIANT;
 			}
 			else {
-				specifiedUVar = INVARIANT;
+				specifiedUVar = ASTNode.INVARIANT;
 			}
 			return inferredDVar.join(specifiedUVar); // inferred use-site annotation
 		}
 	}
+
+	syn lazy java.util.List<VExpr> TypeContainer.varBounds(TypeVariable tv, OnlySigAnalysis strategy);
 	
-	syn lazy java.util.List<VExpr> TypeContainer.varBoundsSig(TypeVariable tv);
-	
-	eq TypeDecl.varBoundsSig(TypeVariable tv) =
+	eq TypeDecl.varBounds(TypeVariable tv, OnlySigAnalysis strategy) =
 		Collections.emptyList();
 
-	eq ClassDecl.varBoundsSig(TypeVariable tv)
+	eq ClassDecl.varBounds(TypeVariable tv, OnlySigAnalysis strategy)
 	{
 		java.util.List<VExpr> bounds = ASTUtils.createList();
 		String fullname = fullName();
@@ -51,7 +64,7 @@ aspect AnalyzeSig
 			if(st.structurallyContains(tv)) {
 				bound = st.varExpr(tv);
 				LOG.log(INFO, String.format(
-					"varBoundsSig(%s [super type %d]): %s", fullname, n++, bound));
+					"varBounds(%s [super type %d]): %s", fullname, n++, bound));
 				bounds.add(bound);
 			}
 		}
@@ -63,17 +76,17 @@ aspect AnalyzeSig
 				if(m.isStatic() || m.isPrivateThis()) {
 					continue;
 				}
-				bounds.addAll(ASTNode.strategy.varBounds(m, tv));
+				bounds.addAll(strategy.varBounds(m, tv));
 			}
 			else {
-				bounds.addAll(ASTNode.strategy.varBounds(b, tv));
+				bounds.addAll(strategy.varBounds(b, tv));
 			}
 		}
 		return bounds;
 	}
 
 
-	eq InterfaceDecl.varBoundsSig(TypeVariable tv)
+	eq InterfaceDecl.varBounds(TypeVariable tv, OnlySigAnalysis strategy)
 	{
 		java.util.List<VExpr> bounds = ASTUtils.createList();
 		String fullname = fullName();
@@ -84,23 +97,23 @@ aspect AnalyzeSig
 			if(st.structurallyContains(tv)) {
 				bound = st.varExpr(tv);
 				LOG.log(INFO, String.format(
-					"varBoundsSig(%s [super type %d]): %s", fullname, n++, bound));
+					"varBounds(%s [super type %d]): %s", fullname, n++, bound));
 				bounds.add(bound);
 			}
 		}
 		// analyze type signatures of appropriate members
 		for(int i = 0; i < getNumBodyDecl(); i++) {
 			BodyDecl b = getBodyDecl(i);
-			bounds.addAll(ASTNode.strategy.varBounds(b, tv));
+			bounds.addAll(strategy.varBounds(b, tv));
 		}
 		return bounds;
 	}
 
 
-	eq GenericTypeDecl.varBoundsSig(TypeVariable tv)
+	eq GenericTypeDecl.varBounds(TypeVariable tv, OnlySigAnalysis strategy)
 	{
 		java.util.List<VExpr> bounds = ASTUtils.createList();
-		bounds.addAll(super.varBoundsSig(tv));
+		bounds.addAll(super.varBounds(tv, strategy));
 		String fullname = fullName();
 		VExpr bound;
 
@@ -115,7 +128,7 @@ aspect AnalyzeSig
 				if(typ.structurallyContains(tv)) {
 					bound = typ.varExpr(tv);
 					LOG.log(INFO, String.format(
-						"varBoundsSig(%s [type arg bound (%d, %d)]): %s",
+						"varBounds(%s [type arg bound (%d, %d)]): %s",
 						fullname, j, i, bound));
 					bounds.add(bound);
 				}
@@ -124,15 +137,17 @@ aspect AnalyzeSig
 		return bounds;
 	}
 	
-	eq ParClassDecl.varBoundsSig(TypeVariable tv) =
-		sourceTypeDecl().varBoundsSig(tv);
+	
+	
+	eq ParClassDecl.varBounds(TypeVariable tv, OnlySigAnalysis strategy) =
+		sourceTypeDecl().varBounds(tv, strategy);
 
-	// BodyDecl.varBoundsSig
+	// BodyDecl.varBounds
 
-	eq BodyDecl.varBoundsSig(TypeVariable tv) =
+	eq BodyDecl.varBounds(TypeVariable tv, OnlySigAnalysis strategy) =
 		Collections.emptyList();
 
-	eq FieldDeclaration.varBoundsSig(TypeVariable tv)
+	eq FieldDeclaration.varBounds(TypeVariable tv, OnlySigAnalysis strategy)
 	{
 		java.util.List<VExpr> bounds = ASTUtils.createList();
 		String fullname = fullName();
@@ -148,19 +163,19 @@ aspect AnalyzeSig
 		VExpr bound = vart;
 		bounds.add(bound);
 		
-		LOG.log(INFO, String.format("varBoundsSig(%s): %s", fullname, bound));
+		LOG.log(INFO, String.format("varBounds(%s): %s", fullname, bound));
 
 		// If field is not final, then t is also in a contravariant position
 		if(!isFinal()) {
 			bound = new Transform(CONTRAVARIANT, vart);
-			LOG.log(INFO, String.format("varBoundsSig(%s): %s", fullname, bound));
+			LOG.log(INFO, String.format("varBounds(%s): %s", fullname, bound));
 			bounds.add(bound);
 		}
 		return bounds;
 	}
 
 
-	eq MethodDecl.varBoundsSig(TypeVariable tv)
+	eq MethodDecl.varBounds(TypeVariable tv, OnlySigAnalysis strategy)
 	{
 		java.util.List<VExpr> bounds = ASTUtils.createList();
 		bounds.addAll(boundsFromReturnType(tv));
@@ -207,35 +222,44 @@ aspect AnalyzeSig
 	}
 
 	
-	eq GenericMethodDecl.varBoundsSig(TypeVariable tv)
+	eq GenericMethodDecl.varBounds(TypeVariable tv, OnlySigAnalysis strategy)
 	{
-		// Collect bounds from return and argument types
 		java.util.List<VExpr> bounds = ASTUtils.createList();
-		bounds.addAll(super.varBoundsSig(tv));
-		String fullname = fullName();
+		bounds.addAll(super.varBounds(tv, strategy));
+		bounds.addAll(boundsFromMethTypeParams(tv));
+		return bounds;
+	}
 
-		// Collect bounds from upper bounds of type parameters.
-		// Java does not allow lower bounds on type parameters.
-		// Upper bounds of method type parameters are in
-		// contravariant positions.
-		for(int j = 0; j < getNumTypeParameter(); j++) {
-			TypeVariable param = getTypeParameter(j);
-			for (int i = 0; i < param.getNumTypeBound(); i++) {
-				TypeDecl typ = param.getTypeBound(i).type();
+
+	/** Collect bounds from upper bounds of type parameters.
+		* Java does not allow lower bounds on type parameters.
+		* Upper bounds of method type parameters are in
+		* contravariant positions.
+	  */
+	syn java.util.List<VExpr>
+		GenericMethodDecl.boundsFromMethTypeParams(TypeVariable tv)
+	{
+		java.util.List<VExpr> bounds = ASTUtils.createList();
+		String fullname = fullName();
+		for(int i = 0; i < getNumTypeParameter(); i++) {
+			TypeVariable param = getTypeParameter(i);
+			for (int j = 0; j < param.getNumTypeBound(); j++) {
+				TypeDecl typ = param.getTypeBound(j).type();
 				if(typ.structurallyContains(tv)) {
 					VExpr bound = new Transform(CONTRAVARIANT, typ.varExpr(tv));
 					LOG.log(INFO, String.format(
-						"varBoundsSig(%s [type arg bound (%d, %d)]): %s",
-						fullname, j, i, bound));
+						"varBounds(%s [type arg bound (%d, %d)]): %s",
+						fullname, i, j, bound));
 					bounds.add(bound);
 				}
 			}
 		}
 		return bounds;
 	}
-	
-	eq MemberTypeDecl.varBoundsSig(TypeVariable tv) =
-		typeDecl().varBoundsSig(tv);
+
+
+	eq MemberTypeDecl.varBounds(TypeVariable tv, OnlySigAnalysis strategy) =
+		typeDecl().varBounds(tv, strategy);
 
 
 	syn lazy boolean MemberDecl.isPrivateThis() = false;
@@ -264,4 +288,71 @@ aspect AnalyzeSig
 		decl().sourceMethodDecl() == member && isQualified() && !qualifier().isThisAccess() ?
 			true :
 			super.quantifiesWithNonThis(member);
+
+
+	/** Returns new type access to have wildcards based on
+	  * inferred def-site variances.
+	  */
+	syn String Access.wildString(OnlySigAnalysis strategy) = toString();
+
+	eq ParTypeAccess.wildString(OnlySigAnalysis strategy) {
+		if(isRaw()) {
+			return toString();
+		}
+		StringBuffer newAccess = new StringBuffer();
+		getTypeAccess().toString(newAccess);
+		newAccess.append('<');
+		// rewriting type arguments
+		for(int i = 0; i < getNumTypeArgument(); i++) {
+			Access oldArg = getTypeArgument(i);
+			Access innerAccess;
+			if(oldArg.isWildcardExtends())
+				innerAccess = ((WildcardExtends) oldArg).getAccess();
+			else if(oldArg.isWildcardSuper())
+				innerAccess = ((WildcardSuper) oldArg).getAccess();
+			else if(oldArg.isWildcard())
+				innerAccess = null;
+			else
+				innerAccess = oldArg;
+			Value newUseSite = strategy.inferredUseSite(this, i);
+			String newArg;
+			if(innerAccess == null) // oldUseSite == BIVARIANCE
+				newArg = "?";
+			else if(newUseSite.equals(COVARIANT))
+				newArg = "? extends " +
+					strategy.wildString(innerAccess);
+			else if(newUseSite.equals(CONTRAVARIANT))
+				newArg = "? super " + innerAccess.toString();
+			else // oldUseSite == INVARIANCE
+				newArg = innerAccess.toString();
+			// append delimeter if needed
+			if(i > 0) {
+				newAccess.append(", ");
+			}
+			newAccess.append(newArg);
+		}
+		newAccess.append('>');
+		return newAccess.toString();
+	}
+
+	eq ArrayTypeAccess.wildString(OnlySigAnalysis strategy) {
+		StringBuffer newAccess = new StringBuffer();
+		newAccess.append(strategy.wildString(getAccess()));
+		newAccess.append("[]");
+		return newAccess.toString();
+	}
+
+	eq WildcardSuper.wildString(OnlySigAnalysis strategy) {
+		StringBuffer newAccess = new StringBuffer();
+		newAccess.append("? super ");
+		newAccess.append(strategy.wildString(getAccess()));
+		return newAccess.toString();
+	}
+
+	eq WildcardExtends.wildString(OnlySigAnalysis strategy) {
+		StringBuffer newAccess = new StringBuffer();
+		newAccess.append("? extends ");
+		newAccess.append(strategy.wildString(getAccess()));
+		return newAccess.toString();
+	}
 }

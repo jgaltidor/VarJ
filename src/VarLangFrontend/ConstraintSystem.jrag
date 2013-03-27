@@ -3,13 +3,6 @@ import java.util.Set;
 
 aspect ConstraintSystem
 {
-	syn lazy DVar GenericTypeDecl.getDVar(int index) =
-		getDVar(getTypeParameter(index));
-	
-	syn nta DVar GenericTypeDecl.getDVar(TypeVariable tv) = new DVar(this, tv);
-	
-	syn nta UVar ParameterDeclaration.getUVar(TypeVariable tv) = new UVar(this, tv);
-
 	syn lazy Value GenericTypeDecl.computeVar(int index)
 		= computeVar(getTypeParameter(index));
 
@@ -26,12 +19,10 @@ aspect ConstraintSystem
 		return var;
 	}
 
-	syn lazy java.util.List<VExpr> VVar.bounds() = Collections.emptyList();
-
-	eq DVar.bounds() =
-		ASTNode.strategy.varBounds(getGenericTypeDecl(), getTypeVariable());
+	syn lazy java.util.List<VExpr> VVar.bounds();
 	
-	// TODO: UVar.bounds()
+	eq DVar.bounds() = ASTNode.analysisStrategy.varBounds(this);
+	eq UVar.bounds() = ASTNode.analysisStrategy.varBounds(this);
 		
 	syn lazy boolean VVar.isRecursivelyBounded()
 		= varBoundClosure().contains(this);
@@ -50,32 +41,4 @@ aspect ConstraintSystem
 		}
 		return vars;
 	}
-
-	/** Returns the set of VVars in a variance expression. */
-	syn Set<VVar> VExpr.getVars();
-	
-	eq Transform.getVars() {
-		Set<VVar> set = ASTUtils.createSet();
-		set.addAll(getLeft().getVars());
-		set.addAll(getRight().getVars());
-		return set;
-	}
-
-	eq Meet.getVars() {
-		Set<VVar> set = ASTUtils.createSet();
-		set.addAll(getLeft().getVars());
-		set.addAll(getRight().getVars());
-		return set;
-	}
-
-	eq Join.getVars() {
-		Set<VVar> set = ASTUtils.createSet();
-		set.addAll(getLeft().getVars());
-		set.addAll(getRight().getVars());
-		return set;
-	}
-	
-	eq VVar.getVars() = Collections.singleton(this);
-	
-	eq Value.getVars() = Collections.emptySet();
 }

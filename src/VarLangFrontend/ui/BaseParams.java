@@ -5,7 +5,7 @@ import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
 
 import AST.ASTNode;
-import AST.AnalysisStrategy;
+import AST.StrategyWithVisibility;
 
 import java.util.List;
 import java.util.LinkedList;
@@ -69,13 +69,12 @@ public class BaseParams
 		ASTNode.LOG.setLevel(loglevel);
 		
 		// Set analysis strategy
-		AnalysisStrategy.Visibility visibility = analyzeAllPrivate ?
-			AnalysisStrategy.Visibility.ALL_PRIVATE :
-			AnalysisStrategy.Visibility.MINIMAL;
+		StrategyWithVisibility.Visibility visibility = analyzeAllPrivate ?
+			StrategyWithVisibility.Visibility.ALL_PRIVATE :
+			StrategyWithVisibility.Visibility.MINIMAL;
 		
-		ASTNode.strategy = analyzeBodies ?
-			// new AST.MethBodyAnalysis(visibility) :
-			null :
+		ASTNode.analysisStrategy = analyzeBodies ?
+			new AST.MethodBodyAnalysis(visibility) :
 			new AST.OnlySigAnalysis(visibility);
 	}
 	

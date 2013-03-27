@@ -60,7 +60,10 @@ object RewriteSources extends FilesParams
 		}
 		println("Computing rewrites to perform")
 		// Generate modificationSpec
-		typesToRewrite.foreach(_.rewriteMemberTypes)
+		for(typdecl <- typesToRewrite) {
+			println("Computing rewrites for: " + typdecl.fullName)
+			typdecl.rewriteMemberTypes
+		}
 		// write fake replacement info so that all input source files
 		// are copied to the target directory (newSourcesDir) even if
 		// some source files did not require any rewrites

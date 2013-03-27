@@ -105,6 +105,10 @@ class SpecialIList<E> extends IList<E>
 
 public class Lists
 {
+	public void whatever(WList<String> ws) {
+		System.out.println("just a test");
+	}
+
 	public static void main(String[] args) {
 		RList.test();
 		WList.test();

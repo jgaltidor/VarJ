@@ -2,8 +2,7 @@
 aspect VirtualMethods
 {
 	inh Program ASTNode.program();
-	// eq ASTNode.program() = null;
-	eq Program.getChild(int i).program() = this;
+	eq Program.getChild().program() = this;
 	
 	// eq Program.getCompilationUnit(int i).program() = this;
 

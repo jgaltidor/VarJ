@@ -2,7 +2,7 @@ import java.util.*;
 
 public class MBodyTest<E>
 {	
-	public E getFirst(List<E> list) {
-		return list.get(0);
+	public void printFirst(List<E> list) {
+		System.out.println("list.get(0): " + list.get(0));
 	}
 }
