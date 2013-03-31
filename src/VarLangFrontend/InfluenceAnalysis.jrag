@@ -30,17 +30,13 @@ aspect InfluenceAnalysis
 
 
 	inh lazy InfluenceNode Expr.destinationNode();
-
 	eq Program.getChild().destinationNode() = null;
 
-	eq MethodAccess.getArg(int i).destinationNode() =
-		getParameter(i);
+	eq MethodAccess.getArg(int i).destinationNode() = getParameter(i);
 	
-	eq ConstructorAccess.getArg(int i).destinationNode() =
-		getParameter(i);
+	eq ConstructorAccess.getArg(int i).destinationNode() = getParameter(i);
 
-	eq ClassInstanceExpr.getArg(int i).destinationNode() =
-		getParameter(i);
+	eq ClassInstanceExpr.getArg(int i).destinationNode() = getParameter(i);
 
 	eq AssignExpr.getSource().destinationNode() = getDest().destDecl();
 
@@ -62,25 +58,47 @@ aspect InfluenceAnalysis
 
 
 	coll Set<InfluenceNode> InfluenceNode.assignedTo() [ASTUtils.createSet()]
-		with add root Program;
+		with addAll root Program;
 	
-	Expr contributes destinationNode().sourceDecl()
+	Expr contributes Collections.singleton(destinationNode().sourceDecl())
 		when hasDestinationNode() && destinationNode().isUseful()
 		to InfluenceNode.assignedTo()
 		for each getUsefulNodes(accessedINodes());
 
-	MethodDecl contributes sourceMethodDecl()
+	MethodDecl contributes Collections.singleton(sourceMethodDecl())
 		when isUseful()
 		to InfluenceNode.assignedTo()
 		for each ASTUtils.subtract(getUsefulNodes(hierarchyMethods()), 
 		                           Collections.singleton(sourceMethodDecl()));
 
-	ParameterDeclaration contributes sourceVariableDecl()
+	ParameterDeclaration contributes Collections.singleton(sourceVariableDecl())
 		when isUseful()
 		to InfluenceNode.assignedTo()
 		for each ASTUtils.subtract(getUsefulNodes(hierarchyParams()),
 		                           Collections.singleton(sourceVariableDecl()));
 
+	MethodAccess contributes getUsefulNodes(accessedINodesInArgs())
+		when hasQualifierDecl() && qualifierDecl().isUseful()
+		to InfluenceNode.assignedTo()
+		for qualifierDecl().sourceDecl();
+
+
+	syn Set<InfluenceNode> MethodAccess.accessedINodesInArgs() {
+		Set<InfluenceNode> nodes = ASTUtils.createSet();
+		for(Expr arg : getArgList()) {
+			nodes.addAll(arg.accessedINodes());
+		}
+		return nodes;
+	}
+	
+	inh InfluenceNode Expr.qualifierDecl();
+	eq ASTNode.getChild().qualifierDecl() = null;
+	eq AbstractDot.getRight().qualifierDecl() = getLeft().referredDecl();
+
+	syn InfluenceNode Expr.referredDecl() = varDecl();
+	eq MethodAccess.referredDecl() = decl();
+	
+	syn boolean Expr.hasQualifierDecl() = qualifierDecl() != null;
 
 	public static Set<InfluenceNode>
 		ASTNode.getUsefulNodes(Collection<? extends InfluenceNode> nodes)
@@ -243,20 +261,22 @@ aspect InfluenceAnalysis
 		if(!isUseful()) {
 			System.out.println("skipping flowsto logging for " + name);
 		}
-		System.out.println("logging flowsto for " + name);
-		for(InfluenceNode inode : reachableINodes()) {
-			System.out.printf("%s flowsto %s", name, inode.fullName());
-			// Add source file info if it exists
-			if(inode.isFromSource()) {
-				ASTNode node = (ASTNode) inode;
-				System.out.printf(" from %s:%s", node.sourceFile(), node.location());
-			}
-			else {
-				System.out.print(" from binary");
+		else {
+			System.out.println("logging flowsto for " + name);
+			for(InfluenceNode inode : reachableINodes()) {
+				System.out.printf("%s flowsto %s", name, inode.fullName());
+				// Add source file info if it exists
+				if(inode.isFromSource()) {
+					ASTNode node = (ASTNode) inode;
+					System.out.printf(" from %s:%s", node.sourceFile(), node.location());
+				}
+				else {
+					System.out.print(" from binary");
+				}
+				System.out.println();
 			}
 			System.out.println();
 		}
-		System.out.println();
 		super.logFlowsTo();
 	}
 
@@ -273,20 +293,22 @@ aspect InfluenceAnalysis
 		if(!isUseful()) {
 			System.out.println("skipping assignedTo logging for " + name);
 		}
-		System.out.println("logging assignedTo for " + name);
-		for(InfluenceNode inode : assignedTo()) {
-			System.out.printf("%s assignedTo %s", name, inode.fullName());
-			// Add source file info if it exists
-			if(inode.isFromSource()) {
-				ASTNode node = (ASTNode) inode;
-				System.out.printf(" from %s:%s", node.sourceFile(), node.location());
-			}
-			else {
-				System.out.print(" from binary");
+		else {
+			System.out.println("logging assignedTo for " + name);
+			for(InfluenceNode inode : assignedTo()) {
+				System.out.printf("%s assignedTo %s", name, inode.fullName());
+				// Add source file info if it exists
+				if(inode.isFromSource()) {
+					ASTNode node = (ASTNode) inode;
+					System.out.printf(" from %s:%s", node.sourceFile(), node.location());
+				}
+				else {
+					System.out.print(" from binary");
+				}
+				System.out.println();
 			}
 			System.out.println();
 		}
-		System.out.println();
 		super.logAssignedTo();
 	}
 }

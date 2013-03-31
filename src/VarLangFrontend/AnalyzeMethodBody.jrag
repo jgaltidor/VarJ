@@ -31,6 +31,9 @@ aspect AnalyzeMethodBody
 				return super.inferredUseSite(access, index);
 			}
 			ParameterDeclaration param = access.getParamDecl();
+			if(!param.enclosingBodyDecl().isMethodDecl()) {
+				return super.inferredUseSite(access, index);
+			}
 			Access typeArg = access.getTypeArgument(index);
 			TypeDecl typ = typeArg.type();
 			Value sigOnlyInferred = super.inferredUseSite(access, index);
@@ -238,7 +241,7 @@ aspect AnalyzeMethodBody
 	eq ASTNode.getChild().isWriteTarget() = false;
 
 	inh lazy boolean TypeDecl.isClassVariable();
-	eq Program.getChild().isClassVariable() = false;
+	eq ASTNode.getChild().isClassVariable() = false;
 	eq GenericTypeDecl.getTypeParameter().isClassVariable() = true;
 	
 	inh lazy ParameterDeclaration Access.getParamDecl();

@@ -318,13 +318,16 @@ aspect AnalyzeSig
 			String newArg;
 			if(innerAccess == null) // oldUseSite == BIVARIANCE
 				newArg = "?";
+			else if(newUseSite.equals(BIVARIANT))
+				newArg = "?";
 			else if(newUseSite.equals(COVARIANT))
-				newArg = "? extends " +
-					strategy.wildString(innerAccess);
+				newArg = "? extends " + strategy.wildString(innerAccess);
 			else if(newUseSite.equals(CONTRAVARIANT))
 				newArg = "? super " + innerAccess.toString();
-			else // oldUseSite == INVARIANCE
+			else {
+				assert newUseSite.equals(INVARIANT);
 				newArg = innerAccess.toString();
+			}
 			// append delimeter if needed
 			if(i > 0) {
 				newAccess.append(", ");
