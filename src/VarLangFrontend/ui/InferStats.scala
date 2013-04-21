@@ -13,10 +13,14 @@ object InferStats extends BaseParams
   @Parameter(description = "<dir1:nameN> ... <dirN:nameN>")
   var pathNameArgs:java.util.List[String] = new ArrayList[String]
 
-	@Parameter(names = Array("t", "--texout"), required = true,
+	@Parameter(names = Array("-t", "--texout"), required = true,
 	           description = "Name of tex file to generate")
 	var outTexFileName:String = null
-	
+
+	@Parameter(names = Array("--json"), required = false,
+	           description = "Name of JSON file to generate")
+	var jsonFileName:String = null
+
 	/** Should be accessed only after command line arguments are processed */
 	var pathNamePairs:Seq[(String,String)] = null
 	
@@ -60,6 +64,10 @@ object InferStats extends BaseParams
 		val allstats = new AllStats(allLibStats)
 		println("Writing out Tex Table to file: " + outTexFileName)
 		Utils.writeToFile(Table1.texTable(allstats), outTexFileName)
+		if(jsonFileName != null) {
+			println("Writing out to JSON file: " + jsonFileName)
+			Utils.writeToFile(allstats.toJSON.toString(), jsonFileName)
+		}
 		println("Successful completion")
 	}
 

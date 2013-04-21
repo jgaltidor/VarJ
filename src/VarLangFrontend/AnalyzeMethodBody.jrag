@@ -53,7 +53,7 @@ aspect AnalyzeMethodBody
 		varBounds(tv, (OnlySigAnalysis) strategy);
 
 	eq MethodDecl.varBounds(TypeVariable tv, MethodBodyAnalysis strategy) {
-		if(isAbstract()) {
+		if(isAbstract() || isOverriden()) {
 			varBounds(tv, (OnlySigAnalysis) strategy);
 		}
 		java.util.List<VExpr> bounds = new ArrayList<VExpr>();

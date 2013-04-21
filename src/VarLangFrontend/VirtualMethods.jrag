@@ -87,6 +87,34 @@ aspect VirtualMethods
 	eq BasicCatch.getParameter().hierarchyParams() =
 		Collections.singletonList(getParameter());
 
+	syn lazy boolean MethodDecl.isOverriden() {
+		for(MethodDecl meth : overridingMethods()) {
+			if(meth != this)
+				return true;
+		}
+		return false;
+	}
+
+	// overridingParams
+
+	syn lazy java.util.List<ParameterDeclaration> MethodDecl.overridingParams(int i) {
+		java.util.List<ParameterDeclaration> params = ASTUtils.createList();
+		for(MethodDecl meth : overridingMethods()) {
+			params.add(meth.getParameter(i));
+		}
+		return params;
+	}
+
+	inh lazy java.util.List<ParameterDeclaration> ParameterDeclaration.overridingParams();
+	
+	eq MethodDecl.getParameter(int i).overridingParams() = this.hierarchyParams(i);
+	
+	eq ConstructorDecl.getParameter(int i).overridingParams() =
+		Collections.singletonList(getParameter(i));
+	
+	eq BasicCatch.getParameter().overridingParams() =
+		Collections.singletonList(getParameter());
+
 
 	// Method for Testing
 
