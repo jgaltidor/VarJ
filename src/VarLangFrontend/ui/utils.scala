@@ -8,6 +8,10 @@ import AST.CompilationUnit
 import AST.DVar
 import java.io.{File,FileWriter,PrintWriter}
 
+import scala.util.parsing.json.{JSON,
+                                JSONObject,
+                                JSONArray}
+
 object Utils
 {
 	// To split a list into multiple arguments to pass to joinstr:
@@ -35,6 +39,25 @@ object Utils
 		writer.println(str)
 		writer.close
 	}
+
+
+	def getTextFromFile(filename:String):String =
+		getText(new java.io.File(filename))
+	
+	def getText(file:java.io.File):String = {
+		val sb = new StringBuilder(256)
+		for(line <- scala.io.Source.fromFile(file).getLines) {
+			sb.append(line)
+		}
+		sb.toString
+	}
+	
+	def toJSONObject(a:Any) =
+		JSONObject(a.asInstanceOf[Map[String, Any]])
+
+	def toJSONArray(a:Any) =
+		JSONArray(a.asInstanceOf[List[Any]])
+
 
 	def getDVars(gtd:GenericTypeDecl):Seq[DVar] =
 		(0 until gtd.getNumTypeParameter).map {

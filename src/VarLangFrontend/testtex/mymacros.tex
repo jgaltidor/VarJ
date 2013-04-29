@@ -6,6 +6,9 @@
 \usepackage{amsthm}
 \usepackage{amsfonts}
 
+% For using color
+\usepackage[usenames,dvipsnames]{color}
+
 % Adding and removing line space
 \newcommand{\linespace}{\vspace{\baselineskip}}
 \newcommand{\minuslinespace}{\vspace{-\baselineskip}}
@@ -24,3 +27,5 @@
 }%
 {\end{list}}
 
+\definecolor{LightGray}{gray}{0.75}
+\newcommand{\highlight}[1]{\colorbox{LightGray}{#1}}

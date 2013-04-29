@@ -82,6 +82,18 @@ class IList<E>
 		ilist2 = another;
 		ilist2.elems = another.elems;
 	}
+	
+	public static <T> Iterator<T> idItr(Iterator<T> itr) { return itr; }
+	
+	public static <T> List<T> idList(List<T> list) { return list; }
+	
+	public Iterator<E> getIterator(IList<E> other) {
+		int n = Math.max(IList.idList(other.getElems()).size(), 2) + 1;
+		System.out.println("n: " + n);
+		return IList.idItr(IList.idItr(getElems().iterator()));
+	}
+	
+	public List<E> getElems() { return elems; }
 }
 
 
@@ -105,6 +117,10 @@ class SpecialIList<E> extends IList<E>
 
 public class Lists
 {
+	public void whatever(WList<String> ws) {
+		System.out.println("just a test");
+	}
+
 	public static void main(String[] args) {
 		RList.test();
 		WList.test();

@@ -22,7 +22,5 @@
   */
 aspect Settings
 {
-	public static AnalysisStrategy ASTNode.strategy = null;
-
 	public static Logger ASTNode.LOG = logutil.LogUtil.getGlobalLogger();
 }

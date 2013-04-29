@@ -143,7 +143,7 @@ aspect RewriteWildcard
 		return nodes;
 	}
 	
-	syn lazy Set<InfluenceNode> InfluenceNode.affectedNodes() {
+	syn lazy Set<InfluenceNode> Variable.affectedNodes() {
 		Set<InfluenceNode> nodes = ASTUtils.createSet();
 		nodes.add(this);
 		nodes.addAll(reachableINodes());
@@ -152,6 +152,17 @@ aspect RewriteWildcard
 	}
 
 
+	syn lazy Set<InfluenceNode> MethodDecl.affectedNodes() {
+		Set<InfluenceNode> nodes = ASTUtils.createSet();
+		nodes.add(this);
+		nodes.addAll(reachableINodes());
+		nodes.addAll(super.affectedNodes());
+		for(ParameterDeclaration param : getParameterList()) {
+			nodes.addAll(param.affectedNodes());
+		}
+		return nodes;
+	}
+
 	public void ASTNode.writeToWildcards() { }
 	
 	// need to determine criteria for selecting ASTNodes to rewrite
@@ -159,7 +170,7 @@ aspect RewriteWildcard
 	public void FieldDeclaration.writeToWildcards() {
 		Access type = getTypeAccess();
 		String oldAccess = type.toString();
-		String newAccess = type.wildString();
+		String newAccess = ASTNode.analysisStrategy.wildString(type);
 		type.writeWildcardReplaceInfo(oldAccess, newAccess);
 	}
 
@@ -167,7 +178,7 @@ aspect RewriteWildcard
 	public void VariableDeclaration.writeToWildcards() {
 		Access type = getTypeAccess();
 		String oldAccess = type.toString();
-		String newAccess = type.wildString();
+		String newAccess = ASTNode.analysisStrategy.wildString(type);
 		type.writeWildcardReplaceInfo(oldAccess, newAccess);
 	}
 
@@ -175,7 +186,7 @@ aspect RewriteWildcard
 	public void ParameterDeclaration.writeToWildcards() {
 		Access type = getTypeAccess();
 		String oldAccess = type.toString();
-		String newAccess = type.wildString();
+		String newAccess = ASTNode.analysisStrategy.wildString(type);
 		type.writeWildcardReplaceInfo(oldAccess, newAccess);
 	}
 
@@ -184,102 +195,7 @@ aspect RewriteWildcard
 	public void MethodDecl.writeToWildcards() {
 		Access returnType = getTypeAccess();
 		String oldAccess = returnType.toString();
-		String newAccess = returnType.wildString();
+		String newAccess = ASTNode.analysisStrategy.wildString(returnType);
 		returnType.writeWildcardReplaceInfo(oldAccess, newAccess);
-	}
-
-
-	/** Returns new type access to have wildcards based on
-	  * inferred def-site variances.
-	  */
-	syn String Access.wildString() = toString();
-	
-	eq ArrayTypeAccess.wildString() {
-		StringBuffer newAccess = new StringBuffer();
-		newAccess.append(getAccess().wildString());
-		newAccess.append("[]");
-		return newAccess.toString();
-	}
-
-	eq ParTypeAccess.wildString() {
-		if(isRaw()) {
-			return toString();
-		}
-		StringBuffer newAccess = new StringBuffer();
-		getTypeAccess().toString(newAccess);
-		newAccess.append('<');
-		// rewriting type arguments
-		GenericTypeDecl gtd = (GenericTypeDecl) genericDecl();
-		for(int i = 0; i < gtd.getNumTypeParameter(); i++) {
-			Access oldArg = getTypeArgument(i);
-			Value inferredDVar = gtd.computeVar(i);
-			Value oldUVar;
-			if(oldArg instanceof WildcardSuper) {
-				oldUVar = CONTRAVARIANT;
-			}
-			else if(oldArg instanceof WildcardExtends) {
-				oldUVar = COVARIANT;
-			}
-			else if(oldArg instanceof Wildcard) {
-				oldUVar = BIVARIANT;
-			}
-			else {
-				oldUVar = INVARIANT;
-			}
-			// inferred use-site annotation
-			Value newUVar = inferredDVar.join(oldUVar);
-			String typeActual = null;
-			if(newUVar.equals(COVARIANT)) {
-				if(oldUVar.equals(INVARIANT)) {
-					typeActual = oldArg.wildString();
-				}
-				else if(oldUVar.equals(COVARIANT)) {
-					typeActual = ((WildcardExtends) oldArg).getAccess().wildString();
-				}
-				// one of the above assignments must have been executed
-				assert typeActual != null;
-			}
-			else {
-				if(oldUVar.equals(CONTRAVARIANT)) {
-					typeActual = ((WildcardSuper) oldArg).getAccess().toString();
-				}
-				else if(oldUVar.equals(INVARIANT)) {
-					typeActual = oldArg.toString();
-				}
-				else {
-					assert newUVar.equals(BIVARIANT);
-				}
-			}
-			String newArg; // new type argument
-			if(newUVar.equals(BIVARIANT))
-				newArg = "?";
-			else if(newUVar.equals(CONTRAVARIANT))
-				newArg = "? super "   + typeActual;
-			else if(newUVar.equals(COVARIANT))
-				newArg = "? extends " + typeActual;
-			else // newUVar.equals(INVARIANT)
-				newArg = typeActual;
-			// append delimeter if needed
-			if(i > 0) {
-				newAccess.append(", ");
-			}
-			newAccess.append(newArg);
-		}
-		newAccess.append('>');
-		return newAccess.toString();
-	}
-
-	eq WildcardSuper.wildString() {
-		StringBuffer newAccess = new StringBuffer();
-		newAccess.append("? super ");
-		newAccess.append(getAccess().wildString());
-		return newAccess.toString();
-	}
-
-	eq WildcardExtends.wildString() {
-		StringBuffer newAccess = new StringBuffer();
-		newAccess.append("? extends ");
-		newAccess.append(getAccess().wildString());
-		return newAccess.toString();
 	}
 }

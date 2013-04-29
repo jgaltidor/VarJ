@@ -1,96 +1,9 @@
 package ui
-// import String.format
+import scala.util.parsing.json.{JSON,
+                                JSONObject,
+                                JSONArray}
 
-object Table1
-{
-	import VarStats.texPercent
-	import VarStats.texBold
-
-	val tableHeader =
-"""\begin{tabular}{|ll|c|c|c|c|c|c|c|c|c|c|c|c|c|} \hline
-Library & & \# Type     & \# Generic  & \multicolumn{5}{c|}{Type Definitions} & Recursive & Unnecess. & Over-specif.\\
-        & & defs & defs & invar. & variant & cov. & contrav. & biv. & variances & wildcards   & methods  \\
-\hline
-"""
-
-	val tableSuffix =
-"""\end{tabular}
-"""
-
-	val endTableRow = " \\\\ \n"
-
-	def texTable(allstats:AllStats):String = {
-		val sb = new StringBuilder(2 << 12)
-		sb.append(tableHeader)
-		for(libstats <- allstats.allLibStats) {
-			sb.append(libTexRows(libstats))
-			sb.append("\\hline \n")
-		}
-		sb.append(texTotalRows(allstats.totalLibStats))
-		sb.append("\\hline \n")
-		sb.append(tableSuffix)
-		sb.toString
-	}
-
-	def libTexRows(libstats:LibStats):String = {
-		val sb = new StringBuilder(256)
-		// first row
-		sb.append("""\multirow{3}{*}{%s} & classes & """.format(libstats.name))
-		sb.append(statTexRow(libstats.clsStats)).append(endTableRow)
-		// second row
-		sb.append(" & interfaces & ")
-		sb.append(statTexRow(libstats.intStats)).append(endTableRow)
-		// third row
-		sb.append(" & total & ")
-		sb.append(statTexRow(libstats.totalStats)).append(endTableRow)
-		sb.toString
-	}
-
-	def texTotalRows(totalLibStats:LibStats):String = {
-		val sb = new StringBuilder(700)
-		// first row
-		sb.append("""\multirow{3}{*}{%s} & %s &""".format(
-			texBold("Total"), texBold("classes")))
-		sb.append(statTexRow(totalLibStats.clsStats, texBold)).append(endTableRow)
-		// second row
-		sb.append(" & %s & ".format(texBold("interfaces")))
-		sb.append(statTexRow(totalLibStats.intStats, texBold)).append(endTableRow)
-		// third row
-		sb.append(" & %s & ".format(texBold("total")))
-		sb.append(statTexRow(totalLibStats.totalStats, texBold)).append(endTableRow)
-		sb.toString
-	}
-
-
-	def statTexRow(vs:VarStats):String =
-		Utils.joinstr(" & ",
-			vs.totalTypeDefs,
-			vs.totalGenerics,
-			texPercent(vs.ratioInVar),
-			texPercent(vs.ratioVar),
-			texPercent(vs.ratioCoVar),
-			texPercent(vs.ratioContraVar),
-			texPercent(vs.ratioBiVar),
-			texPercent(vs.ratioRecVarParams),
-			texPercent(vs.ratioUselessWildCards),
-			texPercent(vs.ratioOverSpecified)
-		)
-	
-	def statTexRow(vs:VarStats, formatter:Any => String):String =
-		Utils.joinstr(" & ",
-			formatter(vs.totalTypeDefs),
-			formatter(vs.totalGenerics),
-			formatter(texPercent(vs.ratioInVar)),
-			formatter(texPercent(vs.ratioVar)),
-			formatter(texPercent(vs.ratioCoVar)),
-			formatter(texPercent(vs.ratioContraVar)),
-			formatter(texPercent(vs.ratioBiVar)),
-			formatter(texPercent(vs.ratioRecVarParams)),
-			formatter(texPercent(vs.ratioUselessWildCards)),
-			formatter(texPercent(vs.ratioOverSpecified))
-		)
-}
-
+import Utils.{toJSONObject,toJSONArray}
 
 class AllStats(val allLibStats:Seq[LibStats])
 {
@@ -99,12 +12,32 @@ class AllStats(val allLibStats:Seq[LibStats])
 		totalLS.name = "Total"
 		totalLS
 	}
+
+	def toJSON = new JSONArray(
+		allLibStats.toList map (ls => ls.toJSON)
+	)
 }
 
-class LibStats
+object AllStats
 {
-	val clsStats = new VarStats
-	val intStats = new VarStats
+	def fromJSON(json:JSONArray):AllStats = {
+		val allLibStats = json.list.map(
+			a => LibStats.fromJSON(toJSONObject(a)))
+		new AllStats(allLibStats)
+	}
+	
+	def fromJSONString(str:String):AllStats = {
+		val jsonList = JSON.parseFull(str).get.asInstanceOf[List[Any]]
+		fromJSON(JSONArray(jsonList))
+	}
+
+	def fromJSONSFile(filename:String):AllStats =
+		fromJSONString(Utils.getTextFromFile(filename))
+}
+
+class LibStats(val clsStats: VarStats, val intStats: VarStats)
+{
+	def this() = this(new VarStats, new VarStats)
 	var name = "Library"
 	// time to analyze library in milliseconds
 	var runningTime:Long = 0
@@ -121,6 +54,28 @@ class LibStats
 		val ls = new LibStats
 		ls addFrom this
 		ls addFrom other
+		ls
+	}
+	
+	def toJSON = JSONObject(Map(
+		"Library"  -> name,
+		"clsStats" -> clsStats.toJSON,
+		"intStats" -> intStats.toJSON
+	))
+}
+
+object LibStats
+{
+	def fromJSON(json: JSONObject):LibStats = {
+		val clsStats =
+			VarStats fromJSON toJSONObject(json.obj("clsStats"))
+		val intStats =
+			VarStats fromJSON toJSONObject(json.obj("intStats"))
+		val ls = new LibStats(clsStats, intStats)
+		json.obj get "Library" match {
+			case Some(libval) => ls.name = libval.asInstanceOf[String]
+			case None => ()
+		}
 		ls
 	}
 }
@@ -205,19 +160,62 @@ class VarStats
 		vs addFrom other
 		vs
 	}
+
+	def toJSON = new JSONObject(Map(
+		"totalMonoTypes" -> totalMonoTypes,
+
+		"totalInVar" -> totalInVar,
+		"totalCoVar" -> totalCoVar,
+		"totalContraVar" -> totalContraVar,
+		"totalBiVar" -> totalBiVar,
+
+		"totalInVarParams" -> totalInVarParams,
+		"totalCoVarParams" -> totalCoVarParams,
+		"totalContraVarParams" -> totalContraVarParams,
+		"totalBiVarParams" -> totalBiVarParams,
+
+		"totalUselessWildcards" -> totalUselessWildcards,
+		"totalWildCardActuals" -> totalWildCardActuals,
+		"totalOverSpecified" -> totalOverSpecified,
+		"totalArgActuals" -> totalArgActuals,
+
+		"totalRecVar" -> totalRecVar,
+		"totalRecVarParams" -> totalRecVarParams,
+		"totalParamClosureSize" -> totalParamClosureSize
+	))
 }
 
 // Utility Functions
 object VarStats
 {	
-	def texPercent(d:Double):String = {
-		val s = java.text.NumberFormat.getPercentInstance.format(d)
-		val slen = s.length
-		if(slen < 2) "0\\%" else s.substring(0, slen-1) + "\\%"
-	}
+	def fromJSON(json: JSONObject):VarStats = {
+		// For converting any to ints
+		implicit def any2Int(any:Any) = any.asInstanceOf[Double].toInt
 	
-	def texBold(any:Any):String =
-		"""\textbf{%s}""" format any.toString
+		val vs = new VarStats
+		vs.totalMonoTypes = json.obj("totalMonoTypes")
+
+		vs.totalInVar = json.obj("totalInVar")
+		vs.totalCoVar = json.obj("totalCoVar")
+		vs.totalContraVar = json.obj("totalContraVar")
+		vs.totalBiVar = json.obj("totalBiVar")
+
+		vs.totalInVarParams = json.obj("totalInVarParams")
+		vs.totalCoVarParams = json.obj("totalCoVarParams")
+		vs.totalContraVarParams = json.obj("totalContraVarParams")
+		vs.totalBiVarParams = json.obj("totalBiVarParams")
+
+		vs.totalUselessWildcards = json.obj("totalUselessWildcards")
+		vs.totalWildCardActuals = json.obj("totalWildCardActuals")
+		vs.totalOverSpecified = json.obj("totalOverSpecified")
+		vs.totalArgActuals = json.obj("totalArgActuals")
+
+		vs.totalRecVar = json.obj("totalRecVar")
+		vs.totalRecVarParams = json.obj("totalRecVarParams")
+		vs.totalParamClosureSize = json.obj("totalParamClosureSize")
+
+		vs
+	}
 }
 
 object VarStatsTester
