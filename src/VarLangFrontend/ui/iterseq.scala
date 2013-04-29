@@ -25,8 +25,12 @@ object IterSeq
 	def getGenerics(program:Program):Seq[GenericTypeDecl] =
 		getTypes(program).filter(_.isGenericType).map(_.asInstanceOf[GenericTypeDecl])
 
-	def getCompUnits(program:Program):Seq[CompilationUnit] =
-		(0 until program.getNumCompilationUnit) map (program.getCompilationUnit(_))
+	def getCompUnits(program:Program):Seq[CompilationUnit] = {
+		val itr = program.getCompilationUnitList.iterator
+		val l = new java.util.LinkedList[CompilationUnit]
+		while(itr.hasNext) l add itr.next.asInstanceOf[CompilationUnit]
+		l.toSeq
+	}
 
 	def getSrcCompUnit(program:Program):Seq[CompilationUnit] =
 		getCompUnits(program).filter(_.fromSource)
