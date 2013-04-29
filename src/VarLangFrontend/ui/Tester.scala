@@ -29,6 +29,8 @@ object Tester
 			println("dvar.isRecursivelyBounded: " + dvar.isRecursivelyBounded)
 		}
 		// process nested generic types too
-		gtd.getNestedTypeDecls.filter(_.isGenericType).map(_.asInstanceOf[GenericTypeDecl]).foreach(processGeneric)
+		gtd.getNestedTypeDecls.filter(_.isGenericType)
+		                      .map(_.asInstanceOf[GenericTypeDecl])
+		                      .foreach(processGeneric)
 	}
 }

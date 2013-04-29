@@ -10,14 +10,19 @@ import AST.DVar
 import scala.collection.immutable.{SortedSet, TreeSet}
 import scala.math.Ordering
 
+// import implicit conversion for converting java.util collections
+import scala.collection.JavaConversions._
+
 object IterStream
 {
 	def getTypes(cunit:CompilationUnit):Stream[TypeDecl] = {
 		val numTypeDecls = cunit.getNumTypeDecl
 		
 		def fromIndex(index:Int):Stream[TypeDecl] = {
-			if(index < numTypeDecls)
-				Stream.cons(cunit.getTypeDecl(index), fromIndex(index+1))
+			if(index < numTypeDecls) {
+				val td = cunit.getTypeDecl(index)
+				Stream.cons(td, td.getNestedTypeDecls.toStream ++ fromIndex(index+1))
+			}
 			else Stream.empty
 		}
 		fromIndex(0)

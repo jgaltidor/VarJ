@@ -9,10 +9,15 @@ import AST.CompilationUnit
 import scala.collection.immutable.{SortedSet, TreeSet}
 import scala.math.Ordering
 
+// import implicit conversion for converting java.util collections
+import scala.collection.JavaConversions._
+
 object IterSeq
 {
 	def getTypes(cunit:CompilationUnit):Seq[TypeDecl] =
-		(0 until cunit.getNumTypeDecl) map (cunit.getTypeDecl(_))
+		cunit.getTypeDeclList
+			.map(td => List(td) ++ td.getNestedTypeDecls)
+			.toSeq.flatten
 
 	def getTypes(program:Program):Seq[TypeDecl] =
 		getCompUnits(program).flatMap(getTypes)

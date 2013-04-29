@@ -62,7 +62,9 @@ aspect Utils
 		for (int i = 0; i < getNumBodyDecl(); i++) {
 			BodyDecl b = getBodyDecl(i);
 			if(b.isMemberTypeDecl()) {
-				nestedTypes.add( ((MemberTypeDecl) b).typeDecl());
+				TypeDecl td = ((MemberTypeDecl) b).typeDecl();
+				nestedTypes.add(td);
+				nestedTypes.addAll(td.getNestedTypeDecls());
 			}
 		}
 		return nestedTypes;
