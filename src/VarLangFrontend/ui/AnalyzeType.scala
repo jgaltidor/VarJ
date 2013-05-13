@@ -26,6 +26,9 @@ object AnalyzeType extends FilesParams
 			Tester.processGeneric(typeDecl.asInstanceOf[GenericTypeDecl])
 		}
 		println("type: " + typeDecl.fullName)
+		println("outputting assigned to analysis")
+		typeDecl.logSuccessor
+		println("outputting assigned to analysis")
 		typeDecl.logFlowsTo
 	}
 }

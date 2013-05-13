@@ -280,22 +280,21 @@ aspect InfluenceAnalysis
 		super.logFlowsTo();
 	}
 
-
 	// Methods for testing
-	public void ASTNode.logAssignedTo() {
+	public void ASTNode.logSuccessor() {
     for(int i = 0; i < getNumChild(); i++) {
-    	getChild(i).logAssignedTo();
+    	getChild(i).logSuccessor();
     }
 	}
 
-	public void InfluenceNode.logAssignedTo() {
+	public void InfluenceNode.logSuccessor() {
 		String name = fullName();
 		if(!isUseful()) {
 			System.out.println("skipping assignedTo logging for " + name);
 		}
 		else {
 			System.out.println("logging assignedTo for " + name);
-			for(InfluenceNode inode : assignedTo()) {
+			for(InfluenceNode inode : succ()) {
 				System.out.printf("%s assignedTo %s", name, inode.fullName());
 				// Add source file info if it exists
 				if(inode.isFromSource()) {
@@ -309,6 +308,6 @@ aspect InfluenceAnalysis
 			}
 			System.out.println();
 		}
-		super.logAssignedTo();
+		super.logSuccessor();
 	}
 }
