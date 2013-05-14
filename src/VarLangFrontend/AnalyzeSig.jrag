@@ -44,7 +44,18 @@ aspect AnalyzeSig
 			else {
 				specifiedUVar = ASTNode.INVARIANT;
 			}
-			return inferredDVar.join(specifiedUVar); // inferred use-site annotation
+			// inferred use-site annotation
+			Value newUseSite = inferredDVar.join(specifiedUVar);
+			if(!newUseSite.equals(specifiedUVar)) {
+				String accessFullName = access.type().fullName();
+				ASTNode.LOG.log(ASTNode.DEBUG, String.format("specifiedUVar(%s, %d): %s",
+					accessFullName, index, specifiedUVar));
+				ASTNode.LOG.log(ASTNode.DEBUG, String.format("inferredDVar(%s, %d): %s",
+					accessFullName, index, inferredDVar));
+				ASTNode.LOG.log(ASTNode.DEBUG, String.format("newUseSite(%s, %d): %s",
+					accessFullName, index, newUseSite));
+			}
+			return newUseSite;
 		}
 	}
 
@@ -316,7 +327,7 @@ aspect AnalyzeSig
 				innerAccess = oldArg;
 			Value newUseSite = strategy.inferredUseSite(this, i);
 			String newArg;
-			if(innerAccess == null) // oldUseSite == BIVARIANCE
+			if(innerAccess == null) // specifiedUVar == BIVARIANCE
 				newArg = "?";
 			else if(newUseSite.equals(BIVARIANT))
 				newArg = "?";

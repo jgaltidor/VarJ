@@ -99,7 +99,7 @@ aspect VExprJ
 		(this == tv) ? COVARIANT : BIVARIANT;
 
 	eq ArrayDecl.varExpr(TypeVariable tv) =
-		componentType().varExpr(tv);
+		new Transform(INVARIANT, componentType().varExpr(tv));
 
 	eq WildcardExtendsType.varExpr(TypeVariable tv) =
 		getAccess().type().varExpr(tv);

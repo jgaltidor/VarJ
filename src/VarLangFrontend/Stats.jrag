@@ -38,7 +38,7 @@ aspect Stats
 		for (int i = 0; i < getNumArgument(); i++) {
 			TypeDecl typeArg = getArgument(i).type();
 			Value formalVariance = gtd.computeVar(i);
-			if(formalVariance != INVARIANT) {
+			if(!formalVariance.equals(INVARIANT)) {
 				Value actualVariance;
 				if(typeArg.isWildcardExtendsType())
 					actualVariance = COVARIANT;
@@ -49,7 +49,7 @@ aspect Stats
 				else
 					actualVariance = INVARIANT;
 				
-				if(actualVariance != INVARIANT && formalVariance.gteq(actualVariance))
+				if(!actualVariance.equals(INVARIANT) && formalVariance.gteq(actualVariance))
 					total++;
 			}
 			total += typeArg.uselessWildCards();

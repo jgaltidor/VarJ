@@ -1,5 +1,4 @@
 import java.util.Set;
-import java.util.Collection;
 import java.util.Collections;
 
 aspect InfluenceAnalysis
@@ -48,6 +47,8 @@ aspect InfluenceAnalysis
 		enclosingBodyDecl().isMethodDecl() ?
 			(MethodDecl) enclosingBodyDecl() : null;
 
+	eq EnhancedForStmt.getExpr().destinationNode() = getVariableDeclaration();
+
 
 	syn lazy Variable Expr.destDecl() = varDecl();
 
@@ -77,7 +78,7 @@ aspect InfluenceAnalysis
 		for each ASTUtils.subtract(getUsefulNodes(hierarchyParams()),
 		                           Collections.singleton(sourceVariableDecl()));
 
-	MethodAccess contributes getUsefulNodes(accessedINodesInArgs())
+	MethodAccess contributes filterMayPromoteWildcard(formalParameterList())
 		when hasQualifierDecl() && qualifierDecl().isUseful()
 		to InfluenceNode.assignedTo()
 		for qualifierDecl().sourceDecl();
@@ -101,7 +102,7 @@ aspect InfluenceAnalysis
 	syn boolean Expr.hasQualifierDecl() = qualifierDecl() != null;
 
 	public static Set<InfluenceNode>
-		ASTNode.getUsefulNodes(Collection<? extends InfluenceNode> nodes)
+		ASTNode.getUsefulNodes(Iterable<? extends InfluenceNode> nodes)
 	{
 		Set<InfluenceNode> usefulNodes = ASTUtils.createSet();
 		for(InfluenceNode node : nodes) {
@@ -112,14 +113,54 @@ aspect InfluenceAnalysis
 		}
 		return usefulNodes;
 	}
-	
-	syn lazy boolean InfluenceNode.isUseful() =
-		sourceDecl().type().involvesGeneric();
+
+	/** Takes advantage of the fact that a rewritten node would never
+	  * flow to a node of an instantiation of a purely invariant type
+	  */
+	syn lazy boolean InfluenceNode.isUseful() {
+		TypeDecl type = sourceDecl().type();
+		if(type.involvesGeneric()) {
+			return type.isParameterizedType() ?
+				type.mayPromoteWildcard() : true;
+		}
+		else return false;
+	}
+
+	// involvesGeneric
 
 	syn lazy boolean TypeDecl.involvesGeneric() = false;
 	eq ParTypeDecl.involvesGeneric() = true;
 	eq TypeVariable.involvesGeneric() = true;
 	eq ArrayDecl.involvesGeneric() = componentType().involvesGeneric();
+	
+	// mayPromoteWildcard
+
+	syn lazy boolean TypeDecl.mayPromoteWildcard() = false;
+	
+	eq ParTypeDecl.mayPromoteWildcard() {
+		GenericTypeDecl gtd = (GenericTypeDecl) sourceTypeDecl();
+		for (int i = 0; i < getNumArgument(); i++) {
+			if(!gtd.computeVar(i).equals(INVARIANT))
+				return true;
+		}
+		return false;
+	}
+	
+	eq ArrayDecl.mayPromoteWildcard() = componentType().mayPromoteWildcard();
+
+	
+	public Set<InfluenceNode> ASTNode.filterMayPromoteWildcard(
+		Iterable<? extends InfluenceNode> nodes)
+	{
+		Set<InfluenceNode> filteredNodes = ASTUtils.createSet();
+		for(InfluenceNode node : nodes) {
+			InfluenceNode sourceNode = node.sourceDecl();
+			if(sourceNode.type().mayPromoteWildcard()) {
+				filteredNodes.add(sourceNode);
+			}
+		}
+		return filteredNodes;
+	}
 
 
 	// sourceDecl
@@ -127,6 +168,8 @@ aspect InfluenceAnalysis
 	eq Variable.sourceDecl() = sourceVariableDecl();
 	eq MethodDecl.sourceDecl() = sourceMethodDecl();
 
+	syn List<ParameterDeclaration> MethodAccess.formalParameterList() =
+		decl().getParameterList();
 
 	syn lazy ParameterDeclaration MethodAccess.getParameter(int index) {
 		MethodDecl meth = decl();

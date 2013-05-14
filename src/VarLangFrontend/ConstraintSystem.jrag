@@ -3,10 +3,10 @@ import java.util.Set;
 
 aspect ConstraintSystem
 {
-	syn lazy Value GenericTypeDecl.computeVar(int index)
+	syn Value GenericTypeDecl.computeVar(int index)
 		= computeVar(getTypeParameter(index));
 
-	syn lazy Value GenericTypeDecl.computeVar(TypeVariable tv)
+	syn Value GenericTypeDecl.computeVar(TypeVariable tv)
 		= getDVar(tv).eval();
 
 	syn lazy Value VVar.eval() circular [BIVARIANT]  {

@@ -1,5 +1,4 @@
 import java.util.Set;
-import java.util.Collection;
 
 /** This aspect contains utility methods used by multiple clients (aspects)
   * other than itself.
@@ -113,7 +112,7 @@ aspect Utils
 			return set;
 		}
 		
-		public static String toString(Collection<?> collec) {
+		public static String toString(Iterable<?> collec) {
 			StringBuilder sb = new StringBuilder("[");
 			Iterator<?> itr = collec.iterator();
 			// append string of first element in collec

@@ -68,14 +68,18 @@ public class BaseParams
 		LogUtil.initLogger(ASTNode.LOG, handler);
 		ASTNode.LOG.setLevel(loglevel);
 		
-		// Set analysis strategy
 		StrategyWithVisibility.Visibility visibility = analyzeAllPrivate ?
 			StrategyWithVisibility.Visibility.ALL_PRIVATE :
 			StrategyWithVisibility.Visibility.MINIMAL;
 		
+		// Set analysis strategy
 		ASTNode.analysisStrategy = analyzeBodies ?
 			new AST.MethodBodyAnalysis(visibility) :
 			new AST.OnlySigAnalysis(visibility);
+		
+		ASTNode.LOG.log(ASTNode.INFO, "verbosity: " + verbosity);
+		ASTNode.LOG.log(ASTNode.INFO, "analyzeAllPrivate: " + analyzeAllPrivate);
+		ASTNode.LOG.log(ASTNode.INFO, "analyzeBodies: " + analyzeBodies);
 	}
 	
 	/** Create new command line arguments array to pass to
