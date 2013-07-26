@@ -210,15 +210,40 @@ aspect AnalyzeMethodBody
 	eq MethodAccess.typeOccurrences(Variable v) {
 		java.util.List<TypeOccurrence> occurrences = ASTUtils.createList();
 		if(qualifiedBy(v)) {
-			MethodDecl meth = decl();
-			// argument types of method are in contravariant position
-			for(int i = 0; i < meth.getNumParameter(); i++) {
-				occurrences.add(
-					new TypeOccurrence(meth.getParameter(i).type(), CONTRAVARIANT));
-			}
+			occurrences.addAll(decl().typeOccurrencesInParams());
     }
     // return type will be included in result of super call
 		occurrences.addAll(super.typeOccurrences(v));
+		return occurrences;
+	}
+	
+	
+	syn java.util.List<TypeOccurrence> MethodDecl.typeOccurrencesInParams() {
+		java.util.List<TypeOccurrence> occurrences = ASTUtils.createList();
+		// argument types of method are in contravariant position
+		for(int i = 0; i < getNumParameter(); i++) {
+			occurrences.add(
+				new TypeOccurrence(getParameter(i).type(), CONTRAVARIANT));
+		}
+		return occurrences;
+	}
+
+	eq GenericMethodDecl.typeOccurrencesInParams() {
+		java.util.List<TypeOccurrence> occurrences = ASTUtils.createList();
+		// add occurrences that occur in any method
+		occurrences.addAll(super.typeOccurrencesInParams());
+		// Collect bounds from upper bounds of type parameters.
+		// Java does not allow lower bounds on type parameters.
+		// Upper bounds of method type parameters are in
+		// contravariant positions.
+		for(int i = 0; i < getNumTypeParameter(); i++) {
+			TypeVariable param = getTypeParameter(i);
+			for (int j = 0; j < param.getNumTypeBound(); j++) {
+				TypeDecl typ = param.getTypeBound(j).type();
+				occurrences.add(
+					new TypeOccurrence(param.getTypeBound(j).type(), CONTRAVARIANT));
+			}
+		}
 		return occurrences;
 	}
 

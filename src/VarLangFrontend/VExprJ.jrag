@@ -6,6 +6,16 @@ aspect VExprJ
 	syn lazy DVar GenericTypeDecl.getDVar(int index) =
 		getDVar(getTypeParameter(index));
 
+
+	syn lazy java.util.List<DVar> GenericTypeDecl.getDVars() {
+		java.util.List<DVar> dvars = ASTUtils.createList();
+		List<TypeVariable> params = getTypeParameterList();
+		for(TypeVariable tv : params) {
+			dvars.add(getDVar(tv));
+		}
+		return dvars;
+	}
+
 	syn nta UVar ParameterDeclaration.getUVar(TypeVariable tv) = new UVar(this, tv);
 
 	eq DVar.toString() = String.format("DVar(%s, %s)",
@@ -106,4 +116,11 @@ aspect VExprJ
 
 	eq WildcardSuperType.varExpr(TypeVariable tv) =
 		getAccess().type().varExpr(tv);
+
+
+	syn boolean VVar.isDVar() = false;
+	eq DVar.isDVar() = true;
+	
+	syn boolean VVar.isUVar() = false;
+	eq UVar.isUVar() = true;
 }

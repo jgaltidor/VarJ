@@ -41,4 +41,46 @@ aspect ConstraintSystem
 		}
 		return vars;
 	}
+	
+	syn Set<VVar> VVar.varsInBounds() {
+		Set<VVar> vars = ASTUtils.createSet();
+		for(VExpr bound : bounds()) {
+			vars.addAll(bound.getVars());
+		}
+		return vars;
+	}
+	
+	syn Set<DVar> VVar.dvarsInBounds() {
+		Set<DVar> dvars = ASTUtils.createSet();
+		for(VVar var : varsInBounds()) {
+			if(var.isDVar()) {
+				dvars.add((DVar) var);
+			}
+		}
+		return dvars;		
+	}
+
+	syn Set<UVar> VVar.uvarsInBounds() {
+		Set<UVar> uvars = ASTUtils.createSet();
+		for(VVar var : varsInBounds()) {
+			if(var.isUVar()) {
+				uvars.add((UVar) var);
+			}
+		}
+		return uvars;		
+	}
+
+	
+	public void VVar.printValueAndBounds() {
+		System.out.println(toString() + ": " + eval());
+		java.util.List<VExpr> upperBounds = bounds();
+		if(!upperBounds.isEmpty()) {
+			int ctr = 1;
+			System.out.println("-------------------------------");
+			for(VExpr bound : upperBounds) {
+				System.out.printf("  bound %d: %s", ctr++, bound);
+				System.out.println();
+			}
+		}
+	}
 }

@@ -13,17 +13,17 @@ object Tester
 		IterSeq.getSrcGenerics(vf.getProgram).foreach(processGeneric)
 	}
 
+
 	def processGeneric(gtd:GenericTypeDecl):Unit = {
-		for(index <- 0 until gtd.getNumTypeParameter) {
-			val param = gtd getTypeParameter index
-			val dvar = gtd getDVar param
-			// val bounds = ASTNode.strategy.varBounds(gtd, param).toList
-			val bounds = dvar.bounds.toList
-			println(dvar + ": " + dvar.eval)
-			println("-"*32)
-			println("bounds:")
-			for((bound, j) <- bounds.zipWithIndex) {
-				printf("  bound %d: %s%n", j+1, bound)
+		for(dvar <- gtd.getDVars) {
+			dvar.printValueAndBounds
+			val uvars = dvar.uvarsInBounds
+			if(!uvars.isEmpty) {
+				println("bounds on uvars generated for " + dvar)
+				uvars foreach { u =>
+					u.printValueAndBounds
+					println
+				}
 			}
 			println("dvar.dvarBoundClosure: " + dvar.varBoundClosure)
 			println("dvar.isRecursivelyBounded: " + dvar.isRecursivelyBounded)

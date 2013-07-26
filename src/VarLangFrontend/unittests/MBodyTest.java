@@ -4,7 +4,8 @@ import java.util.*;
 class BodyTestCovar<E>
 {	
 	public void printFirst(List<E> list) {
-		System.out.println("list.get(0): " + list.get(0));
+		E firstElem = list.get(0);
+		System.out.println("list.get(0): " + firstElem);
 	}
 }
 
@@ -30,6 +31,25 @@ class BodyTestInvar<E>
 	public boolean readAndWrite(List<E> list) {
 		E firstElem = list.get(0);
 		return list.add(firstElem);
+	}
+}
+
+class Box<E>
+{
+	E elem;
+	
+	Box(E elem) { this.elem = elem; }
+	
+	void setElem(E newElem) { elem = newElem; }
+}
+
+
+class NestedTest<E>
+{
+	public void printFirst(List<Box<E>> boxes) {
+		Box<E> firstBox = boxes.get(0);
+		E firstElem = firstBox.elem;
+		System.out.println("first elem in box: " + firstElem);
 	}
 }
 
