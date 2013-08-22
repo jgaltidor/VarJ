@@ -1,7 +1,4 @@
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Set;
-import java.util.HashSet;
 
 aspect AnalyzeMethodBody
 {
@@ -18,8 +15,12 @@ aspect AnalyzeMethodBody
 			java.util.List<VExpr> vexprs = ASTUtils.createList();
 			TypeVariable tv = uvar.getTypeVariable();
 			for(TypeOccurrence occurrence : uvar.getParam().typeOccurrencesInMethod()) {
-				if(occurrence.typ.structurallyContains(tv))
-					vexprs.add(occurrence.varExpr(tv));
+				Value position = occurrence.position;
+				TypeDecl typ = occurrence.typ;
+				// Need to instantiate type
+				if(typ.structurallyContains(tv)) {
+					vexprs.add(new Transform(position, typ.varExpr(tv)));
+				}
 			}
 			ASTNode.LOG.log(ASTNode.INFO, String.format(
 				"bounds(%s): %s", uvar, ASTUtils.toString(vexprs)));
@@ -56,7 +57,7 @@ aspect AnalyzeMethodBody
 		if(isAbstract() || isOverriden()) {
 			varBounds(tv, (OnlySigAnalysis) strategy);
 		}
-		java.util.List<VExpr> bounds = new ArrayList<VExpr>();
+		java.util.List<VExpr> bounds = ASTUtils.createList();
 		String fullname = fullName();
 		// Collect bounds from argument types, which will now contain unknowns
 		// denoting of the most general use-site variance annotations allowed
@@ -274,5 +275,5 @@ aspect AnalyzeMethodBody
 	eq ParameterDeclaration.getTypeAccess().getParamDecl() = this;
 	eq ParTypeAccess.getTypeArgument().getParamDecl() = getParamDecl();
 	
-	syn lazy boolean Access.hasParamDecl() = getParamDecl() != null;
+	syn lazy boolean Access.hasParamDecl() = getParamDecl() != null;	
 }
