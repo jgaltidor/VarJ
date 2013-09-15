@@ -1,0 +1,69 @@
+aspect PrintUseful
+{
+	/** Prints out LOOKED UP method definitions for method invocations
+	 * found in this tree. The method definition will be determined by
+	 * the static type of the qualifier.
+	 * The motivation for this method is to see if the type actuals
+	 * are being substituted into the looked up method bodies.
+	 * Given this motivation, we only print method definitions that
+	 * are useful (e.g. method in a generic).
+	 */
+	public void ASTNode.printAccessedMeths() {
+    for(int i = 0; i < getNumChild(); i++) {
+    	getChild(i).printAccessedMeths();
+    }
+  }
+	
+	public void MethodAccess.printAccessedMeths() {
+		if(hasQualifierDecl() && qualifierDecl().type().involvesGeneric()) {
+			MethodDecl meth = decl();
+			if(meth.isFromSource()) {
+				System.out.printf(
+					"Printing method def of %s for invocation %s on line %d:%n",
+					meth.fullName(), this, getLine(getStart()));
+				System.out.println(meth);
+				System.out.println("<endMethod/>");
+				System.out.println();
+			}
+		}
+		super.printAccessedMeths();
+	}
+
+
+	/*
+	public class TypeDeclSubstitution extends HashMap<TypeVariable, TypeDecl> {
+		addSubstitutionEntry(TypeVariable tyvar, TypeDecl typ) {
+			put(typVar, typ);
+		}
+	}
+	*/
+	
+	syn nta ASTNode.substituteTypeDecl(TypeVariable tyvar, TypeDecl typ) {
+		
+	}
+
+
+	public void ASTNode.printAccessedInstantiatedMeths() {
+    for(int i = 0; i < getNumChild(); i++) {
+    	getChild(i).printAccessedInstantiatedMeths();
+    }
+  }
+	
+	public void MethodAccess.printAccessedInstantiatedMeths() {
+		if(hasQualifierDecl() && qualifierDecl().type().isParameterizedType()) {
+			MethodDecl sourceMeth = decl().sourceMethodDecl();
+			ParTypeDecl paramType = (ParTypeDecl) qualifierDecl().type();
+			MethodDecl meth = sourceMeth.substitute(paramType);
+			if(meth.isFromSource()) {
+				System.out.printf(
+					"Printing method def of %s for invocation %s on line %d:%n",
+					meth.fullName(), this, getLine(getStart()));
+				System.out.println(meth);
+				System.out.println("<endMethod/>");
+				System.out.println();
+			}
+		}
+		super.printAccessedInstantiatedMeths();
+	}
+
+}
