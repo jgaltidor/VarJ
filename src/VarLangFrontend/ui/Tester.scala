@@ -20,7 +20,7 @@ object Tester
 			val uvars = dvar.uvarsInBounds
 			if(!uvars.isEmpty) {
 				println("bounds on uvars generated for " + dvar)
-				uvars foreach { u =>
+				for(u <- uvars) {
 					u.printValueAndBounds
 					println
 				}

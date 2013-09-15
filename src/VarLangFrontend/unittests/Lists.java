@@ -57,23 +57,23 @@ class WList<E>
 }
 
 
-class IList<E>
+class IList<X>
 {
-	List<E> elems;
+	List<X> elems;
 	
-	IList(List<E> elems) { this.elems = elems; }
+	IList(List<X> elems) { this.elems = elems; }
 	
-	E get(int index) { return elems.get(index); }
+	X get(int index) { return elems.get(index); }
 	
-	void add(E elem) { elems.add(elem); }
+	void add(X elem) { elems.add(elem); }
 	
 	int size() { return elems.size(); }
 	
 	void addFirst() { add(elems.get(0)); }
 	
-	IList<E> another = null;
+	IList<X> another = null;
 	
-	void flowsTest(IList<E> ilist1, IList<E> ilist2, IList<E> ilist3) {
+	void flowsTest(IList<X> ilist1, IList<X> ilist2, IList<X> ilist3) {
 		ilist1.elems = this.elems;
 		ilist1 = ilist2;
 		ilist2.elems = ilist1.elems;
@@ -87,13 +87,13 @@ class IList<E>
 	
 	public static <T> List<T> idList(List<T> list) { return list; }
 	
-	public Iterator<E> getIterator(IList<E> other) {
+	public Iterator<X> getIterator(IList<X> other) {
 		int n = Math.max(IList.idList(other.getElems()).size(), 2) + 1;
 		System.out.println("n: " + n);
 		return IList.idItr(IList.idItr(getElems().iterator()));
 	}
 	
-	public List<E> getElems() { return elems; }
+	public List<X> getElems() { return elems; }
 }
 
 
@@ -112,6 +112,12 @@ class SpecialIList<E> extends IList<E>
 		System.out.println("index: " + index);
 		return super.get(index);
 	}
+	
+	@Override
+	public Iterator<E> getIterator(IList<E> other) {
+		E first = elems.get(0);
+		return super.getIterator(other);
+	}
 }
 
 
@@ -119,6 +125,10 @@ public class Lists
 {
 	public void whatever(WList<String> ws) {
 		System.out.println("just a test");
+	}
+	
+	public Iterator<String> foo(SpecialIList<String> silist, IList<String> other) {
+		return silist.getIterator(other);
 	}
 
 	public static void main(String[] args) {
