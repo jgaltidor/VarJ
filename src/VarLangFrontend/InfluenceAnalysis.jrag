@@ -66,17 +66,17 @@ aspect InfluenceAnalysis
 		to InfluenceNode.assignedTo()
 		for each getUsefulNodes(accessedINodes());
 
-	MethodDecl contributes Collections.singleton(sourceMethodDecl())
+	MethodDecl contributes Collections.singleton(sourceDecl())
 		when isUseful()
 		to InfluenceNode.assignedTo()
 		for each ASTUtils.subtract(getUsefulNodes(hierarchyMethods()), 
-		                           Collections.singleton(sourceMethodDecl()));
+		                           Collections.singleton(sourceDecl()));
 
-	ParameterDeclaration contributes Collections.singleton(sourceVariableDecl())
+	ParameterDeclaration contributes Collections.singleton(sourceDecl())
 		when isUseful()
 		to InfluenceNode.assignedTo()
 		for each ASTUtils.subtract(getUsefulNodes(hierarchyParams()),
-		                           Collections.singleton(sourceVariableDecl()));
+		                           Collections.singleton(sourceDecl()));
 
 	MethodAccess contributes filterMayPromoteWildcard(formalParameterList())
 		when hasQualifierDecl() && qualifierDecl().isUseful()

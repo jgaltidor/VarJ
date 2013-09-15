@@ -1,0 +1,8 @@
+aspect Subst
+{
+	public void ASTNode.substituteTypeDecl(TypeVariable tyvar, TypeDecl typ) {
+		return fullCopy();
+	}
+	
+	
+}

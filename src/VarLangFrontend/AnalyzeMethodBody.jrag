@@ -14,16 +14,25 @@ aspect AnalyzeMethodBody
 		public java.util.List<VExpr> varBounds(UVar uvar) {
 			java.util.List<VExpr> vexprs = ASTUtils.createList();
 			TypeVariable tv = uvar.getTypeVariable();
-			for(TypeOccurrence occurrence : uvar.getParam().typeOccurrencesInMethod()) {
+			ParameterDeclaration param = uvar.getParam();
+			for(TypeOccurrence occurrence : param.typeOccurrencesInMethod()) {
 				Value position = occurrence.position;
 				TypeDecl typ = occurrence.typ;
 				// Need to instantiate type
 				if(typ.structurallyContains(tv)) {
-					vexprs.add(new Transform(position, typ.varExpr(tv)));
+					VExpr bound = new Transform(position, typ.varExpr(tv));
+					vexprs.add(bound);
+					ASTNode.LOG.log(ASTNode.INFO, String.format(
+						"bound added for %s: %s", uvar, bound));
 				}
 			}
-			ASTNode.LOG.log(ASTNode.INFO, String.format(
-				"bounds(%s): %s", uvar, ASTUtils.toString(vexprs)));
+			// Add bounds for overridden and overriding methods.
+			for(ParameterDeclaration hparam : hierarchyParams()) {
+				hparam = hparam.sourceDecl();
+				for(TypeOccurrence occurrence : hparam.typeOccurrencesInMethod()) {
+					
+				}
+			}
 			return vexprs;
 		}
 		
@@ -164,6 +173,19 @@ aspect AnalyzeMethodBody
 		public int hashCode() { return toString().hashCode(); }
 	}
 
+
+	syn lazy java.util.List<TypeOccurrence>
+		ParameterDeclaration.typeOccurrencesInMethod(Parameterization parTypeDecl)
+	{
+		java.util.List<TypeOccurrence> instantiatedOccurrences =
+			ASTUtils.createList();
+		for(TypeOccurrence occurrence : typeOccurrencesInMethod()) {
+			TypeDecl instantiatedType = occurrence.typ.substitute(parTypeDecl);
+			instantiatedOccurrences.add(new TypeOccurrence(
+				instantiatedType, occurrence.position));
+		}
+		return instantiatedOccurrences;
+	}
 
 	syn lazy java.util.List<TypeOccurrence>
 		ParameterDeclaration.typeOccurrencesInMethod()
