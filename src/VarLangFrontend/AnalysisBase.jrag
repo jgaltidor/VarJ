@@ -5,6 +5,12 @@ import java.util.HashSet;
 
 aspect AnalysisBase
 {
+	/** Stores the analysis strategy used by the constraint system
+	  * solver for generating bounds on variance variables (e.g.
+	  * DVars and UVars).
+	  * The constraint solver will compute solutions based on
+	  * bounds computed using analysisStrategy.
+	  */
 	public static AnalysisStrategy ASTNode.analysisStrategy = null;
 
 
@@ -43,8 +49,10 @@ aspect AnalysisBase
 		public java.util.List<VExpr> varBounds(TypeContainer container, TypeVariable tv);
 
 		public String wildString(Access typeAccess);
+		
+		public Value inferredUseSite(ParTypeAccess access, int index);
+		public Value inferredUseSite(ParTypeDecl ptyp, int index);
 	}
-
 
 	public abstract class StrategyWithVisibility implements AnalysisStrategy
 	{
@@ -55,13 +63,5 @@ aspect AnalysisBase
 		public StrategyWithVisibility(Visibility visibility) {
 			this.visibility = visibility;
 		}
-		
-		/*
-		public abstract java.util.List<VExpr> varBounds(DVar dvar);
-		public abstract java.util.List<VExpr> varBounds(UVar uvar);
-		public abstract java.util.List<VExpr> varBounds(TypeContainer container, TypeVariable tv);
-		public abstract Value inferredUseSite(ParTypeAccess access, int index);
-		public abstract String wildString(TypeDecl typ);
-		*/
 	}
 }

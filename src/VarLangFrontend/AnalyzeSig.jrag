@@ -28,34 +28,38 @@ aspect AnalyzeSig
 		}
 
 		public Value inferredUseSite(ParTypeAccess access, int index) {
-			GenericTypeDecl gtd = (GenericTypeDecl) access.genericDecl().sourceTypeDecl();
-			Access typeArg = access.getTypeArgument(index);
-			Value inferredDVar = gtd.computeVar(index);
+			return inferredUseSite((ParTypeDecl) access.type(), index);
+		}
+
+		public Value inferredUseSite(ParTypeDecl ptyp, int index) {
+			GenericTypeDecl gtd =
+				(GenericTypeDecl) ((TypeDecl) ptyp).sourceTypeDecl();
+			TypeDecl typeArg = ptyp.getArgument(index).type();
 			Value specifiedUVar;
-			if(typeArg.isWildcardSuper()) {
-				specifiedUVar = ASTNode.CONTRAVARIANT;
-			}
-			else if(typeArg.isWildcardExtends()) {
+			if(typeArg.isWildcardExtendsType())
 				specifiedUVar = ASTNode.COVARIANT;
-			}
-			else if(typeArg.isWildcard()) {
+			else if (typeArg.isWildcardSuperType())
+				specifiedUVar = ASTNode.CONTRAVARIANT;
+			else if(typeArg.isWildcardType())
 				specifiedUVar = ASTNode.BIVARIANT;
-			}
 			else {
 				specifiedUVar = ASTNode.INVARIANT;
 			}
+			Value inferredDVar = gtd.computeVar(index);
 			// inferred use-site annotation
-			Value newUseSite = inferredDVar.join(specifiedUVar);
-			if(!newUseSite.equals(specifiedUVar)) {
-				String accessFullName = access.type().fullName();
+			Value inferredUVar = inferredDVar.join(specifiedUVar);
+			/*
+			if(!inferredUVar.equals(specifiedUVar)) {
+				String typeFullName = access.type().fullName();
 				ASTNode.LOG.log(ASTNode.DEBUG, String.format("specifiedUVar(%s, %d): %s",
-					accessFullName, index, specifiedUVar));
+					typeFullName, index, specifiedUVar));
 				ASTNode.LOG.log(ASTNode.DEBUG, String.format("inferredDVar(%s, %d): %s",
-					accessFullName, index, inferredDVar));
+					typeFullName, index, inferredDVar));
 				ASTNode.LOG.log(ASTNode.DEBUG, String.format("newUseSite(%s, %d): %s",
-					accessFullName, index, newUseSite));
+					typeFullName, index, newUseSite));
 			}
-			return newUseSite;
+			*/
+			return inferredUVar;
 		}
 	}
 
@@ -147,9 +151,8 @@ aspect AnalyzeSig
 		}
 		return bounds;
 	}
-	
-	
-	
+
+
 	eq ParClassDecl.varBounds(TypeVariable tv, OnlySigAnalysis strategy) =
 		sourceTypeDecl().varBounds(tv, strategy);
 
@@ -160,25 +163,22 @@ aspect AnalyzeSig
 
 	eq FieldDeclaration.varBounds(TypeVariable tv, OnlySigAnalysis strategy)
 	{
-		java.util.List<VExpr> bounds = ASTUtils.createList();
-		String fullname = fullName();
-
 		// field type
 		TypeDecl t = type();
-		if(!t.structurallyContains(tv))
-			return bounds;
-
-		// variance of tv in return type t
-		VExpr vart = t.varExpr(tv);
+		if(!t.structurallyContains(tv)) {
+			return Collections.emptyList();
+		}
+		java.util.List<VExpr> bounds = ASTUtils.createList();
+		String fullname = fullName();
 		// Fields can be read, so t is in a covariant position
-		VExpr bound = vart;
+		VExpr bound = t.varExpr(tv); // variance of tv in return type t
 		bounds.add(bound);
 		
 		LOG.log(INFO, String.format("varBounds(%s): %s", fullname, bound));
 
 		// If field is not final, then t is also in a contravariant position
 		if(!isFinal()) {
-			bound = new Transform(CONTRAVARIANT, vart);
+			bound = new Transform(CONTRAVARIANT, bound);
 			LOG.log(INFO, String.format("varBounds(%s): %s", fullname, bound));
 			bounds.add(bound);
 		}
@@ -332,7 +332,7 @@ aspect AnalyzeSig
 			else if(newUseSite.equals(BIVARIANT))
 				newArg = "?";
 			else if(newUseSite.equals(COVARIANT))
-				newArg = "? extends " + strategy.wildString(innerAccess);
+				newArg = "? extends " + innerAccess.toString();
 			else if(newUseSite.equals(CONTRAVARIANT))
 				newArg = "? super " + innerAccess.toString();
 			else {
@@ -369,4 +369,7 @@ aspect AnalyzeSig
 		newAccess.append(strategy.wildString(getAccess()));
 		return newAccess.toString();
 	}
+
+	// Methods for testing
+	// public void 
 }

@@ -1,7 +1,4 @@
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Set;
-import java.util.HashSet;
 
 aspect AnalyzeMethodBody
 {
@@ -10,35 +7,36 @@ aspect AnalyzeMethodBody
 		public MethodBodyAnalysis(Visibility visibility) { super(visibility); }
 
 		// need to override so that static type of "this" is MethodBodyAnalysis
+		@Override
 		public java.util.List<VExpr> varBounds(TypeContainer container, TypeVariable tv) {
 			return container.varBounds(tv, this);
 		}
 
 		public java.util.List<VExpr> varBounds(UVar uvar) {
-			java.util.List<VExpr> vexprs = ASTUtils.createList();
-			TypeVariable tv = uvar.getTypeVariable();
-			for(TypeOccurrence occurrence : uvar.getParam().typeOccurrencesInMethod()) {
-				if(occurrence.typ.structurallyContains(tv))
-					vexprs.add(occurrence.varExpr(tv));
+			ParameterDeclaration param = uvar.getParam();
+			if(!param.isFromSource()) {
+				return Collections.<VExpr>singletonList(uvar.specifiedUseSite());
+			}
+			java.util.List<VExpr> bounds = ASTUtils.createList();
+			for(MemberAccess access : uvar.getMemberAccessesInMethodBody()) {
+				bounds.addAll(access.varBounds(this));
+			}
+			Integer index = uvar.getIndex();
+			for(ParameterDeclaration hierarchyParam : param.hierarchyParams()) {
+				if(hierarchyParam != param) {
+					bounds.add(hierarchyParam.getUVar(index));
+				}
 			}
 			ASTNode.LOG.log(ASTNode.INFO, String.format(
-				"bounds(%s): %s", uvar, ASTUtils.toString(vexprs)));
-			return vexprs;
+				"bounds(%s): %s", uvar, ASTUtils.toString(bounds)));
+			return bounds;
 		}
 		
+		@Override
 		public Value inferredUseSite(ParTypeAccess access, int index) {
-			if(!access.hasParamDecl()) {
-				return super.inferredUseSite(access, index);
-			}
-			ParameterDeclaration param = access.getParamDecl();
-			if(!param.enclosingBodyDecl().isMethodDecl()) {
-				return super.inferredUseSite(access, index);
-			}
-			Access typeArg = access.getTypeArgument(index);
-			TypeDecl typ = typeArg.type();
 			Value sigOnlyInferred = super.inferredUseSite(access, index);
-			return typ.isClassVariable() ?
-				sigOnlyInferred.join(param.getUVar((TypeVariable) typ).eval())
+			return access.isMethodParamType() ?
+				sigOnlyInferred.join(access.getParamDecl().getUVar(index).eval())
 				: sigOnlyInferred;
 		}
 	}
@@ -53,10 +51,7 @@ aspect AnalyzeMethodBody
 		varBounds(tv, (OnlySigAnalysis) strategy);
 
 	eq MethodDecl.varBounds(TypeVariable tv, MethodBodyAnalysis strategy) {
-		if(isAbstract() || isOverriden()) {
-			varBounds(tv, (OnlySigAnalysis) strategy);
-		}
-		java.util.List<VExpr> bounds = new ArrayList<VExpr>();
+		java.util.List<VExpr> bounds = ASTUtils.createList();
 		String fullname = fullName();
 		// Collect bounds from argument types, which will now contain unknowns
 		// denoting of the most general use-site variance annotations allowed
@@ -65,16 +60,13 @@ aspect AnalyzeMethodBody
 			ParameterDeclaration param = getParameter(i);
 			TypeDecl paramType = param.type();
 			if(paramType.structurallyContains(tv)) {
-				VExpr paramTypeVar = param.isFromSource() ?
-					paramType.varExpr(tv, param) :
-					paramType.varExpr(tv);
+				VExpr paramTypeVar = paramType.varExpr(tv, param);
 				VExpr bound = new Transform(CONTRAVARIANT, paramTypeVar);
 				LOG.log(INFO, String.format("varBoundsBodies(%s [arg %d]): %s",
 					fullname, i, bound));
-				bounds.add(bound);
+				bounds.add(bound);				
 			}
 		}
-		
 		bounds.addAll(boundsFromReturnType(tv));
 		return bounds;
 	}
@@ -105,24 +97,20 @@ aspect AnalyzeMethodBody
 					specifiedUseSite = INVARIANT;
 					innerType = typeArg;
 				}
-				VExpr newVar;
-				if(innerType == tv) {
-					UVar uvar = param.getUVar(tv);
-					newVar = new Join(defSiteVar,
-						new Join(specifiedUseSite, uvar));
-				}
-				else {
-					newVar = new Transform(
-						new Join(defSiteVar, specifiedUseSite),
-						typeArg.varExpr(tv, param));
-				}
+				UVar uvar = param.getUVar(i);
+				VExpr inferredUseSite = new Join(defSiteVar,
+					new Join(specifiedUseSite, uvar));
+				// we don't generate uvars in inner types,
+				// so we can compute the variance of the inner type
+				// without taking this parameter declaration as
+				// input
+				VExpr newVar = new Transform(inferredUseSite, typeArg.varExpr(tv));
 				result = (result == null) ?
 					newVar : new Meet(result, newVar);
 			}
 		}
 		return (result == null) ? BIVARIANT : result;
 	}
-
 
 	eq GenericMethodDecl.varBounds(TypeVariable tv, MethodBodyAnalysis strategy) {
 		java.util.List<VExpr> bounds = ASTUtils.createList();
@@ -131,148 +119,249 @@ aspect AnalyzeMethodBody
 		return bounds;
 	}
 
-	public class TypeOccurrence
+	syn lazy java.util.List<MemberAccess> UVar.getMemberAccessesInMethodBody()
 	{
-		public final TypeDecl typ;
-		
-		/** Variance of the position the type, typ, occurs in */
-		public final Value position;
-		
-		public TypeOccurrence(TypeDecl typ, Value position) {
-			this.typ = typ; this.position = position;
-		}
-		
-		public VExpr varExpr(TypeVariable tv) {
-			return new Transform(position, typ.varExpr(tv));
-		}
-
-		public String toString() {
-			return String.format("TypeOccurrence(%s, %s)",
-				typ.fullName(), position);
-		}
-		
-		public boolean equals(Object o) {
-			if(o instanceof TypeOccurrence) {
-				TypeOccurrence other = (TypeOccurrence) o;
-				return other.typ == this.typ &&
-					other.position.equals(this.position);
-			}
-			else return false;
-		}
-
-		public int hashCode() { return toString().hashCode(); }
-	}
-
-
-	syn lazy java.util.List<TypeOccurrence>
-		ParameterDeclaration.typeOccurrencesInMethod()
-	{
-		BodyDecl body = enclosingBodyDecl();
-		if(!body.isMethodDecl())
-			return Collections.emptyList();
-		MethodDecl meth = (MethodDecl) body;
-		if(meth.hasBlock())
-			return meth.getBlock().typeOccurrences(this);
+		ParameterDeclaration param = getParam();
+		assert param.isMethodParam();
+		MethodDecl meth = (MethodDecl) param.enclosingBodyDecl();
+		if(meth.hasBlock()) // if method has a method body
+			return meth.getBlock().getMemberAccesses(this);
 		else
 			return Collections.emptyList();
 	}
 
-
-	syn java.util.List<TypeOccurrence> ASTNode.typeOccurrences(Variable v) {
-		java.util.List<TypeOccurrence> occurrences = ASTUtils.createList();
-    for(int i = 0; i < getNumChild(); i++) {
-    	occurrences.addAll(getChild(i).typeOccurrences(v));
-    }
-    return occurrences;
+	syn java.util.List<MemberAccess> ASTNode.getMemberAccesses(UVar uvar) {
+		java.util.List<MemberAccess> accesses = ASTUtils.createList();
+		for(int i = 0; i < getNumChild(); i++) {
+			accesses.addAll(getChild(i).getMemberAccesses(uvar));
+		}
+		return accesses;
 	}
-	
-	eq Expr.typeOccurrences(Variable v) {
-		java.util.List<TypeOccurrence> occurrences = ASTUtils.createList();
-		if(qualifiedBy(v)) {
-			TypeOccurrence occurrence = new TypeOccurrence(type(), COVARIANT);
-			occurrences.add(occurrence);
+
+	// Remember that paramDecl can only appear either by itself
+	// or as the left-most expression of a dot expression.
+
+	eq MethodAccess.getMemberAccesses(UVar uvar) {
+		java.util.List<MemberAccess> accesses = ASTUtils.createList();
+		// First, get all accesses from subtrees
+		accesses.addAll(super.getMemberAccesses(uvar));
+		// Now gather accesses from this node
+		ParameterDeclaration param = uvar.getParam();
+		if(immediatelyQualifiedBy(param)) {
+			MethodDecl meth = (MethodDecl) decl().sourceDecl();
+			MethodInvkAccess access = new MethodInvkAccess(uvar, meth);
 			LOG.log(INFO, String.format(
-				"type occurrence for '%s' qualified by %s: %s",
-				this, v.fullName(), occurrence));
+				"member access for '%s' qualified by %s: %s",
+				this, param.fullName(), access));
+			accesses.add(access);
 		}
-		occurrences.addAll(super.typeOccurrences(v));
-		return occurrences;
-	}
-	
-	eq VarAccess.typeOccurrences(Variable v) {
-		java.util.List<TypeOccurrence> occurrences = ASTUtils.createList();
-		if(decl() == v && isWriteTarget()) {
-			occurrences.add(new TypeOccurrence(type(), CONTRAVARIANT));
-		}
-		return occurrences;
+		return accesses;
 	}
 
-	eq MethodAccess.typeOccurrences(Variable v) {
-		java.util.List<TypeOccurrence> occurrences = ASTUtils.createList();
-		if(qualifiedBy(v)) {
-			occurrences.addAll(decl().typeOccurrencesInParams());
-    }
-    // return type will be included in result of super call
-		occurrences.addAll(super.typeOccurrences(v));
-		return occurrences;
-	}
-	
-	
-	syn java.util.List<TypeOccurrence> MethodDecl.typeOccurrencesInParams() {
-		java.util.List<TypeOccurrence> occurrences = ASTUtils.createList();
-		// argument types of method are in contravariant position
-		for(int i = 0; i < getNumParameter(); i++) {
-			occurrences.add(
-				new TypeOccurrence(getParameter(i).type(), CONTRAVARIANT));
-		}
-		return occurrences;
-	}
-
-	eq GenericMethodDecl.typeOccurrencesInParams() {
-		java.util.List<TypeOccurrence> occurrences = ASTUtils.createList();
-		// add occurrences that occur in any method
-		occurrences.addAll(super.typeOccurrencesInParams());
-		// Collect bounds from upper bounds of type parameters.
-		// Java does not allow lower bounds on type parameters.
-		// Upper bounds of method type parameters are in
-		// contravariant positions.
-		for(int i = 0; i < getNumTypeParameter(); i++) {
-			TypeVariable param = getTypeParameter(i);
-			for (int j = 0; j < param.getNumTypeBound(); j++) {
-				TypeDecl typ = param.getTypeBound(j).type();
-				occurrences.add(
-					new TypeOccurrence(param.getTypeBound(j).type(), CONTRAVARIANT));
+	syn lazy boolean Access.immediatelyQualifiedBy(Variable v) {
+		if(isQualified()) {
+			Expr qualifierExpr = qualifier();
+			if(qualifierExpr instanceof VarAccess) {
+				return ((VarAccess) qualifierExpr).decl() == v;
 			}
 		}
-		return occurrences;
+		return false;
 	}
 
-	syn lazy boolean Expr.qualifiedBy(Variable v) = false;
+
+	eq VarAccess.getMemberAccesses(UVar uvar) {
+		ParameterDeclaration param = uvar.getParam();
+		Variable v = (Variable) decl().sourceDecl();
+		if(immediatelyQualifiedBy(param)) {
+			if(v.isInstanceVariable()) {
+				FieldDeclaration field = (FieldDeclaration) v;
+				FieldAccess access = new FieldAccess(uvar, field, isDest());
+				return Collections.<MemberAccess>singletonList(access);
+			}
+		}
+		else if(v == param && !isQualifier() && hasDestinationNode()) {
+			AssigningVar access = new AssigningVar(uvar,
+				destinationNode().sourceDecl());
+			return Collections.<MemberAccess>singletonList(access);
+		}
+		return Collections.emptyList();
+	}
+
+	syn boolean Access.isQualifier() = isLeftChildOfDot();
+
+	/** Retrieving inner class accesses */
+	eq ClassInstanceExpr.getMemberAccesses(UVar uvar) {
+		java.util.List<MemberAccess> accesses = ASTUtils.createList();
+		// First, get all accesses from subtrees
+		accesses.addAll(super.getMemberAccesses(uvar));
+		// Now gather accesses from this node
+		ParameterDeclaration param = uvar.getParam();
+		if(immediatelyQualifiedBy(param)) {
+			TypeDecl innerClass = type().sourceTypeDecl();
+			InnerClassAccess access = new InnerClassAccess(uvar, innerClass);
+			LOG.log(INFO, String.format(
+				"member access for '%s' qualified by %s: %s",
+				this, param.fullName(), access));
+			accesses.add(access);
+		}
+		return accesses;
+	}
 	
-	eq Access.qualifiedBy(Variable v) = isQualified() ?
-		qualifier().qualifiedBy(v) : false;
+	eq EnhancedForStmt.getMemberAccesses(UVar uvar) {
+		java.util.List<MemberAccess> accesses = ASTUtils.createList();
+		// First, get all accesses from subtrees
+		accesses.addAll(super.getMemberAccesses(uvar));
+		// Now gather accesses from this node
+		Expr expr = getExpr();
+		if(expr instanceof VarAccess) {
+			VarAccess varaccess = (VarAccess) expr;
+			ParameterDeclaration param = uvar.getParam();
+			if(varaccess.decl() == param) {
+				TypeDecl typ = param.type();
+				// Recall that uvars should only be generated for
+				// parameter declarations of parameterized types
+				assert typ.isParameterizedType();
+				// Enhanced for-statements only allow the iteration expression
+				// to be either an array type or of type iterable.
+				// Since array types are not parameterized types,
+				// the type of the parameter declaration must be iterable
+				assert typ.isIterable();
+				// Enhanced for statements implicitly access the iterator
+				// method.
+				EnhancedForIteratorAccess access = new EnhancedForIteratorAccess(uvar);
+				LOG.log(INFO, String.format(
+					"iterator() access for use of %s in for-each expression '%s': %s",
+					param.fullName(), this, access));
+				accesses.add(access);
+			}
+		}
+		return accesses;
+	}
 
-	eq VarAccess.qualifiedBy(Variable v) = (decl() == v) ?
-		true : super.qualifiedBy(v);
 
-	inh lazy boolean Expr.isWriteTarget();
+	public abstract class MemberAccess
+	{
+		public final UVar uvar;
+		protected TypeVariable sourceTypeParam;
+		public MemberAccess(UVar uvar) {
+			this.uvar = uvar;
+			this.sourceTypeParam = uvar.sourceTypeParam();
+		}
+		
+		public abstract java.util.List<VExpr> varBounds(AnalysisStrategy strategy);
+	}
 
-	// if access is on the written end of an assign, then it is not being read
-	eq AssignExpr.getDest().isWriteTarget() = true;
-	eq VariableDeclaration.getInit().isWriteTarget() = true;
-	eq ReturnStmt.getResult().isWriteTarget() = true;
-	eq FieldDeclaration.getInit().isWriteTarget() = true;
-	// all other cases, it is read.
-	eq ASTNode.getChild().isWriteTarget() = false;
+	public class FieldAccess extends MemberAccess {
+		public final FieldDeclaration field;
+		boolean isTargetOfWrite;
+		public FieldAccess(UVar uvar, FieldDeclaration field, boolean isTargetOfWrite)
+		{
+			super(uvar);
+			this.field = (FieldDeclaration) field.sourceDecl();
+			this.isTargetOfWrite = isTargetOfWrite;
+		}
+		
+		public java.util.List<VExpr> varBounds(AnalysisStrategy strategy)
+		{
+			TypeDecl typ = field.type();
+			if(!typ.structurallyContains(sourceTypeParam)) {
+				return Collections.emptyList();
+			}
+			VExpr bound = typ.varExpr(sourceTypeParam);
+			if(isTargetOfWrite) {
+				bound = new Transform(ASTNode.CONTRAVARIANT, bound);
+			}
+			return Collections.<VExpr>singletonList(bound);
+		}
+	}
 
-	inh lazy boolean TypeDecl.isClassVariable();
-	eq ASTNode.getChild().isClassVariable() = false;
-	eq GenericTypeDecl.getTypeParameter().isClassVariable() = true;
-	
+	public class MethodInvkAccess extends MemberAccess {
+		public final MethodDecl meth;
+		public MethodInvkAccess(UVar uvar, MethodDecl meth) {
+			super(uvar);
+			this.meth = meth;
+		}
+		
+		public java.util.List<VExpr> varBounds(AnalysisStrategy strategy)
+		{
+			return strategy.varBounds(meth, sourceTypeParam);
+		}
+	}
+
+	public class EnhancedForIteratorAccess extends MethodInvkAccess {
+		public EnhancedForIteratorAccess(UVar uvar) {
+			super(uvar, getIteratorMethod(uvar.getParam().type()));
+		}
+		
+		private static MethodDecl getIteratorMethod(TypeDecl typ) {
+			MethodDecl meth =
+				(MethodDecl) typ.memberMethods("iterator").iterator().next();
+			return (MethodDecl) meth.sourceDecl();
+		}
+	}
+
+	/** Writing or assigning a method parameter to another variable
+	  * should also constrain the inferred use-site annotation.
+	  * For example, we don't want the inferred use-site annotation
+	  * to be promoted to a greater variance in the following:
+	  *   void foo(List<T> l) { List<T> l2 = l; }
+	  */
+	public class AssigningVar extends MemberAccess {
+		public final InfluenceNode dest;
+		
+		public AssigningVar(UVar uvar, InfluenceNode dest) {
+			super(uvar);
+			this.dest = dest;
+		}
+		
+		public java.util.List<VExpr> varBounds(AnalysisStrategy strategy)
+		{
+			TypeDecl destType = dest.type();
+			if(destType.isParameterizedType()) {
+				// maybe generate ubound using the specified uvar from the partypeaccess
+				// in addition to dvar.
+				VExpr bound = strategy.inferredUseSite(
+					(ParTypeDecl) destType, uvar.getIndex());
+				return Collections.singletonList(bound);
+			}
+			else return Collections.emptyList();
+		}
+	}
+
+	public class InnerClassAccess extends MemberAccess {
+		public final TypeDecl innerClass;
+		public InnerClassAccess(UVar uvar, TypeDecl innerClass) {
+			super(uvar);
+			this.innerClass = innerClass;
+			assert innerClass.isMemberType(); 
+		}
+		
+		public java.util.List<VExpr> varBounds(AnalysisStrategy strategy) {
+			return strategy.varBounds(innerClass, sourceTypeParam);
+		}
+	}
+
 	inh lazy ParameterDeclaration Access.getParamDecl();
-	eq Program.getChild().getParamDecl() = null;
+	eq ASTNode.getChild().getParamDecl() = null;
 	eq ParameterDeclaration.getTypeAccess().getParamDecl() = this;
-	eq ParTypeAccess.getTypeArgument().getParamDecl() = getParamDecl();
+	// eq ParTypeAccess.getTypeArgument().getParamDecl() = getParamDecl();
 	
-	syn lazy boolean Access.hasParamDecl() = getParamDecl() != null;
+	syn lazy boolean Access.isMethodParamType() {
+		ParameterDeclaration param = getParamDecl();
+		return (param != null) ? param.isMethodParam() : false;
+	}
+
+	syn lazy boolean Access.hasParamDecl() = (getParamDecl() != null);
+	
+	syn lazy boolean ParameterDeclaration.isMethodParam() =
+		enclosingBodyDecl().isMethodDecl();
+
+	syn lazy TypeVariable UVar.sourceTypeParam() {
+		TypeDecl paramType = getParam().type();
+		if(!paramType.isParameterizedType()) {
+			return null;
+		}
+		GenericTypeDecl gtd = (GenericTypeDecl) paramType.sourceTypeDecl();
+		return gtd.getTypeParameter(getIndex());
+	}
 }
