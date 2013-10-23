@@ -12,6 +12,7 @@ aspect AnalyzeMethodBody
 			return container.varBounds(tv, this);
 		}
 
+		@Override
 		public java.util.List<VExpr> varBounds(UVar uvar) {
 			ParameterDeclaration param = uvar.getParam();
 			if(!param.isFromSource()) {
@@ -22,17 +23,7 @@ aspect AnalyzeMethodBody
 				bounds.addAll(access.varBounds(this));
 			}
 			Integer index = uvar.getIndex();
-			java.util.List<ParameterDeclaration> hierarchyParams =
-				param.hierarchyParams();
-			// hierarchyParams = param.hierarchyParams();
-			java.util.List<String> fullNames = ASTUtils.createList();
-			for(ParameterDeclaration hierarchyParam : hierarchyParams) {
-				fullNames.add(hierarchyParam.fullName());
-			}
-			ASTNode.LOG.log(ASTNode.DEBUG, String.format(
-				"hierarchyParams(%s): %s",
-				param.fullName(), ASTUtils.toString(fullNames)));
-			for(ParameterDeclaration hierarchyParam : hierarchyParams) {
+			for(ParameterDeclaration hierarchyParam : param.hierarchyParams()) {
 				if(hierarchyParam != param) {
 					bounds.add(hierarchyParam.getUVar(index));
 				}
@@ -114,7 +105,7 @@ aspect AnalyzeMethodBody
 				// so we can compute the variance of the inner type
 				// without taking this parameter declaration as
 				// input
-				VExpr newVar = new Transform(inferredUseSite, typeArg.varExpr(tv));
+				VExpr newVar = new Transform(inferredUseSite, innerType.varExpr(tv));
 				result = (result == null) ?
 					newVar : new Meet(result, newVar);
 			}
