@@ -50,8 +50,8 @@ aspect AnalysisBase
 
 		public String wildString(Access typeAccess);
 		
-		public Value inferredUseSite(ParTypeAccess access, int index);
-		public Value inferredUseSite(ParTypeDecl ptyp, int index);
+		public VExpr inferredUseSite(ParTypeAccess access, int index);
+		public VExpr inferredUseSite(ParTypeDecl ptyp, int index);
 	}
 
 	public abstract class StrategyWithVisibility implements AnalysisStrategy

@@ -12,6 +12,7 @@ aspect InfluenceAnalysis
 		public Set<InfluenceNode> assignedTo();
 		public TypeDecl type();
 		syn lazy InfluenceNode sourceDecl();
+		public Access getTypeAccess();
 	}
 
 	MethodDecl implements InfluenceNode; // Represents really the return type of a method
@@ -136,7 +137,9 @@ aspect InfluenceAnalysis
 	// mayPromoteWildcard
 
 	syn lazy boolean TypeDecl.mayPromoteWildcard() = false;
+	eq ParTypeDecl.mayPromoteWildcard() = true;
 	
+	/*
 	eq ParTypeDecl.mayPromoteWildcard() {
 		GenericTypeDecl gtd = (GenericTypeDecl) sourceTypeDecl();
 		for (int i = 0; i < getNumArgument(); i++) {
@@ -145,6 +148,7 @@ aspect InfluenceAnalysis
 		}
 		return false;
 	}
+	*/
 	
 	eq ArrayDecl.mayPromoteWildcard() = componentType().mayPromoteWildcard();
 

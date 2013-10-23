@@ -22,7 +22,17 @@ aspect AnalyzeMethodBody
 				bounds.addAll(access.varBounds(this));
 			}
 			Integer index = uvar.getIndex();
-			for(ParameterDeclaration hierarchyParam : param.hierarchyParams()) {
+			java.util.List<ParameterDeclaration> hierarchyParams =
+				param.hierarchyParams();
+			// hierarchyParams = param.hierarchyParams();
+			java.util.List<String> fullNames = ASTUtils.createList();
+			for(ParameterDeclaration hierarchyParam : hierarchyParams) {
+				fullNames.add(hierarchyParam.fullName());
+			}
+			ASTNode.LOG.log(ASTNode.DEBUG, String.format(
+				"hierarchyParams(%s): %s",
+				param.fullName(), ASTUtils.toString(fullNames)));
+			for(ParameterDeclaration hierarchyParam : hierarchyParams) {
 				if(hierarchyParam != param) {
 					bounds.add(hierarchyParam.getUVar(index));
 				}
@@ -33,10 +43,10 @@ aspect AnalyzeMethodBody
 		}
 		
 		@Override
-		public Value inferredUseSite(ParTypeAccess access, int index) {
-			Value sigOnlyInferred = super.inferredUseSite(access, index);
+		public VExpr inferredUseSite(ParTypeAccess access, int index) {
+			VExpr sigOnlyInferred = super.inferredUseSite(access, index);
 			return access.isMethodParamType() ?
-				sigOnlyInferred.join(access.getParamDecl().getUVar(index).eval())
+				new Join(sigOnlyInferred, access.getParamDecl().getUVar(index))
 				: sigOnlyInferred;
 		}
 	}
@@ -313,20 +323,39 @@ aspect AnalyzeMethodBody
 			super(uvar);
 			this.dest = dest;
 		}
-		
-		public java.util.List<VExpr> varBounds(AnalysisStrategy strategy)
-		{
+
+		public java.util.List<VExpr> varBounds(AnalysisStrategy strategy) {
+			// return Collections.<VExpr>singletonList(uvar.getDVar());
 			TypeDecl destType = dest.type();
-			if(destType.isParameterizedType()) {
-				// maybe generate ubound using the specified uvar from the partypeaccess
-				// in addition to dvar.
-				VExpr bound = strategy.inferredUseSite(
-					(ParTypeDecl) destType, uvar.getIndex());
-				return Collections.singletonList(bound);
+			if(destType.isParameterizedType() && !destType.isRawType()) {
+				// Optimization: Generate less restrictive bound if
+				// destination's type and uvar's parameterdecl's type
+				// are of the same generic type.
+				Access access = dest.getTypeAccess();
+				if(access.isParTypeAccess()) {
+					ParTypeAccess paccess = (ParTypeAccess) access;
+					GenericTypeDecl destGTD = (GenericTypeDecl)
+						paccess.genericDecl().sourceTypeDecl();
+					GenericTypeDecl paramGTD = (GenericTypeDecl)
+						uvar.getParam().type().sourceTypeDecl();
+					VExpr bound;
+					if(destGTD == paramGTD) {
+						// bound = strategy.inferredUseSite(paccess, uvar.getIndex());
+						bound = paccess.specifiedUseSite(uvar.getIndex());
+					}
+					else {
+						bound = uvar.getDVar();
+					}
+					return Collections.singletonList(bound);
+				}
+				else return Collections.<VExpr>singletonList(uvar.getDVar());
 			}
 			else return Collections.emptyList();
 		}
 	}
+	
+	syn boolean Access.isParTypeAccess() = false;
+	eq ParTypeAccess.isParTypeAccess() = true;
 
 	public class InnerClassAccess extends MemberAccess {
 		public final TypeDecl innerClass;

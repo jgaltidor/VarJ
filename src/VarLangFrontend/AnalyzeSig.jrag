@@ -27,39 +27,20 @@ aspect AnalyzeSig
 			return typeAccess.wildString(this);
 		}
 
-		public Value inferredUseSite(ParTypeAccess access, int index) {
-			return inferredUseSite((ParTypeDecl) access.type(), index);
+		public VExpr inferredUseSite(ParTypeAccess access, int index) {
+			GenericTypeDecl gtd = (GenericTypeDecl) access.genericDecl().sourceTypeDecl();
+			VExpr inferredDVar = gtd.getDVar(index);
+			Value specifiedUVar = access.specifiedUseSite(index);
+			// inferred use-site annotation
+			return new Join(inferredDVar, specifiedUVar);
 		}
 
 		public Value inferredUseSite(ParTypeDecl ptyp, int index) {
 			GenericTypeDecl gtd =
 				(GenericTypeDecl) ((TypeDecl) ptyp).sourceTypeDecl();
-			TypeDecl typeArg = ptyp.getArgument(index).type();
-			Value specifiedUVar;
-			if(typeArg.isWildcardExtendsType())
-				specifiedUVar = ASTNode.COVARIANT;
-			else if (typeArg.isWildcardSuperType())
-				specifiedUVar = ASTNode.CONTRAVARIANT;
-			else if(typeArg.isWildcardType())
-				specifiedUVar = ASTNode.BIVARIANT;
-			else {
-				specifiedUVar = ASTNode.INVARIANT;
-			}
 			Value inferredDVar = gtd.computeVar(index);
-			// inferred use-site annotation
-			Value inferredUVar = inferredDVar.join(specifiedUVar);
-			/*
-			if(!inferredUVar.equals(specifiedUVar)) {
-				String typeFullName = access.type().fullName();
-				ASTNode.LOG.log(ASTNode.DEBUG, String.format("specifiedUVar(%s, %d): %s",
-					typeFullName, index, specifiedUVar));
-				ASTNode.LOG.log(ASTNode.DEBUG, String.format("inferredDVar(%s, %d): %s",
-					typeFullName, index, inferredDVar));
-				ASTNode.LOG.log(ASTNode.DEBUG, String.format("newUseSite(%s, %d): %s",
-					typeFullName, index, newUseSite));
-			}
-			*/
-			return inferredUVar;
+			Value specifiedUVar = ptyp.specifiedUseSite(index);
+			return inferredDVar.join(specifiedUVar);
 		}
 	}
 
@@ -199,9 +180,8 @@ aspect AnalyzeSig
 	  */
 	syn java.util.List<VExpr> MethodDecl.boundsFromReturnType(TypeVariable tv) {
 		TypeDecl returnType = type();
-		VExpr bound;
 		if(returnType.structurallyContains(tv)) {
-			bound = returnType.varExpr(tv);
+			VExpr bound = returnType.varExpr(tv);
 			LOG.log(INFO, String.format("boundsFromReturnType(%s [return]): %s",
 				fullName(), bound));
 			return Collections.singletonList(bound);
@@ -325,7 +305,7 @@ aspect AnalyzeSig
 				innerAccess = null;
 			else
 				innerAccess = oldArg;
-			Value newUseSite = strategy.inferredUseSite(this, i);
+			Value newUseSite = strategy.inferredUseSite(this, i).eval();
 			String newArg;
 			if(innerAccess == null) // specifiedUVar == BIVARIANCE
 				newArg = "?";

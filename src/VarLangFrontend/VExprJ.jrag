@@ -1,4 +1,3 @@
-
 aspect VExprJ
 {
 	syn nta DVar GenericTypeDecl.getDVar(TypeVariable tv) = new DVar(this, tv);
@@ -134,7 +133,23 @@ aspect VExprJ
 	syn boolean VVar.isUVar() = false;
 	eq UVar.isUVar() = true;
 	
-	
+	syn Value UVar.specifiedUseSite() {
+		ParTypeDecl paramType = (ParTypeDecl) getParam().type();
+		return paramType.specifiedUseSite(getIndex());
+	}
+
+	syn Value ParTypeAccess.specifiedUseSite(int index) {
+		Access typeArg = getTypeArgument(index);
+		if(typeArg.isWildcardExtends())
+			return COVARIANT;
+		else if(typeArg.isWildcardSuper())
+			return CONTRAVARIANT;
+		else if(typeArg.isWildcard())
+			return BIVARIANT;
+		else
+			return INVARIANT;
+	}
+
 	syn Value ParTypeDecl.specifiedUseSite(int index) {
 		TypeDecl typeArg = getArgument(index).type();
 		Value specifiedUVar;
@@ -148,8 +163,10 @@ aspect VExprJ
 			return INVARIANT;
 	}
 	
-	syn Value UVar.specifiedUseSite() {
-		ParTypeDecl paramType = (ParTypeDecl) getParam().type();
-		return paramType.specifiedUseSite(getIndex());
+	syn DVar UVar.getDVar() {
+		TypeDecl typ = getParam().type();
+		assert typ.isParameterizedType();
+		GenericTypeDecl gtd = (GenericTypeDecl) typ.sourceTypeDecl();
+		return gtd.getDVar(getIndex());
 	}
 }
