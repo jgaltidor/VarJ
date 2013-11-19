@@ -136,9 +136,8 @@ aspect InfluenceAnalysis
 	
 	// mayPromoteWildcard
 
-	syn lazy boolean TypeDecl.mayPromoteWildcard() = false;
-	eq ParTypeDecl.mayPromoteWildcard() = true;
-	eq ArrayDecl.mayPromoteWildcard() = componentType().mayPromoteWildcard();
+	syn lazy boolean TypeDecl.mayPromoteWildcard() =
+		ASTNode.analysisStrategy.mayPromoteWildcard(this);
 
 	
 	public Set<InfluenceNode> ASTNode.filterMayPromoteWildcard(

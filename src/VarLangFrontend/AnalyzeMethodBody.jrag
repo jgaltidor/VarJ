@@ -40,6 +40,11 @@ aspect AnalyzeMethodBody
 				new Join(sigOnlyInferred, access.getParamDecl().getUVar(index))
 				: sigOnlyInferred;
 		}
+
+		@Override
+		public boolean mayPromoteWildcard(TypeDecl typ) {
+			return typ.mayPromoteWildcard(this);
+		}
 	}
 
 	syn lazy java.util.List<VExpr> TypeContainer.varBounds(
@@ -331,8 +336,13 @@ aspect AnalyzeMethodBody
 						uvar.getParam().type().sourceTypeDecl();
 					VExpr bound;
 					if(destGTD == paramGTD) {
-						// bound = strategy.inferredUseSite(paccess, uvar.getIndex());
-						bound = paccess.specifiedUseSite(uvar.getIndex());
+						// optimization that is no longer conversative even with
+						// uvar.getParam() is being used in wildcard capture.
+						VExpr destinationUseSite = strategy.inferredUseSite(paccess, uvar.getIndex());
+						Value sourceUseSite = uvar.specifiedUseSite();
+						// we don't need to join with uvar.getDVar() because that should
+						// occur in destinationUseSite because destGTD == paramGTD.
+						bound = new Join(sourceUseSite, destinationUseSite);
 					}
 					else {
 						bound = uvar.getDVar();
@@ -384,4 +394,9 @@ aspect AnalyzeMethodBody
 		GenericTypeDecl gtd = (GenericTypeDecl) paramType.sourceTypeDecl();
 		return gtd.getTypeParameter(getIndex());
 	}
+	
+	syn boolean TypeDecl.mayPromoteWildcard(MethodBodyAnalysis strategy) =
+		mayPromoteWildcard((OnlySigAnalysis) strategy);
+	
+	eq ParTypeDecl.mayPromoteWildcard(MethodBodyAnalysis strategy) = true;
 }

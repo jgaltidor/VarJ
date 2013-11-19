@@ -72,7 +72,7 @@ aspect ConstraintSystem
 
 	
 	public void VVar.printValueAndBounds() {
-		System.out.println(toString() + ": " + eval());
+		System.out.println(toString() + ".eval: " + eval());
 		System.out.println("-------------------------------");
 		java.util.List<VExpr> upperBounds = bounds();
 		if(!upperBounds.isEmpty()) {
@@ -85,5 +85,6 @@ aspect ConstraintSystem
 		else {
 			System.out.println("NO BOUNDS");
 		}
+		System.out.println();
 	}
 }

@@ -2,7 +2,7 @@ source ./scripts/setenv.sh
 set -ex
 # Rewriting java.*
 echo Generating rewritten apache library
-java $JAVA_OPTS ui.RewriteAllSources --bodies -j -classpath -j $LIBCP -m rewriteinfo.txt -d rewrittenSources $JAVASTAR
+# java $JAVA_OPTS ui.RewriteAllSources --bodies -j -classpath -j $LIBCP -m rewriteinfo.txt -d rewrittenSources $JAVASTAR
 
 echo Going to directory containing rewritten apache
 cd rewrittenSources/libs_nov2010_fix/jdk1.6.0_06_src

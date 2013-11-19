@@ -25,12 +25,15 @@ object Tester
 					println
 				}
 			}
-			println("dvar.dvarBoundClosure: " + dvar.varBoundClosure)
-			println("dvar.isRecursivelyBounded: " + dvar.isRecursivelyBounded)
+			printf("dvarBoundClosure(%s): %s%n", dvar, dvar.varBoundClosure)
+			printf("isRecursivelyBounded(%s): %s%n", dvar, dvar.isRecursivelyBounded)
+			println
 		}
+		/*
 		// process nested generic types too
 		gtd.getNestedTypeDecls.filter(_.isGenericType)
 		                      .map(_.asInstanceOf[GenericTypeDecl])
 		                      .foreach(processGeneric)
+		*/
 	}
 }

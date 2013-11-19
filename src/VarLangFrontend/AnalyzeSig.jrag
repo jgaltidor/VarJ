@@ -28,19 +28,28 @@ aspect AnalyzeSig
 		}
 
 		public VExpr inferredUseSite(ParTypeAccess access, int index) {
+			return inferredUseSite((ParTypeDecl) access.type(), index);
+			/*
 			GenericTypeDecl gtd = (GenericTypeDecl) access.genericDecl().sourceTypeDecl();
 			VExpr inferredDVar = gtd.getDVar(index);
 			Value specifiedUVar = access.specifiedUseSite(index);
 			// inferred use-site annotation
 			return new Join(inferredDVar, specifiedUVar);
+			*/
 		}
 
-		public Value inferredUseSite(ParTypeDecl ptyp, int index) {
+		public VExpr inferredUseSite(ParTypeDecl ptyp, int index) {
 			GenericTypeDecl gtd =
 				(GenericTypeDecl) ((TypeDecl) ptyp).sourceTypeDecl();
-			Value inferredDVar = gtd.computeVar(index);
+			VExpr inferredDVar = gtd.getDVar(index);
 			Value specifiedUVar = ptyp.specifiedUseSite(index);
-			return inferredDVar.join(specifiedUVar);
+			// inferred use-site annotation
+			return new Join(inferredDVar, specifiedUVar);
+		}
+		
+		@Override
+		public boolean mayPromoteWildcard(TypeDecl typ) {
+			return typ.mayPromoteWildcard(this);
 		}
 	}
 
@@ -348,6 +357,24 @@ aspect AnalyzeSig
 		newAccess.append("? extends ");
 		newAccess.append(strategy.wildString(getAccess()));
 		return newAccess.toString();
+	}
+
+	syn boolean TypeDecl.mayPromoteWildcard(OnlySigAnalysis strategy) = false;
+	
+	eq ParTypeDecl.mayPromoteWildcard(OnlySigAnalysis strategy) =
+		!((GenericTypeDecl) sourceTypeDecl()).isInvariant();
+	
+	eq ArrayDecl.mayPromoteWildcard(OnlySigAnalysis strategy) =
+		strategy.mayPromoteWildcard(componentType());
+
+
+	syn boolean GenericTypeDecl.isInvariant() {
+		GenericTypeDecl gtd = (GenericTypeDecl) sourceTypeDecl();
+		for (int i = 0; i < getNumTypeParameter(); i++) {
+			if(!computeVar(i).equals(INVARIANT))
+				return false;
+		}
+		return true;
 	}
 
 	// Methods for testing

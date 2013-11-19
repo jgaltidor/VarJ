@@ -152,7 +152,6 @@ aspect VExprJ
 
 	syn Value ParTypeDecl.specifiedUseSite(int index) {
 		TypeDecl typeArg = getArgument(index).type();
-		Value specifiedUVar;
 		if(typeArg.isWildcardExtendsType())
 			return COVARIANT;
 		else if(typeArg.isWildcardSuperType())
