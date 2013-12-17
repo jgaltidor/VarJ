@@ -267,11 +267,6 @@ object VarStats
 	}
 }
 
-class FlowStats
-{	
-
-}
-
 object VarStatsTester
 {
 	// Main method for testing purpose
