@@ -21,8 +21,15 @@ object ComputeStats
 				else libstats.intStats
 			vstats.totalUselessWildcards += typ.uselessWildCardsInSig
 			vstats.totalWildCardActuals  += typ.numWildCardActualsInSig
-			vstats.totalOverSpecified += typ.overSpecifiedActualsInSig
-			vstats.totalArgActuals += typ.numMethArgTypeActualsInSig
+			vstats.totalOverSpecified    += typ.overSpecifiedActualsInSig
+			vstats.totalArgActuals       += typ.numMethArgTypeActualsInSig
+			
+			vstats.totalPDecls           +=  typ.numPDeclsInSubtree
+			vstats.totalRewritablePDecls +=  typ.numRewritablePDeclsInSubtree
+			vstats.totalFlowsTo          +=  typ.numFlowsToInSubtree
+			vstats.totalVDecls           +=  typ.numVDeclsInSubtree
+			vstats.totalRewritableVDecls +=  typ.numRewritableVDeclsInSubtree
+			
 			if(!typ.isGenericType) {
 				vstats.totalMonoTypes += 1
 			}
@@ -80,6 +87,6 @@ object ComputeStats
 		val typeDecls = IterSeq getSrcTypes vf.getProgram
 		val libstats = computeStats(typeDecls)
 		val allstats = new AllStats(List(libstats))
-		print(Table1.texTable(allstats))
+		print((new Table1).texTable(allstats))
 	}
 }

@@ -70,7 +70,6 @@ aspect ConstraintSystem
 		return uvars;		
 	}
 
-	
 	public void VVar.printValueAndBounds() {
 		System.out.println(toString() + ".eval: " + eval());
 		System.out.println("-------------------------------");
@@ -87,4 +86,22 @@ aspect ConstraintSystem
 		}
 		System.out.println();
 	}
+	
+	syn boolean TypeDecl.isVariantType() = false;
+	
+	eq ParTypeDecl.isVariantType() {
+		GenericTypeDecl gtd = (GenericTypeDecl) sourceTypeDecl();
+		return gtd.isVariant();
+	}
+	
+	syn boolean GenericTypeDecl.isVariant() {
+		for(int i = 0; i < getNumTypeParameter(); i++) {
+			Value variance = computeVar(i);
+			if(!variance.equals(INVARIANT))
+				return true;
+		}
+		return false;
+	}
+	
+	
 }
