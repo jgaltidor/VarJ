@@ -33,6 +33,8 @@ aspect Utils
 	syn lazy boolean TypeDecl.isWildcardType() = false;
 	eq WildcardType.isWildcardType() = true;
 
+	syn lazy boolean TypeDecl.isParTypeDecl() = false;
+	eq ParTypeDecl.isParTypeDecl() = true;
 
 	syn lazy boolean Access.isWildcardExtends() = false;
 	eq WildcardExtends.isWildcardExtends() = true;

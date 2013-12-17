@@ -1,62 +1,65 @@
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Set;
 
 aspect VirtualMethods
 {
 	inh Program ASTNode.program();
 	eq Program.getChild().program() = this;
-	
-	// eq Program.getCompilationUnit(int i).program() = this;
 
 	syn lazy java.util.List<MethodDecl> MethodDecl.overridingMethods() {
-		TypeDecl hostType = this.hostType();
-		java.util.List<TypeDecl> subtypes = hostType.compilationUnit().program().findSubtypes(hostType);
-
+		java.util.List<TypeDecl> subtypes = program().findSubtypes(hostType());
 		java.util.List<MethodDecl> oms = ASTUtils.createList();
-		for ( TypeDecl st : subtypes ) {
-			// if(st.equals(hostType)) continue;
-			for ( Iterator lmIt = st.localMethodsIterator(); lmIt.hasNext(); ) {
+		for(TypeDecl st : subtypes) {
+			for(Iterator lmIt = st.localMethodsIterator(); lmIt.hasNext(); ) {
 				MethodDecl localMd = (MethodDecl) lmIt.next();
-				if ( localMd.overrides(this))
+				if(localMd.overrides(this)) {
 					oms.add(localMd);
+				}
 			}
 		}
 		return oms;
 	}
 
-	java.util.List<TypeDecl> Program.findSubtypes(TypeDecl superType) {
-		java.util.List<TypeDecl> sublist = ASTUtils.createList();
+	syn java.util.List<TypeDecl> Program.findSubtypes(TypeDecl superType) {
 		loadAllSourceFiles();
-
-		for ( Iterator cuIt = compilationUnitIterator(); cuIt.hasNext(); ) {
+		java.util.List<TypeDecl> subtypeList = ASTUtils.createList();
+		for(Iterator cuIt = compilationUnitIterator(); cuIt.hasNext(); ) {
 			CompilationUnit cu = (CompilationUnit) cuIt.next();
-			for ( int i=0; i<cu.getNumTypeDecl(); i++) {
-				TypeDecl td = cu.getTypeDecl(i);
-				if ( td.subtype(superType))
-					sublist.add(td);
+			for(TypeDecl td : cu.getTypeDeclList()) {
+				if(td.subtype(superType)) {
+					subtypeList.add(td);
+				}
+				// scan through nested types
+				for(TypeDecl nestedType : td.getNestedTypeDecls()) {
+					if(nestedType.subtype(superType)) {
+						subtypeList.add(nestedType);
+					}
+				}
 			}
 		}
-		return sublist;
+		return subtypeList;
 	}
-	
 	
 	private boolean Program.sourceFilesLoaded = false;
 	
 	public void Program.loadAllSourceFiles() {
 		if(sourceFilesLoaded) return;
-		Iterator itr = this.compilationUnitIterator();
+		Iterator itr = compilationUnitIterator();
 		while(itr.hasNext()) itr.next();
 		sourceFilesLoaded = true;
 	}
-	
-	
+
 	syn lazy java.util.List<MethodDecl> MethodDecl.overriddenMethods() {
 		java.util.List<MethodDecl> overriddenMeths = ASTUtils.createList();
 		Iterator itr = hostType().ancestorMethods(signature()).iterator();
 		while(itr.hasNext()) {
-			overriddenMeths.add((MethodDecl) itr.next());
+			MethodDecl m = (MethodDecl) itr.next();
+			overriddenMeths.add(m);
+			overriddenMeths.addAll(m.overriddenMethods());
 		}
 		return overriddenMeths;
 	}
-	
 	
 	syn lazy java.util.List<MethodDecl> MethodDecl.hierarchyMethods() {
 		java.util.List<MethodDecl> methods = ASTUtils.createList();
@@ -125,7 +128,7 @@ aspect VirtualMethods
 			if(b.isMethodDecl()) {
 				MethodDecl m = (MethodDecl) b;
 				String mname = m.fullName();
-				java.util.List<MethodDecl> oms = m.overridingMethods();
+				Collection<MethodDecl> oms = m.overridingMethods();
 				if(oms.isEmpty()) {
 					System.out.println("No overriding methods found for: " + mname);
 				}

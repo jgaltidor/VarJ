@@ -115,7 +115,6 @@ aspect RewriteWildcard
 		return typ.isTypeVariable() ? false : isFromSource();
 	}
 
-		
 	/** Checking if param's type is a type variable
 	  * because of overriding.
 	  */

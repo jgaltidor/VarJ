@@ -63,7 +63,8 @@ object InferStats extends BaseParams
 			}
 		val allstats = new AllStats(allLibStats)
 		println("Writing out Tex Table to file: " + outTexFileName)
-		Utils.writeToFile(Table1.texTable(allstats), outTexFileName)
+		Utils.writeToFile((new Table1).texTable(allstats), outTexFileName)
+		Utils.appendToFile((new Table3).texTable(allstats), outTexFileName)
 		if(jsonFileName != null) {
 			println("Writing out to JSON file: " + jsonFileName)
 			Utils.writeToFile(allstats.toJSON.toString(), jsonFileName)
@@ -81,7 +82,8 @@ object InferStats extends BaseParams
 		println
 		val vf = new VarFrontend
 		VarFrontend.compile(vf, newArgs)
-		val typeDecls = IterSeq getSrcTypes vf.getProgram
+		val program = vf.getProgram
+		val typeDecls = IterSeq getSrcTypes program
 		val libstats = ComputeStats computeStats typeDecls
 		libstats.name = libname
 		println("Completed analysis of: " + libname)

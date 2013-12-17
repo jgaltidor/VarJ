@@ -2,6 +2,7 @@ source ./scripts/setenv.sh
 set -ex
 # Rewriting JPaul
 echo Generating rewritten jpaul library
+# rlwrap jdb $JAVA_OPTS ui.RewriteAllSources --bodies -j -classpath -j $LIBCP -m rewriteinfo.txt -d rewrittenSources $JPAUL/src
 java $JAVA_OPTS ui.RewriteAllSources --bodies -j -classpath -j $LIBCP -m rewriteinfo.txt -d rewrittenSources $JPAUL/src
 
 echo Going to directory containing rewritten jpaul

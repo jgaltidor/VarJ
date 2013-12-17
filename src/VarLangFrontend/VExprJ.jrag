@@ -1,4 +1,3 @@
-
 aspect VExprJ
 {
 	syn nta DVar GenericTypeDecl.getDVar(TypeVariable tv) = new DVar(this, tv);
@@ -15,14 +14,24 @@ aspect VExprJ
 		}
 		return dvars;
 	}
-
-	syn nta UVar ParameterDeclaration.getUVar(TypeVariable tv) = new UVar(this, tv);
+	
+	/** Returns a UVar only if this parameter is declared with a parameterized
+	  * type.
+	  */
+	syn nta UVar ParameterDeclaration.getUVar(int index) {
+		TypeDecl typ = type();
+		assert typ.isParameterizedType();
+		ParTypeDecl ptyp = (ParTypeDecl) typ;
+		assert index < ptyp.getNumArgument();
+		assert index >= 0;
+		return new UVar(this, index);
+	}
 
 	eq DVar.toString() = String.format("DVar(%s, %s)",
 		getGenericTypeDecl().fullName(), getTypeVariable().name());
 
-	eq UVar.toString() = String.format("UVar(%s, %s)",
-		getParam().fullName(), getTypeVariable().fullName());
+	eq UVar.toString() = String.format("UVar(%s, %d)",
+		getParam().fullName(), getIndex());
 
 	public boolean DVar.equals(Object other) {
 		return (other instanceof DVar) ?
@@ -123,4 +132,40 @@ aspect VExprJ
 	
 	syn boolean VVar.isUVar() = false;
 	eq UVar.isUVar() = true;
+	
+	syn Value UVar.specifiedUseSite() {
+		ParTypeDecl paramType = (ParTypeDecl) getParam().type();
+		return paramType.specifiedUseSite(getIndex());
+	}
+
+	syn Value ParTypeAccess.specifiedUseSite(int index) {
+		Access typeArg = getTypeArgument(index);
+		if(typeArg.isWildcardExtends())
+			return COVARIANT;
+		else if(typeArg.isWildcardSuper())
+			return CONTRAVARIANT;
+		else if(typeArg.isWildcard())
+			return BIVARIANT;
+		else
+			return INVARIANT;
+	}
+
+	syn Value ParTypeDecl.specifiedUseSite(int index) {
+		TypeDecl typeArg = getArgument(index).type();
+		if(typeArg.isWildcardExtendsType())
+			return COVARIANT;
+		else if(typeArg.isWildcardSuperType())
+			return CONTRAVARIANT;
+		else if(typeArg.isWildcardType())
+			return BIVARIANT;
+		else
+			return INVARIANT;
+	}
+	
+	syn DVar UVar.getDVar() {
+		TypeDecl typ = getParam().type();
+		assert typ.isParameterizedType();
+		GenericTypeDecl gtd = (GenericTypeDecl) typ.sourceTypeDecl();
+		return gtd.getDVar(getIndex());
+	}
 }

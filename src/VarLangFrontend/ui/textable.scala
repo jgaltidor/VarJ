@@ -1,20 +1,20 @@
 package ui
 import scala.util.parsing.json.{JSONObject,JSONArray}
 
-object Table1
+class Table1
 {
-	val tableHeader =
+	def tableHeader =
 """\begin{tabular}{|ll|c|c|c|c|c|c|c|c|c|c|c|c|c|} \hline
 Library & & \# Type     & \# Generic  & \multicolumn{5}{c|}{Type Definitions} & Recursive & Unnecess. & Over-specif.\\
         & & defs & defs & invar. & variant & cov. & contrav. & biv. & variances & wildcards   & methods  \\
 \hline
 """
 
-	val tableSuffix =
+	def tableSuffix =
 """\end{tabular}
 """
 
-	val endTableRow = " \\\\ \n"
+	def endTableRow = " \\\\ \n"
 
 	def texTable(allstats:AllStats):String = {
 		val sb = new StringBuilder(2 << 12)
@@ -97,15 +97,10 @@ Library & & \# Type     & \# Generic  & \multicolumn{5}{c|}{Type Definitions} & 
 	}
 }
 
-object Table2
+class Table2
 {
-	/*
-	import Table1.{tableHeader,
-	              tableSuffix,
-	              statTexRow,
-	              endTableRow}
-  */
-  import Table1._
+  private val table1 = new Table1
+  import table1._
 
 	def texTable(sigStats:AllStats, bodStats:AllStats):String = {
 		val sb = new StringBuilder(2 << 12)
@@ -170,6 +165,74 @@ object Table2
 		sb.append(statTexRow(bodTotalStats.totalStats, shadeAndBold)).append(endTableRow)
 		sb.toString
 	}
+}
+
+object Table2
+{
+	def main(args:Array[String]):Unit = {
+		if(args.length < 3) {
+			Console.err.println(
+				"usage: <out tex file> <sig json file> <bod json file>")
+			sys.exit(1)
+		}
+		val outTexFileName = args(0)
+		val sigStats = AllStats.fromJSONSFile(args(1))
+		val bodStats = AllStats.fromJSONSFile(args(2))
+		Utils.writeToFile(
+			(new Table2).texTable(sigStats, bodStats),
+			outTexFileName)
+	}
+}
+
+class Table3 extends Table1
+{
+	override def tableHeader =
+"""
+% Table columns: (1) Library,
+%                (2) (category: classes, interfaces, total)
+%                (3) # of (parameterized) decls,
+%                (4) # of rewritable decls,
+%                (5) percentage of rewritable decls,
+%                (6) # of variant decls,
+%                (7) percentage of rewritable variant decls,
+%                (8) Average size of flowsto set
+\begin{tabular}{|ll|c|c|c|c|c|c|c|} \hline
+Library & & \# Parameterized & \# Rewritable & Rewriteable & \# Variant & Rewritable   & Rewritable & Flowsto  \\
+        & &    Decl Total    & P-Decl Total  & P-Decl \%   &  Decls     & V-Decl Total & V-Decl \%  & Avg. Size \\
+\hline
+"""
+
+	override def statTexRow(vs:VarStats):String =
+		Utils.joinstr(" & ",
+			vs.totalPDecls,
+			vs.totalRewritablePDecls,
+			texPercent(vs.ratioRewritablePDecls),
+			
+			vs.totalVDecls,
+			vs.totalRewritableVDecls,
+			texPercent(vs.ratioRewritableVDecls),
+			
+			"%.2f".format(vs.averageFlowsToSize)
+		)
+	
+	override def statTexRow(vs:VarStats, formatter:Any => String):String =
+		Utils.joinstr(" & ",
+			formatter(vs.totalPDecls),
+			formatter(vs.totalRewritablePDecls),
+			formatter(texPercent(vs.ratioRewritablePDecls)),
+			
+			formatter(vs.totalVDecls),
+			formatter(vs.totalRewritableVDecls),
+			formatter(texPercent(vs.ratioRewritableVDecls)),
+			
+			formatter("%.2f".format(vs.averageFlowsToSize))
+		)
+}
+
+object Table3
+{
+	def texTable(allstats:AllStats) = (new Table3).texTable(allstats)
+	
 
 	def main(args:Array[String]):Unit = {
 		if(args.length < 3) {
@@ -181,7 +244,11 @@ object Table2
 		val sigStats = AllStats.fromJSONSFile(args(1))
 		val bodStats = AllStats.fromJSONSFile(args(2))
 		Utils.writeToFile(
-			Table2.texTable(sigStats, bodStats),
+			Table3.texTable(sigStats),
+			outTexFileName)
+		Utils.writeToFile(
+			Table3.texTable(bodStats),
 			outTexFileName)
 	}
 }
+

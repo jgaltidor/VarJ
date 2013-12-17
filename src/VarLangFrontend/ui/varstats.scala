@@ -39,7 +39,8 @@ class LibStats(val clsStats: VarStats, val intStats: VarStats)
 {
 	def this() = this(new VarStats, new VarStats)
 	var name = "Library"
-	// time to analyze library in milliseconds
+	
+	/** time to analyze library in milliseconds */
 	var runningTime:Long = 0
 	
 	def totalStats = clsStats + intStats
@@ -49,7 +50,7 @@ class LibStats(val clsStats: VarStats, val intStats: VarStats)
 		this.intStats addFrom other.intStats
 		this.runningTime += other.runningTime
 	}
-	
+
 	def +(other:LibStats):LibStats = {
 		val ls = new LibStats
 		ls addFrom this
@@ -58,9 +59,9 @@ class LibStats(val clsStats: VarStats, val intStats: VarStats)
 	}
 	
 	def toJSON = JSONObject(Map(
-		"Library"  -> name,
-		"clsStats" -> clsStats.toJSON,
-		"intStats" -> intStats.toJSON
+		"Library"       -> name,
+		"clsStats"      -> clsStats.toJSON,
+		"intStats"      -> intStats.toJSON
 	))
 }
 
@@ -83,7 +84,10 @@ object LibStats
 
 class VarStats
 {
-	var totalMonoTypes = 0 // type definitions with no type parameters
+	// asserted status
+
+	/** Num of type definitions with no type parameters */
+	var totalMonoTypes = 0
 
 	var totalInVar = 0
 	var totalCoVar = 0 
@@ -103,6 +107,20 @@ class VarStats
 	var totalRecVar = 0
 	var totalRecVarParams = 0
 	var totalParamClosureSize = 0
+
+
+	/** Number of parameterized decls */
+	var totalPDecls = 0
+	/** Num of rewritable pdecls */
+	var totalRewritablePDecls = 0
+	/** Sum of all cardinalities of flowsto sets */
+	var totalFlowsTo:Long = 0
+	/** Num of decls of a variant type */
+	var totalVDecls = 0
+	/** Num of rewritable vdecls */
+	var totalRewritableVDecls = 0
+
+	// inferred stats
 
 	def totalVar = totalCoVar + totalContraVar + totalBiVar
 	def totalGenerics = totalVar + totalInVar
@@ -130,7 +148,19 @@ class VarStats
 	
 	def ratioRecVarParams = totalRecVarParams.toDouble / totalTypeParams
 	def ratioParamClosureSize = totalParamClosureSize.toDouble / totalTypeParams
-	
+
+	// flowsto inferred stats
+
+	def ratioRewritablePDecls:Double =
+	 totalRewritablePDecls.toDouble / totalPDecls
+
+	def averageFlowsToSize:Double =
+	 totalFlowsTo.toDouble / totalPDecls
+
+	def ratioRewritableVDecls:Double =
+	 totalRewritableVDecls.toDouble / totalVDecls
+
+
 	def addFrom(other:VarStats):Unit = {
 		this.totalMonoTypes += other.totalMonoTypes
 		
@@ -152,6 +182,12 @@ class VarStats
 		this.totalRecVar             += other.totalRecVar
 		this.totalRecVarParams       += other.totalRecVarParams
 		this.totalParamClosureSize   += other.totalParamClosureSize
+		
+		this.totalPDecls           += other.totalPDecls
+		this.totalRewritablePDecls += other.totalRewritablePDecls
+		this.totalFlowsTo          += other.totalFlowsTo
+		this.totalVDecls           += other.totalVDecls
+		this.totalRewritableVDecls += other.totalRewritableVDecls
 	}
 	
 	def +(other:VarStats):VarStats = {
@@ -181,7 +217,13 @@ class VarStats
 
 		"totalRecVar" -> totalRecVar,
 		"totalRecVarParams" -> totalRecVarParams,
-		"totalParamClosureSize" -> totalParamClosureSize
+		"totalParamClosureSize" -> totalParamClosureSize,
+		
+		"totalPDecls"           -> totalPDecls,
+		"totalRewritablePDecls" -> totalRewritablePDecls,
+		"totalFlowsTo"          -> totalFlowsTo,
+		"totalVDecls"           -> totalVDecls,
+		"totalRewritableVDecls" -> totalRewritableVDecls
 	))
 }
 
@@ -191,6 +233,7 @@ object VarStats
 	def fromJSON(json: JSONObject):VarStats = {
 		// For converting any to ints
 		implicit def any2Int(any:Any) = any.asInstanceOf[Double].toInt
+		implicit def any2Long(any:Any) = any.asInstanceOf[Double].toLong
 	
 		val vs = new VarStats
 		vs.totalMonoTypes = json.obj("totalMonoTypes")
@@ -213,9 +256,20 @@ object VarStats
 		vs.totalRecVar = json.obj("totalRecVar")
 		vs.totalRecVarParams = json.obj("totalRecVarParams")
 		vs.totalParamClosureSize = json.obj("totalParamClosureSize")
+		
+		vs.totalPDecls           = json.obj("totalPDecls")
+		vs.totalRewritablePDecls = json.obj("totalRewritablePDecls")
+		vs.totalFlowsTo          = json.obj("totalFlowsTo")
+		vs.totalVDecls           = json.obj("totalVDecls")
+		vs.totalRewritableVDecls = json.obj("totalRewritableVDecls")
 
 		vs
 	}
+}
+
+class FlowStats
+{	
+
 }
 
 object VarStatsTester
@@ -227,6 +281,6 @@ object VarStatsTester
 		ls1.name = "Lib 1"
 		ls2.name = "Lib 2"
 		val allstats = new AllStats(List(ls1, ls2))
-		print(Table1.texTable(allstats))
+		print((new Table1).texTable(allstats))
 	}
 }
