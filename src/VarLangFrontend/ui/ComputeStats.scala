@@ -87,6 +87,6 @@ object ComputeStats
 		val typeDecls = IterSeq getSrcTypes vf.getProgram
 		val libstats = computeStats(typeDecls)
 		val allstats = new AllStats(List(libstats))
-		print((new Table1).texTable(allstats))
+		print(Table1.texTable(allstats))
 	}
 }

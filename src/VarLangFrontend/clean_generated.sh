@@ -1,1 +1,1 @@
-rm -rf rewriteinfo*.txt rewrittenSources*
+rm -rf rewriteinfo*.txt rewrittenSources* *.json

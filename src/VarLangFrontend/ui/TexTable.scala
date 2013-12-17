@@ -97,10 +97,17 @@ Library & & \# Type     & \# Generic  & \multicolumn{5}{c|}{Type Definitions} & 
 	}
 }
 
+object Table1
+{
+	private val theInstance = new Table1
+	
+	def texTable(allstats:AllStats) = theInstance texTable allstats
+}
+
 class Table2
 {
-  private val table1 = new Table1
-  import table1._
+  private val table1Instance = new Table1
+  import table1Instance._
 
 	def texTable(sigStats:AllStats, bodStats:AllStats):String = {
 		val sb = new StringBuilder(2 << 12)
@@ -169,6 +176,11 @@ class Table2
 
 object Table2
 {
+	private val theInstance = new Table2
+	
+	def texTable(sigStats:AllStats, bodStats:AllStats) =
+		theInstance texTable (sigStats, bodStats)
+
 	def main(args:Array[String]):Unit = {
 		if(args.length < 3) {
 			Console.err.println(
@@ -179,7 +191,7 @@ object Table2
 		val sigStats = AllStats.fromJSONSFile(args(1))
 		val bodStats = AllStats.fromJSONSFile(args(2))
 		Utils.writeToFile(
-			(new Table2).texTable(sigStats, bodStats),
+			texTable(sigStats, bodStats),
 			outTexFileName)
 	}
 }
@@ -231,7 +243,9 @@ Library & & \# Parameterized & \# Rewritable & Rewriteable & \# Variant & Rewrit
 
 object Table3
 {
-	def texTable(allstats:AllStats) = (new Table3).texTable(allstats)
+	private val theInstance = new Table3
+	
+	def texTable(allstats:AllStats) = theInstance texTable allstats
 	
 
 	def main(args:Array[String]):Unit = {
@@ -252,3 +266,25 @@ object Table3
 	}
 }
 
+object TexTable
+{
+	def main(args:Array[String]):Unit = {
+		if(args.length < 3) {
+			Console.err.println(
+				"usage: <out tex file> <sig json file> <bod json file>")
+			sys.exit(1)
+		}
+		val outTexFileName = args(0)
+		val sigStats = AllStats.fromJSONSFile(args(1))
+		val bodStats = AllStats.fromJSONSFile(args(2))
+		Utils.writeToFile(
+			Table2.texTable(sigStats, bodStats),
+			outTexFileName)
+		Utils.appendToFile(
+			Table3.texTable(sigStats),
+			outTexFileName)
+		Utils.appendToFile(
+			Table3.texTable(bodStats),
+			outTexFileName)
+	}
+}
