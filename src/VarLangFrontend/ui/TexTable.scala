@@ -208,9 +208,10 @@ class Table3 extends Table1
 %                (6) # of variant decls,
 %                (7) percentage of rewritable variant decls,
 %                (8) Average size of flowsto set
-\begin{tabular}{|ll|c|c|c|c|c|c|c|} \hline
-Library & & \# Parameterized & \# Rewritable & Rewriteable & \# Variant & Rewritable   & Rewritable & Flowsto  \\
-        & &    Decl Total    & P-Decl Total  & P-Decl \%   &  Decls     & V-Decl Total & V-Decl \%  & Avg. Size \\
+%                (9) Average size of flowsto set for rewritable decls
+\begin{tabular}{|ll|c|c|c|c|c|c|c|c|} \hline
+Library & & \# Parameterized & \# Rewritable & Rewriteable & \# Variant & Rewritable   & Rewritable & Flowsto   & Flowsto-R  \\
+        & &    Decl Total    & P-Decl Total  & P-Decl \%   &  Decls     & V-Decl Total & V-Decl \%  & Avg. Size & Avg. Size \\
 \hline
 """
 
@@ -224,7 +225,8 @@ Library & & \# Parameterized & \# Rewritable & Rewriteable & \# Variant & Rewrit
 			vs.totalRewritableVDecls,
 			texPercent(vs.ratioRewritableVDecls),
 			
-			"%.2f".format(vs.averageFlowsToSize)
+			"%.2f".format(vs.averageFlowsToSize),
+			"%.2f".format(vs.averageRewritableFlowsToSize)
 		)
 	
 	override def statTexRow(vs:VarStats, formatter:Any => String):String =
@@ -237,7 +239,8 @@ Library & & \# Parameterized & \# Rewritable & Rewriteable & \# Variant & Rewrit
 			formatter(vs.totalRewritableVDecls),
 			formatter(texPercent(vs.ratioRewritableVDecls)),
 			
-			formatter("%.2f".format(vs.averageFlowsToSize))
+			formatter("%.2f".format(vs.averageFlowsToSize)),
+			formatter("%.2f".format(vs.averageRewritableFlowsToSize))
 		)
 }
 

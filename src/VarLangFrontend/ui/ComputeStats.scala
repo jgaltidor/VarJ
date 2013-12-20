@@ -24,11 +24,12 @@ object ComputeStats
 			vstats.totalOverSpecified    += typ.overSpecifiedActualsInSig
 			vstats.totalArgActuals       += typ.numMethArgTypeActualsInSig
 			
-			vstats.totalPDecls           +=  typ.numPDeclsInSubtree
-			vstats.totalRewritablePDecls +=  typ.numRewritablePDeclsInSubtree
-			vstats.totalFlowsTo          +=  typ.numFlowsToInSubtree
-			vstats.totalVDecls           +=  typ.numVDeclsInSubtree
-			vstats.totalRewritableVDecls +=  typ.numRewritableVDeclsInSubtree
+			vstats.totalPDecls            +=  typ.numPDeclsInSubtree
+			vstats.totalRewritablePDecls  +=  typ.numRewritablePDeclsInSubtree
+			vstats.totalFlowsTo           +=  typ.numFlowsToInSubtree
+			vstats.totalRewritableFlowsTo +=  typ.numRewritableFlowsTo
+			vstats.totalVDecls            +=  typ.numVDeclsInSubtree
+			vstats.totalRewritableVDecls  +=  typ.numRewritableVDeclsInSubtree
 			
 			if(!typ.isGenericType) {
 				vstats.totalMonoTypes += 1

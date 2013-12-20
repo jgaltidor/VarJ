@@ -259,12 +259,12 @@ aspect Stats
 		for(int i = 0; i < getNumChild(); i++) {
 			total += getChild(i).numFlowsToInSubtree();
 		}
-		return total; 
+		return total;
 	}
 	
 	syn lazy int ASTNode.numFlowsTo() = 0;
 	eq InfluenceNode.numFlowsTo() = reachableINodes().size();
-	
+
 	syn lazy int ASTNode.numRewritablePDeclsInSubtree() {
 		int total = isPDecl() ? numRewritable() : 0;
 		for(int i = 0; i < getNumChild(); i++) {
@@ -276,6 +276,18 @@ aspect Stats
 	syn lazy int ASTNode.numRewritable() = 0;
 	eq InfluenceNode.numRewritable() = isRewritable() ? 1 : 0;
 
+
+	syn lazy long ASTNode.numRewritableFlowsToInSubtree() {
+		long total = isPDecl() ? numRewritableFlowsTo() : 0;
+		for(int i = 0; i < getNumChild(); i++) {
+			total += getChild(i).numRewritableFlowsToInSubtree();
+		}
+		return total;
+	}
+
+	syn lazy int ASTNode.numRewritableFlowsTo() = 0;
+	eq InfluenceNode.numRewritableFlowsTo() =
+		isRewritable() ? reachableINodes().size() : 0;
 
 	/** Computes number of declarations declared with variant types. */
 	syn lazy int ASTNode.numVDeclsInSubtree() {

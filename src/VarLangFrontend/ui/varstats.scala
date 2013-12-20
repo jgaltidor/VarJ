@@ -115,6 +115,8 @@ class VarStats
 	var totalRewritablePDecls = 0
 	/** Sum of all cardinalities of flowsto sets */
 	var totalFlowsTo:Long = 0
+	/** Sum of all cardinalities of rewritable flowsto sets */
+	var totalRewritableFlowsTo:Long = 0
 	/** Num of decls of a variant type */
 	var totalVDecls = 0
 	/** Num of rewritable vdecls */
@@ -157,6 +159,9 @@ class VarStats
 	def averageFlowsToSize:Double =
 	 totalFlowsTo.toDouble / totalPDecls
 
+	def averageRewritableFlowsToSize:Double =
+	 totalRewritableFlowsTo.toDouble / totalRewritablePDecls
+
 	def ratioRewritableVDecls:Double =
 	 totalRewritableVDecls.toDouble / totalVDecls
 
@@ -183,11 +188,12 @@ class VarStats
 		this.totalRecVarParams       += other.totalRecVarParams
 		this.totalParamClosureSize   += other.totalParamClosureSize
 		
-		this.totalPDecls           += other.totalPDecls
-		this.totalRewritablePDecls += other.totalRewritablePDecls
-		this.totalFlowsTo          += other.totalFlowsTo
-		this.totalVDecls           += other.totalVDecls
-		this.totalRewritableVDecls += other.totalRewritableVDecls
+		this.totalPDecls             += other.totalPDecls
+		this.totalRewritablePDecls   += other.totalRewritablePDecls
+		this.totalFlowsTo            += other.totalFlowsTo
+		this.totalRewritableFlowsTo  += other.totalRewritableFlowsTo
+		this.totalVDecls             += other.totalVDecls
+		this.totalRewritableVDecls   += other.totalRewritableVDecls
 	}
 	
 	def +(other:VarStats):VarStats = {
@@ -219,11 +225,12 @@ class VarStats
 		"totalRecVarParams" -> totalRecVarParams,
 		"totalParamClosureSize" -> totalParamClosureSize,
 		
-		"totalPDecls"           -> totalPDecls,
-		"totalRewritablePDecls" -> totalRewritablePDecls,
-		"totalFlowsTo"          -> totalFlowsTo,
-		"totalVDecls"           -> totalVDecls,
-		"totalRewritableVDecls" -> totalRewritableVDecls
+		"totalPDecls"             -> totalPDecls,
+		"totalRewritablePDecls"   -> totalRewritablePDecls,
+		"totalFlowsTo"            -> totalFlowsTo,
+		"totalRewritableFlowsTo"  -> totalRewritableFlowsTo,
+		"totalVDecls"             -> totalVDecls,
+		"totalRewritableVDecls"   -> totalRewritableVDecls
 	))
 }
 
@@ -257,11 +264,12 @@ object VarStats
 		vs.totalRecVarParams = json.obj("totalRecVarParams")
 		vs.totalParamClosureSize = json.obj("totalParamClosureSize")
 		
-		vs.totalPDecls           = json.obj("totalPDecls")
-		vs.totalRewritablePDecls = json.obj("totalRewritablePDecls")
-		vs.totalFlowsTo          = json.obj("totalFlowsTo")
-		vs.totalVDecls           = json.obj("totalVDecls")
-		vs.totalRewritableVDecls = json.obj("totalRewritableVDecls")
+		vs.totalPDecls             = json.obj("totalPDecls")
+		vs.totalRewritablePDecls   = json.obj("totalRewritablePDecls")
+		vs.totalFlowsTo            = json.obj("totalFlowsTo")
+		vs.totalRewritableFlowsTo  = json.obj("totalRewritableFlowsTo")
+		vs.totalVDecls             = json.obj("totalVDecls")
+		vs.totalRewritableVDecls   = json.obj("totalRewritableVDecls")
 
 		vs
 	}
