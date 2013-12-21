@@ -27,7 +27,7 @@ object ComputeStats
 			vstats.totalPDecls            +=  typ.numPDeclsInSubtree
 			vstats.totalRewritablePDecls  +=  typ.numRewritablePDeclsInSubtree
 			vstats.totalFlowsTo           +=  typ.numFlowsToInSubtree
-			vstats.totalRewritableFlowsTo +=  typ.numRewritableFlowsTo
+			vstats.totalRewritableFlowsTo +=  typ.numRewritableFlowsToInSubtree
 			vstats.totalVDecls            +=  typ.numVDeclsInSubtree
 			vstats.totalRewritableVDecls  +=  typ.numRewritableVDeclsInSubtree
 			

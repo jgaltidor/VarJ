@@ -197,4 +197,23 @@ aspect RewriteWildcard
 		String newAccess = ASTNode.analysisStrategy.wildString(returnType);
 		returnType.writeWildcardReplaceInfo(oldAccess, newAccess);
 	}
+
+	// Methods for testing
+	public void ASTNode.logRewritability() {
+    for(int i = 0; i < getNumChild(); i++) {
+    	getChild(i).logRewritability();
+    }
+	}
+
+	public void InfluenceNode.logRewritability() {
+		String name = fullName();
+		if(isUseful()) {
+			System.out.printf("isRewritable(%s): %b", name, isRewritable());
+			logFlowsTo();
+		}
+		else {
+			System.out.println("skipping rewritability logging for " + name);
+		}
+    super.logRewritability();
+	}
 }

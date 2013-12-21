@@ -28,7 +28,9 @@ object AnalyzeType extends FilesParams
 		println("type: " + typeDecl.fullName)
 		println("outputting assigned to analysis")
 		typeDecl.logSuccessor
-		println("outputting assigned to analysis")
+		println("outputting flows to analysis")
 		typeDecl.logFlowsTo
+		println("outputting rewritability analysis")
+		typeDecl.logRewritability
 	}
 }
