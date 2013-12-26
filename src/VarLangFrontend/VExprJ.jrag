@@ -20,10 +20,12 @@ aspect VExprJ
 	  */
 	syn nta UVar ParameterDeclaration.getUVar(int index) {
 		TypeDecl typ = type();
+		/*
 		assert typ.isParameterizedType();
 		ParTypeDecl ptyp = (ParTypeDecl) typ;
 		assert index < ptyp.getNumArgument();
 		assert index >= 0;
+		*/
 		return new UVar(this, index);
 	}
 

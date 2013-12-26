@@ -310,6 +310,16 @@ aspect InfluenceAnalysis
 		return sourceNodes;
 	}
 	
+	public static boolean
+		ASTNode.allFromSource(Collection<? extends InfluenceNode> nodes)
+	{
+		for(InfluenceNode node : nodes) {
+			if(!node.isFromSource())
+				return false;
+		}
+		return true;
+	}
+	
 	syn boolean InfluenceNode.isOfParameterizedType() =
 		getTypeAccess().isParTypeAccess();
 
