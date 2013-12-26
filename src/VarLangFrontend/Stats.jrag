@@ -286,8 +286,10 @@ aspect Stats
 	}
 
 	syn lazy int ASTNode.numRewritableFlowsTo() = 0;
-	eq InfluenceNode.numRewritableFlowsTo() =
-		isRewritable() ? reachableINodes().size() : 0;
+	
+	eq InfluenceNode.numRewritableFlowsTo() = isRewritable() ?
+		reachableINodes().size() : 0;
+
 
 	/** Computes number of declarations declared with variant types. */
 	syn lazy int ASTNode.numVDeclsInSubtree() {

@@ -93,7 +93,7 @@ aspect ConstraintSystem
 		GenericTypeDecl gtd = (GenericTypeDecl) sourceTypeDecl();
 		return gtd.isVariant();
 	}
-	
+
 	syn boolean GenericTypeDecl.isVariant() {
 		for(int i = 0; i < getNumTypeParameter(); i++) {
 			Value variance = computeVar(i);
@@ -102,6 +102,6 @@ aspect ConstraintSystem
 		}
 		return false;
 	}
-	
-	
+
+	syn boolean GenericTypeDecl.isInvariant() = !isVariant();
 }

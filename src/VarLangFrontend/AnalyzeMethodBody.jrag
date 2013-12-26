@@ -15,6 +15,14 @@ aspect AnalyzeMethodBody
 		@Override
 		public java.util.List<VExpr> varBounds(UVar uvar) {
 			ParameterDeclaration param = uvar.getParam();
+			// param may not be of a parameterized type because
+			// param.hierarchyParams() may include parameters
+			// that are not from source and are of raw (erased) types
+			// as a result
+			if(!param.isOfParameterizedType()) {
+				return Collections.emptyList();
+			}
+			// else param must be of a parameterized type
 			if(!param.isFromSource()) {
 				return Collections.<VExpr>singletonList(uvar.specifiedUseSite());
 			}
@@ -24,7 +32,10 @@ aspect AnalyzeMethodBody
 			}
 			Integer index = uvar.getIndex();
 			for(ParameterDeclaration hierarchyParam : param.hierarchyParams()) {
-				if(hierarchyParam != param) {
+				hierarchyParam = (ParameterDeclaration) hierarchyParam.sourceDecl();
+				if(hierarchyParam != param &&
+				   hierarchyParam.isOfParameterizedType())
+				{
 					bounds.add(hierarchyParam.getUVar(index));
 				}
 			}
@@ -40,11 +51,6 @@ aspect AnalyzeMethodBody
 				new Join(sigOnlyInferred, access.getParamDecl().getUVar(index))
 				: sigOnlyInferred;
 		}
-
-		@Override
-		public boolean mayPromoteWildcard(TypeDecl typ) {
-			return typ.mayPromoteWildcard(this);
-		}
 	}
 
 	syn lazy java.util.List<VExpr> TypeContainer.varBounds(
@@ -57,6 +63,9 @@ aspect AnalyzeMethodBody
 		varBounds(tv, (OnlySigAnalysis) strategy);
 
 	eq MethodDecl.varBounds(TypeVariable tv, MethodBodyAnalysis strategy) {
+		if(!isFromSource()) {
+			return varBounds(tv, (OnlySigAnalysis) strategy);
+		}
 		java.util.List<VExpr> bounds = ASTUtils.createList();
 		String fullname = fullName();
 		// Collect bounds from argument types, which will now contain unknowns
@@ -354,9 +363,6 @@ aspect AnalyzeMethodBody
 			else return Collections.emptyList();
 		}
 	}
-	
-	syn boolean Access.isParTypeAccess() = false;
-	eq ParTypeAccess.isParTypeAccess() = true;
 
 	public class InnerClassAccess extends MemberAccess {
 		public final TypeDecl innerClass;
@@ -382,7 +388,7 @@ aspect AnalyzeMethodBody
 	}
 
 	syn lazy boolean Access.hasParamDecl() = (getParamDecl() != null);
-	
+
 	syn lazy boolean ParameterDeclaration.isMethodParam() =
 		enclosingBodyDecl().isMethodDecl();
 
@@ -391,12 +397,8 @@ aspect AnalyzeMethodBody
 		if(!paramType.isParameterizedType()) {
 			return null;
 		}
-		GenericTypeDecl gtd = (GenericTypeDecl) paramType.sourceTypeDecl();
+		GenericTypeDecl gtd =
+			(GenericTypeDecl) paramType.sourceTypeDecl();
 		return gtd.getTypeParameter(getIndex());
 	}
-	
-	syn boolean TypeDecl.mayPromoteWildcard(MethodBodyAnalysis strategy) =
-		mayPromoteWildcard((OnlySigAnalysis) strategy);
-	
-	eq ParTypeDecl.mayPromoteWildcard(MethodBodyAnalysis strategy) = true;
 }

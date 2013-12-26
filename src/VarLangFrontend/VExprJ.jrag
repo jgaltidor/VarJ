@@ -134,8 +134,8 @@ aspect VExprJ
 	eq UVar.isUVar() = true;
 	
 	syn Value UVar.specifiedUseSite() {
-		ParTypeDecl paramType = (ParTypeDecl) getParam().type();
-		return paramType.specifiedUseSite(getIndex());
+		ParTypeAccess access = (ParTypeAccess) getParam().getTypeAccess();
+		return access.specifiedUseSite(getIndex());
 	}
 
 	syn Value ParTypeAccess.specifiedUseSite(int index) {

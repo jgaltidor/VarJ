@@ -52,8 +52,6 @@ aspect AnalysisBase
 		
 		public VExpr inferredUseSite(ParTypeAccess access, int index);
 		public VExpr inferredUseSite(ParTypeDecl ptyp, int index);
-		
-		public boolean mayPromoteWildcard(TypeDecl typ);
 	}
 
 	public abstract class StrategyWithVisibility implements AnalysisStrategy

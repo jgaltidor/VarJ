@@ -16,7 +16,7 @@ aspect InfluenceAnalysis
 	}
 
 	MethodDecl implements InfluenceNode; // Represents really the return type of a method
-	
+
 	Variable extends InfluenceNode;
 	// Bug w/ JastAdd forcing me to specify implicit implements
 	// declarations.
@@ -122,7 +122,7 @@ aspect InfluenceAnalysis
 		TypeDecl type = sourceDecl().type();
 		if(type.involvesGeneric()) {
 			return type.isParameterizedType() ?
-				type.mayPromoteWildcard() : true;
+				mayPromoteWildcard() : true;
 		}
 		else return false;
 	}
@@ -136,8 +136,23 @@ aspect InfluenceAnalysis
 	
 	// mayPromoteWildcard
 
-	syn lazy boolean TypeDecl.mayPromoteWildcard() =
-		ASTNode.analysisStrategy.mayPromoteWildcard(this);
+	syn lazy boolean InfluenceNode.mayPromoteWildcard() {
+		if(!isOfParameterizedType()) {
+			return false;
+		}
+		ParTypeAccess paccess = (ParTypeAccess) getTypeAccess();
+		for(int i = 0; i < paccess.getNumTypeArgument(); i++) {
+			Value specifiedUseSite = paccess.specifiedUseSite(i);
+			if(specifiedUseSite.equals(BIVARIANT)) {
+				continue;
+			}
+			Value inferredUseSite =
+				ASTNode.analysisStrategy.inferredUseSite(paccess, i).eval();
+			if(inferredUseSite.gt(specifiedUseSite))
+				return true;
+		}
+		return false;
+	}
 
 	
 	public Set<InfluenceNode> ASTNode.filterMayPromoteWildcard(
@@ -146,7 +161,7 @@ aspect InfluenceAnalysis
 		Set<InfluenceNode> filteredNodes = ASTUtils.createSet();
 		for(InfluenceNode node : nodes) {
 			InfluenceNode sourceNode = node.sourceDecl();
-			if(sourceNode.type().mayPromoteWildcard()) {
+			if(sourceNode.mayPromoteWildcard()) {
 				filteredNodes.add(sourceNode);
 			}
 		}
@@ -272,7 +287,7 @@ aspect InfluenceAnalysis
 		}
 		return nodes;
 	}
-	
+
 	syn lazy boolean BodyDecl.isFromSource() = hostType().compilationUnit().fromSource();
 	
 	syn lazy boolean Variable.isFromSource();
@@ -282,6 +297,21 @@ aspect InfluenceAnalysis
 	eq ParameterDeclaration.isFromSource() = enclosingBodyDecl().isFromSource();
 	
 	eq VariableDeclaration.isFromSource() = enclosingBodyDecl().isFromSource();
+
+
+	public static Collection<InfluenceNode>
+		ASTNode.filterFromSource(Collection<? extends InfluenceNode> nodes)
+	{
+		Collection<InfluenceNode> sourceNodes = ASTUtils.createList();
+		for(InfluenceNode node : nodes) {
+			if(node.isFromSource())
+				sourceNodes.add(node);
+		}
+		return sourceNodes;
+	}
+	
+	syn boolean InfluenceNode.isOfParameterizedType() =
+		getTypeAccess().isParTypeAccess();
 
 	// Methods for testing
 	public void ASTNode.logFlowsTo() {

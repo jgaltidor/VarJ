@@ -46,11 +46,6 @@ aspect AnalyzeSig
 			// inferred use-site annotation
 			return new Join(inferredDVar, specifiedUVar);
 		}
-		
-		@Override
-		public boolean mayPromoteWildcard(TypeDecl typ) {
-			return typ.mayPromoteWildcard(this);
-		}
 	}
 
 	syn lazy java.util.List<VExpr> TypeContainer.varBounds(TypeVariable tv, OnlySigAnalysis strategy);
@@ -357,24 +352,6 @@ aspect AnalyzeSig
 		newAccess.append("? extends ");
 		newAccess.append(strategy.wildString(getAccess()));
 		return newAccess.toString();
-	}
-
-	syn boolean TypeDecl.mayPromoteWildcard(OnlySigAnalysis strategy) = false;
-	
-	eq ParTypeDecl.mayPromoteWildcard(OnlySigAnalysis strategy) =
-		!((GenericTypeDecl) sourceTypeDecl()).isInvariant();
-	
-	eq ArrayDecl.mayPromoteWildcard(OnlySigAnalysis strategy) =
-		strategy.mayPromoteWildcard(componentType());
-
-
-	syn boolean GenericTypeDecl.isInvariant() {
-		GenericTypeDecl gtd = (GenericTypeDecl) sourceTypeDecl();
-		for (int i = 0; i < getNumTypeParameter(); i++) {
-			if(!computeVar(i).equals(INVARIANT))
-				return false;
-		}
-		return true;
 	}
 
 	// Methods for testing

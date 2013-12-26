@@ -45,6 +45,9 @@ aspect Utils
 	syn lazy boolean Access.isWildcard() = false;
 	eq Wildcard.isWildcard() = true;
 
+	syn lazy boolean Access.isParTypeAccess() = false;
+	eq ParTypeAccess.isParTypeAccess() = true;
+
 	syn lazy boolean BodyDecl.isFieldDeclaration() = false;
 	eq FieldDeclaration.isFieldDeclaration() = true;
 

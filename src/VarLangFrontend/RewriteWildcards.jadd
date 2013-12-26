@@ -209,6 +209,7 @@ aspect RewriteWildcard
 		String name = fullName();
 		if(isUseful()) {
 			System.out.printf("isRewritable(%s): %b", name, isRewritable());
+			System.out.println();
 			logFlowsTo();
 		}
 		else {
