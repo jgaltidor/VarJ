@@ -140,6 +140,9 @@ aspect InfluenceAnalysis
 		if(!isOfParameterizedType()) {
 			return false;
 		}
+		if(!isFromSource()) {
+			return type().isVariantType();
+		}
 		ParTypeAccess paccess = (ParTypeAccess) getTypeAccess();
 		for(int i = 0; i < paccess.getNumTypeArgument(); i++) {
 			Value specifiedUseSite = paccess.specifiedUseSite(i);

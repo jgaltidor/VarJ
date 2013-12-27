@@ -209,17 +209,21 @@ class Table3 extends Table1
 %                (7) percentage of rewritable variant decls,
 %                (8) Average size of flowsto set
 %                (9) Average size of flowsto set for rewritable decls
-\begin{tabular}{|ll|c|c|c|c|c|c|c|c|} \hline
-Library & & \# Parameterized & \# Rewritable & Rewriteable & \# Variant & Rewritable   & Rewritable & Flowsto   & Flowsto-R  \\
-        & &    Decl Total    & P-Decl Total  & P-Decl \%   &  Decls     & V-Decl Total & V-Decl \%  & Avg. Size & Avg. Size \\
+\begin{tabular}{|ll|c|c|c|c|c|c|c|c|c|c|} \hline
+Library & & \# Parameterized & \# Rewritable & Rewriteable & Rewritten & Rewritten  & \# Variant & Rewritable   & Rewritable & Flowsto   & Flowsto-R  \\
+        & &    Decl Total    & P-Decl Total  & P-Decl \%   & Total     & Percentage & Decls      & V-Decl Total & V-Decl \%  & Avg. Size & Avg. Size \\
 \hline
 """
 
 	override def statTexRow(vs:VarStats):String =
 		Utils.joinstr(" & ",
 			vs.totalPDecls,
+			
 			vs.totalRewritablePDecls,
 			texPercent(vs.ratioRewritablePDecls),
+			
+			vs.totalRewritten,
+			texPercent(vs.ratioRewritten),
 			
 			vs.totalVDecls,
 			vs.totalRewritableVDecls,
@@ -232,8 +236,12 @@ Library & & \# Parameterized & \# Rewritable & Rewriteable & \# Variant & Rewrit
 	override def statTexRow(vs:VarStats, formatter:Any => String):String =
 		Utils.joinstr(" & ",
 			formatter(vs.totalPDecls),
+			
 			formatter(vs.totalRewritablePDecls),
 			formatter(texPercent(vs.ratioRewritablePDecls)),
+			
+			formatter(vs.totalRewritten),
+			formatter(texPercent(vs.ratioRewritten)),
 			
 			formatter(vs.totalVDecls),
 			formatter(vs.totalRewritableVDecls),

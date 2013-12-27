@@ -2,39 +2,31 @@ aspect Stats
 {
 	// uselessWildCardsInSig
 	
-	syn lazy int TypeDecl.uselessWildCardsInSig() {
-		int total = 0;
-		for (int j=0; j < getNumBodyDecl(); j++) {
-			total += getBodyDecl(j).uselessWildCards();
+	syn lazy int ASTNode.uselessWildCardsInSig() {
+		int total = uselessWildCards();
+		for(int i = 0; i < getNumChild(); i++) {
+			total += getChild(i).uselessWildCardsInSig();
 		}
 		return total;
 	}
 	
 	// uselessWildCards
 
-	syn lazy int BodyDecl.uselessWildCards() = 0;
-
-	eq FieldDeclaration.uselessWildCards() =
+	syn lazy int ASTNode.uselessWildCards() = 0;
+	
+	eq InfluenceNode.uselessWildCards() =
 		type().uselessWildCards();
-
-	eq MethodDecl.uselessWildCards() {
-		// return type
-		int total = type().uselessWildCards();
-		// argument types
-		for (int i=0; i < getNumParameter(); i++) {
-			total += getParameter(i).type().uselessWildCards();
-		}
-		if(total > 0) {
-			LOG.log(INFO, fullName() + " sig has a useless wildcard");
+	
+	eq GenericMethodDecl.uselessWildCards() {
+		int total = super.uselessWildCards();
+		for(int i = 0; i < getNumTypeParameter(); i++) {
+			TypeVariable param = getTypeParameter(i);
+			for (int j = 0; j < param.getNumTypeBound(); j++) {
+				total += param.getTypeBound(j).type().uselessWildCards();
+			}
 		}
 		return total;
 	}
-	
-	eq MemberTypeDecl.uselessWildCards() =
-		typeDecl().uselessWildCardsInSig();
-
-
-	syn lazy int TypeDecl.uselessWildCards() = 0;
 
 	eq ParTypeDecl.uselessWildCards() {
 		int total = 0;
@@ -70,38 +62,34 @@ aspect Stats
 	eq ArrayDecl.uselessWildCards() =
 		componentType().uselessWildCards();
 
-
 	// numWildCardActualsInSig
 
-	syn lazy int TypeDecl.numWildCardActualsInSig() {
-		int total = 0;
-		for (int j=0; j < getNumBodyDecl(); j++) {
-			total += getBodyDecl(j).numWildCardActuals();
+	syn lazy int ASTNode.numWildCardActualsInSig() {
+		int total = numWildCardActuals();
+		for(int i = 0; i < getNumChild(); i++) {
+			total += getChild(i).numWildCardActualsInSig();
 		}
 		return total;
 	}
 	
 	// numWildCardActuals
 
-	syn lazy int BodyDecl.numWildCardActuals() = 0;
+	syn lazy int ASTNode.numWildCardActuals() = 0;
 
-	eq FieldDeclaration.numWildCardActuals() = type().numWildCardActuals();
-	
-	eq MethodDecl.numWildCardActuals() {
-		// return type
-		int total = type().numWildCardActuals();
-		// argument types
-		for (int i=0; i<getNumParameter(); i++) {
-			total += getParameter(i).type().numWildCardActuals();
+	eq InfluenceNode.numWildCardActuals() =
+		type().numWildCardActuals();
+
+	eq GenericMethodDecl.numWildCardActuals() {
+		int total = super.numWildCardActuals();
+		for(int i = 0; i < getNumTypeParameter(); i++) {
+			TypeVariable param = getTypeParameter(i);
+			for (int j = 0; j < param.getNumTypeBound(); j++) {
+				total += param.getTypeBound(j).type().numWildCardActuals();
+			}
 		}
 		return total;
 	}
 
-	eq MemberTypeDecl.numWildCardActuals() =
-		typeDecl().numWildCardActualsInSig();
-
-	syn lazy int TypeDecl.numWildCardActuals() = 0;
-	
 	eq ParTypeDecl.numWildCardActuals() {
 		int total = 0;
 		for (int i = 0; i < getNumArgument(); i++) {
@@ -124,17 +112,17 @@ aspect Stats
 
 	// overSpecifiedActualsInSig
 
-	syn lazy int TypeDecl.overSpecifiedActualsInSig() {
-		int total = 0;
-		for (int j=0; j < getNumBodyDecl(); j++) {
-			total += getBodyDecl(j).overSpecifiedActuals();
+	syn lazy int ASTNode.overSpecifiedActualsInSig() {
+		int total = overSpecifiedActuals();
+		for(int i = 0; i < getNumChild(); i++) {
+			total += getChild(i).overSpecifiedActualsInSig();
 		}
 		return total;
 	}
 	
 	// overSpecifiedActuals
 
-	syn lazy int BodyDecl.overSpecifiedActuals() = 0;
+	syn lazy int ASTNode.overSpecifiedActuals() = 0;
 	
 	eq MethodDecl.overSpecifiedActuals() {
 		int total = 0;
@@ -191,15 +179,15 @@ aspect Stats
 	
 	// numMethArgTypeActuals
 	
-	syn lazy int TypeDecl.numMethArgTypeActualsInSig() {
-		int total = 0;
-		for (int j=0; j < getNumBodyDecl(); j++) {
-			total += getBodyDecl(j).numMethArgTypeActuals();
+	syn lazy int ASTNode.numMethArgTypeActualsInSig() {
+		int total = numMethArgTypeActuals();
+		for(int i = 0; i < getNumChild(); i++) {
+			total += getChild(i).numMethArgTypeActualsInSig();
 		}
 		return total;
 	}
 		
-	syn lazy int BodyDecl.numMethArgTypeActuals() = 0;
+	syn lazy int ASTNode.numMethArgTypeActuals() = 0;
 
 	eq MethodDecl.numMethArgTypeActuals() {
 		int total = 0;
@@ -209,9 +197,6 @@ aspect Stats
 		}
 		return total;
 	}
-
-	eq MemberTypeDecl.numMethArgTypeActuals() =
-		typeDecl().numMethArgTypeActualsInSig();
 
 	// numTypeActuals
 	
@@ -233,10 +218,10 @@ aspect Stats
 	eq ArrayDecl.numTypeActuals() = componentType().numTypeActuals();
 
 	/** Computes number of declarations declared with parameterized types. */
-	syn lazy int ASTNode.numPDeclsInSubtree() {
+	syn lazy int ASTNode.numPDeclsInSig() {
 		int total = isPDecl() ? numDecls() : 0;
 		for(int i = 0; i < getNumChild(); i++) {
-			total += getChild(i).numPDeclsInSubtree();
+			total += getChild(i).numPDeclsInSig();
 		}
 		return total;
 	}
@@ -245,7 +230,7 @@ aspect Stats
 	  * parameterized type from source */
 	syn boolean ASTNode.isPDecl() = false;
 	eq InfluenceNode.isPDecl() =
-		isFromSource() && type().isParameterizedType();
+		isFromSource() && isOfParameterizedType();
 	
 	syn int ASTNode.numDecls() = 0;
 	eq InfluenceNode.numDecls() = 1;
@@ -254,10 +239,10 @@ aspect Stats
 	  * where total = the sum of sizes of each
 	  * flows-to set.
 	  */
-	syn lazy long ASTNode.numFlowsToInSubtree() {
+	syn lazy long ASTNode.numFlowsToInSig() {
 		long total = isPDecl() ? numFlowsTo() : 0;
 		for(int i = 0; i < getNumChild(); i++) {
-			total += getChild(i).numFlowsToInSubtree();
+			total += getChild(i).numFlowsToInSig();
 		}
 		return total;
 	}
@@ -265,10 +250,10 @@ aspect Stats
 	syn lazy int ASTNode.numFlowsTo() = 0;
 	eq InfluenceNode.numFlowsTo() = reachableINodes().size();
 
-	syn lazy int ASTNode.numRewritablePDeclsInSubtree() {
+	syn lazy int ASTNode.numRewritablePDeclsInSig() {
 		int total = isPDecl() ? numRewritable() : 0;
 		for(int i = 0; i < getNumChild(); i++) {
-			total += getChild(i).numRewritablePDeclsInSubtree();
+			total += getChild(i).numRewritablePDeclsInSig();
 		}
 		return total;
 	}
@@ -277,10 +262,23 @@ aspect Stats
 	eq InfluenceNode.numRewritable() = isRewritable() ? 1 : 0;
 
 
-	syn lazy long ASTNode.numRewritableFlowsToInSubtree() {
+	syn lazy int ASTNode.numRewrittenInSig() {
+		int total = numRewritten();
+		for(int i = 0; i < getNumChild(); i++) {
+			total += getChild(i).numRewrittenInSig();
+		}
+		return total;
+	}
+
+	syn lazy int ASTNode.numRewritten() = 0;
+	
+	eq InfluenceNode.numRewritten() =
+		(isRewritable() && mayPromoteWildcard()) ? 1 : 0;
+
+	syn lazy long ASTNode.numRewritableFlowsToInSig() {
 		long total = isPDecl() ? numRewritableFlowsTo() : 0;
 		for(int i = 0; i < getNumChild(); i++) {
-			total += getChild(i).numRewritableFlowsToInSubtree();
+			total += getChild(i).numRewritableFlowsToInSig();
 		}
 		return total;
 	}
@@ -292,10 +290,10 @@ aspect Stats
 
 
 	/** Computes number of declarations declared with variant types. */
-	syn lazy int ASTNode.numVDeclsInSubtree() {
+	syn lazy int ASTNode.numVDeclsInSig() {
 		int total = isVDecl() ? numDecls() : 0;
 		for(int i = 0; i < getNumChild(); i++) {
-			total += getChild(i).numVDeclsInSubtree();
+			total += getChild(i).numVDeclsInSig();
 		}
 		return total;
 	}
@@ -305,10 +303,10 @@ aspect Stats
 	eq InfluenceNode.isVDecl() =
 		isFromSource() && type().isVariantType();
 
-	syn lazy int ASTNode.numRewritableVDeclsInSubtree() {
+	syn lazy int ASTNode.numRewritableVDeclsInSig() {
 		int total = isVDecl() ? numRewritable() : 0;
 		for(int i = 0; i < getNumChild(); i++) {
-			total += getChild(i).numRewritableVDeclsInSubtree();
+			total += getChild(i).numRewritableVDeclsInSig();
 		}
 		return total;
 	}

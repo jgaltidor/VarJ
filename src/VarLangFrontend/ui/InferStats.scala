@@ -63,8 +63,8 @@ object InferStats extends BaseParams
 			}
 		val allstats = new AllStats(allLibStats)
 		println("Writing out Tex Table to file: " + outTexFileName)
-		Utils.writeToFile((new Table1).texTable(allstats), outTexFileName)
-		Utils.appendToFile((new Table3).texTable(allstats), outTexFileName)
+		Utils.writeToFile(Table1.texTable(allstats), outTexFileName)
+		Utils.appendToFile(Table3.texTable(allstats), outTexFileName)
 		if(jsonFileName != null) {
 			println("Writing out to JSON file: " + jsonFileName)
 			Utils.writeToFile(allstats.toJSON.toString(), jsonFileName)

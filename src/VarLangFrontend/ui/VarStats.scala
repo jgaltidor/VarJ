@@ -113,6 +113,8 @@ class VarStats
 	var totalPDecls = 0
 	/** Num of rewritable pdecls */
 	var totalRewritablePDecls = 0
+	/** Num of rewritten decls */
+	var totalRewritten = 0
 	/** Sum of all cardinalities of flowsto sets */
 	var totalFlowsTo:Long = 0
 	/** Sum of all cardinalities of rewritable flowsto sets */
@@ -156,6 +158,9 @@ class VarStats
 	def ratioRewritablePDecls:Double =
 	 totalRewritablePDecls.toDouble / totalPDecls
 
+	def ratioRewritten:Double =
+	 totalRewritten.toDouble / totalPDecls
+
 	def averageFlowsToSize:Double =
 	 totalFlowsTo.toDouble / totalPDecls
 
@@ -190,6 +195,7 @@ class VarStats
 		
 		this.totalPDecls             += other.totalPDecls
 		this.totalRewritablePDecls   += other.totalRewritablePDecls
+		this.totalRewritten          += other.totalRewritten
 		this.totalFlowsTo            += other.totalFlowsTo
 		this.totalRewritableFlowsTo  += other.totalRewritableFlowsTo
 		this.totalVDecls             += other.totalVDecls
@@ -227,6 +233,7 @@ class VarStats
 		
 		"totalPDecls"             -> totalPDecls,
 		"totalRewritablePDecls"   -> totalRewritablePDecls,
+		"totalRewritten"          -> totalRewritten,
 		"totalFlowsTo"            -> totalFlowsTo,
 		"totalRewritableFlowsTo"  -> totalRewritableFlowsTo,
 		"totalVDecls"             -> totalVDecls,
@@ -266,6 +273,7 @@ object VarStats
 		
 		vs.totalPDecls             = json.obj("totalPDecls")
 		vs.totalRewritablePDecls   = json.obj("totalRewritablePDecls")
+		vs.totalRewritten          = json.obj("totalRewritten")
 		vs.totalFlowsTo            = json.obj("totalFlowsTo")
 		vs.totalRewritableFlowsTo  = json.obj("totalRewritableFlowsTo")
 		vs.totalVDecls             = json.obj("totalVDecls")

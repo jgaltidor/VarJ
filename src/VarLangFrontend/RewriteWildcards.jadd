@@ -163,39 +163,12 @@ aspect RewriteWildcard
 	}
 
 	public void ASTNode.writeToWildcards() { }
-	
-	// need to determine criteria for selecting ASTNodes to rewrite
-	
-	public void FieldDeclaration.writeToWildcards() {
+
+	public void InfluenceNode.writeToWildcards() {
 		Access type = getTypeAccess();
 		String oldAccess = type.toString();
 		String newAccess = ASTNode.analysisStrategy.wildString(type);
 		type.writeWildcardReplaceInfo(oldAccess, newAccess);
-	}
-
-
-	public void VariableDeclaration.writeToWildcards() {
-		Access type = getTypeAccess();
-		String oldAccess = type.toString();
-		String newAccess = ASTNode.analysisStrategy.wildString(type);
-		type.writeWildcardReplaceInfo(oldAccess, newAccess);
-	}
-
-
-	public void ParameterDeclaration.writeToWildcards() {
-		Access type = getTypeAccess();
-		String oldAccess = type.toString();
-		String newAccess = ASTNode.analysisStrategy.wildString(type);
-		type.writeWildcardReplaceInfo(oldAccess, newAccess);
-	}
-
-
-	/** Only rewrites the return type of the method */
-	public void MethodDecl.writeToWildcards() {
-		Access returnType = getTypeAccess();
-		String oldAccess = returnType.toString();
-		String newAccess = ASTNode.analysisStrategy.wildString(returnType);
-		returnType.writeWildcardReplaceInfo(oldAccess, newAccess);
 	}
 
 	// Methods for testing
