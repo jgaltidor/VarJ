@@ -272,8 +272,7 @@ aspect Stats
 
 	syn lazy int ASTNode.numRewritten() = 0;
 	
-	eq InfluenceNode.numRewritten() =
-		(isRewritable() && mayPromoteWildcard()) ? 1 : 0;
+	eq InfluenceNode.numRewritten() = willRewrite() ? 1 : 0;
 
 	syn lazy long ASTNode.numRewritableFlowsToInSig() {
 		long total = isPDecl() ? numRewritableFlowsTo() : 0;
