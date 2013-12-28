@@ -69,7 +69,7 @@ aspect AnalyzeMethodBody
 		varBounds(tv, (OnlySigAnalysis) strategy);
 
 	eq MethodDecl.varBounds(TypeVariable tv, MethodBodyAnalysis strategy) {
-		if(!isFromSource()) {
+		if(!isFromSource() || isNative()) {
 			return varBounds(tv, (OnlySigAnalysis) strategy);
 		}
 		for(MethodDecl meth : hierarchyMethods()) {
