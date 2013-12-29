@@ -3,6 +3,8 @@ import scala.util.parsing.json.{JSONObject,JSONArray}
 
 class Table1
 {
+	import Table1._ // Importing static members of Table1
+
 	def tableHeader =
 """\begin{tabular}{|ll|c|c|c|c|c|c|c|c|c|c|c|c|c|} \hline
 Library & & \# Type     & \# Generic  & \multicolumn{5}{c|}{Type Definitions} & Recursive & Unnecess. & Over-specif.\\
@@ -45,8 +47,7 @@ Library & & \# Type     & \# Generic  & \multicolumn{5}{c|}{Type Definitions} & 
 
 	def texTotalRows(totalLibStats:LibStats):String =
 	{
-		def texBold(a:Any):String = "\\textbf{%s}" format a.toString
-	
+		import Table1.texBold
 		val sb = new StringBuilder(700)
 		// first row
 		sb.append("""\multirow{3}{*}{%s} & %s &""".format(
@@ -63,18 +64,7 @@ Library & & \# Type     & \# Generic  & \multicolumn{5}{c|}{Type Definitions} & 
 
 
 	def statTexRow(vs:VarStats):String =
-		Utils.joinstr(" & ",
-			vs.totalTypeDefs,
-			vs.totalGenerics,
-			texPercent(vs.ratioInVar),
-			texPercent(vs.ratioVar),
-			texPercent(vs.ratioCoVar),
-			texPercent(vs.ratioContraVar),
-			texPercent(vs.ratioBiVar),
-			texPercent(vs.ratioRecVarParams),
-			texPercent(vs.ratioUselessWildCards),
-			texPercent(vs.ratioOverSpecified)
-		)
+		statTexRow(vs, Table1.any2String)
 	
 	def statTexRow(vs:VarStats, formatter:Any => String):String =
 		Utils.joinstr(" & ",
@@ -89,12 +79,6 @@ Library & & \# Type     & \# Generic  & \multicolumn{5}{c|}{Type Definitions} & 
 			formatter(texPercent(vs.ratioUselessWildCards)),
 			formatter(texPercent(vs.ratioOverSpecified))
 		)
-
-	def texPercent(d:Double):String = {
-		val s = java.text.NumberFormat.getPercentInstance.format(d)
-		val slen = s.length
-		if(slen < 2) "0\\%" else s.substring(0, slen-1) + "\\%"
-	}
 }
 
 object Table1
@@ -102,12 +86,36 @@ object Table1
 	private val theInstance = new Table1
 	
 	def texTable(allstats:AllStats) = theInstance texTable allstats
+
+	def any2String(a:Any):String = a.toString
+	
+	def decimal2String(d:Double):String = "%.2f" format d
+
+	def texPercent(d:Double):String = {
+		val s = java.text.NumberFormat.getPercentInstance.format(d)
+		val slen = s.length
+		if(slen < 2) "0\\%" else s.substring(0, slen-1) + "\\%"
+	}
+	
+	def texBold(a:Any):String = "\\textbf{%s}" format a.toString
+	
+	def shader(a:Any):String = "\\highlight{%s}" format a
+	
+	def shadeAndBold(a:Any):String =
+		"""\highlight{\textbf{%s}}""" format a.toString
 }
 
 class Table2
 {
-  private val table1Instance = new Table1
-  import table1Instance._
+	import Table1._
+ 	private val table1Delegate = new Table1
+  
+  def tableHeader = table1Delegate.tableHeader
+  def tableSuffix = table1Delegate.tableSuffix
+  def endTableRow = table1Delegate.endTableRow
+  def statTexRow(vs:VarStats) = table1Delegate statTexRow vs
+  def statTexRow(vs:VarStats, formatter:Any => String) =
+  	table1Delegate statTexRow (vs, formatter)
 
 	def texTable(sigStats:AllStats, bodStats:AllStats):String = {
 		val sb = new StringBuilder(2 << 12)
@@ -126,8 +134,6 @@ class Table2
 
 	def libTexRows(sigStats:LibStats, bodStats:LibStats):String =
 	{
-		def shader(a:Any):String = "\\highlight{%s}" format a
-	
 		val sb = new StringBuilder(256)
 		// class rows
 		sb.append("""\multirow{6}{*}{%s} & classes & """.format(sigStats.name))
@@ -149,10 +155,6 @@ class Table2
 
 	def texTotalRows(clsTotalStats:LibStats, bodTotalStats:LibStats):String =
 	{
-		def texBold(a:Any):String = "\\textbf{%s}" format a.toString
-		def shadeAndBold(a:Any):String =
-			"""\highlight{\textbf{%s}}""" format a.toString
-	
 		val sb = new StringBuilder(700)
 		// class rows
 		sb.append("""\multirow{6}{*}{%s} & %s &""".format(
@@ -198,17 +200,22 @@ object Table2
 
 class Table3 extends Table1
 {
+	import Table1._ // Importing static members of Table1
+
 	override def tableHeader =
 """
-% Table columns: (1) Library,
+% Table columns: (1) Library
 %                (2) (category: classes, interfaces, total)
-%                (3) # of (parameterized) decls,
-%                (4) # of rewritable decls,
-%                (5) percentage of rewritable decls,
-%                (6) # of variant decls,
-%                (7) percentage of rewritable variant decls,
-%                (8) Average size of flowsto set
-%                (9) Average size of flowsto set for rewritable decls
+%                (3) # of (parameterized) decls
+%                (4) # of rewritable decls
+%                (5) % of rewritable decls
+%                (6) # of rewritten decls
+%                (7) % of rewritten decls
+
+%                (8) # of variant decls,
+%                (9) percentage of rewritable variant decls,
+%                (10) Average size of flowsto set
+%                (11) Average size of flowsto set for rewritable decls
 \begin{tabular}{|ll|c|c|c|c|c|c|c|c|c|c|} \hline
 Library & & \# Parameterized & \# Rewritable & Rewriteable & Rewritten & Rewritten  & \# Variant & Rewritable   & Rewritable & Flowsto   & Flowsto-R  \\
         & &    Decl Total    & P-Decl Total  & P-Decl \%   & Total     & Percentage & Decls      & V-Decl Total & V-Decl \%  & Avg. Size & Avg. Size \\
@@ -229,8 +236,8 @@ Library & & \# Parameterized & \# Rewritable & Rewriteable & Rewritten & Rewritt
 			vs.totalRewritableVDecls,
 			texPercent(vs.ratioRewritableVDecls),
 			
-			"%.2f".format(vs.averageFlowsToSize),
-			"%.2f".format(vs.averageRewritableFlowsToSize)
+			decimal2String((vs.averageFlowsToSize)),
+			decimal2String((vs.averageRewritableFlowsToSize))
 		)
 	
 	override def statTexRow(vs:VarStats, formatter:Any => String):String =
@@ -247,8 +254,8 @@ Library & & \# Parameterized & \# Rewritable & Rewriteable & Rewritten & Rewritt
 			formatter(vs.totalRewritableVDecls),
 			formatter(texPercent(vs.ratioRewritableVDecls)),
 			
-			formatter("%.2f".format(vs.averageFlowsToSize)),
-			formatter("%.2f".format(vs.averageRewritableFlowsToSize))
+			formatter(decimal2String(vs.averageFlowsToSize)),
+			formatter(decimal2String(vs.averageRewritableFlowsToSize))
 		)
 }
 
@@ -277,6 +284,124 @@ object Table3
 	}
 }
 
+class Table4 extends Table1
+{
+	import Table1._ // Importing static members of Table1
+
+	override def tableHeader =
+"""
+% Table columns: (1) Library
+%                (2) (category: classes, interfaces, total)
+%                (3) # of (parameterized) decls
+%                (4) # of rewritable decls
+%                (5) % of rewritable decls
+%                (6) # of rewritten decls
+%                (7) % of rewritten decls
+%                (8) Average size of flowsto set
+%                (9) Average size of flowsto set for rewritable decls
+
+\begin{tabular}{|ll|c|c|c|c|c|c|c|c|} \hline
+Library & & \# Parameterized & \# Rewritable & Rewriteable & Rewritten & Rewritten  & Flowsto   & Flowsto-R  \\
+        & &    Decl Total    & P-Decl Total  & P-Decl \%   & Total     & Percentage & Avg. Size & Avg. Size \\
+\hline
+"""
+
+	override def statTexRow(vs:VarStats):String =
+		statTexRow(vs, Table1.any2String)
+
+
+	override def statTexRow(vs:VarStats, formatter:Any => String):String =
+		Utils.joinstr(" & ",
+			formatter(vs.totalPDecls),
+			
+			formatter(vs.totalRewritablePDecls),
+			formatter(texPercent(vs.ratioRewritablePDecls)),
+			
+			formatter(vs.totalRewritten),
+			formatter(texPercent(vs.ratioRewritten)),
+			
+			formatter(decimal2String(vs.averageFlowsToSize)),
+			formatter(decimal2String(vs.averageRewritableFlowsToSize))
+		)
+}
+
+object Table4
+{
+	private val theInstance = new Table4
+	
+	def texTable(allstats:AllStats) = theInstance texTable allstats
+
+	def main(args:Array[String]):Unit = {
+		if(args.length < 3) {
+			Console.err.println(
+				"usage: <out tex file> <sig json file> <bod json file>")
+			sys.exit(1)
+		}
+		val outTexFileName = args(0)
+		val sigStats = AllStats.fromJSONSFile(args(1))
+		val bodStats = AllStats.fromJSONSFile(args(2))
+		Utils.writeToFile(
+			Table4.texTable(sigStats),
+			outTexFileName)
+		Utils.writeToFile(
+			Table4.texTable(bodStats),
+			outTexFileName)
+	}
+}
+
+class Table5 extends Table2
+{
+	import Table1._ // Importing static members of Table1
+
+	override def tableHeader =
+"""
+% Table columns: (1) Library
+%                (2) (category: classes, interfaces, total)
+%                (3) # of (parameterized) decls
+%                (4) # of rewritable decls
+%                (5) % of rewritable decls
+%                (6) # of rewritten decls
+%                (7) % of rewritten decls
+%                (8) Average size of flowsto set
+%                (9) Average size of flowsto set for rewritable decls
+
+\begin{tabular}{|ll|c|c|c|c|c|c|c|c|} \hline
+Library & & \# Parameterized & \# Rewritable & Rewriteable & Rewritten & Rewritten  & Flowsto   & Flowsto-R  \\
+        & &    Decl Total    & P-Decl Total  & P-Decl \%   & Total     & Percentage & Avg. Size & Avg. Size \\
+\hline
+"""
+
+	private val table4Delegate = new Table4
+	override def statTexRow(vs:VarStats) =
+		table4Delegate statTexRow vs
+	override def statTexRow(vs:VarStats, formatter:Any => String) =
+		table4Delegate statTexRow (vs, formatter)
+}
+
+
+object Table5
+{
+	private val theInstance = new Table5
+	
+	def texTable(sigStats:AllStats, bodStats:AllStats) =
+		theInstance texTable (sigStats, bodStats)
+
+	def main(args:Array[String]):Unit = {
+		if(args.length < 3) {
+			Console.err.println(
+				"usage: <out tex file> <sig json file> <bod json file>")
+			sys.exit(1)
+		}
+		val outTexFileName = args(0)
+		val sigStats = AllStats.fromJSONSFile(args(1))
+		val bodStats = AllStats.fromJSONSFile(args(2))
+		Utils.writeToFile(
+			texTable(sigStats, bodStats),
+			outTexFileName)
+	}
+}
+
+
 object TexTable
 {
 	def main(args:Array[String]):Unit = {
@@ -292,10 +417,7 @@ object TexTable
 			Table2.texTable(sigStats, bodStats),
 			outTexFileName)
 		Utils.appendToFile(
-			Table3.texTable(sigStats),
-			outTexFileName)
-		Utils.appendToFile(
-			Table3.texTable(bodStats),
+			Table5.texTable(sigStats, bodStats),
 			outTexFileName)
 	}
 }
