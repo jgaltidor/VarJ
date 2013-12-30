@@ -31,6 +31,7 @@ object ComputeStats
 			vstats.totalRewritableFlowsTo +=  typ.numRewritableFlowsToInSig
 			vstats.totalVDecls            +=  typ.numVDeclsInSig
 			vstats.totalRewritableVDecls  +=  typ.numRewritableVDeclsInSig
+			vstats.totalRewrittenVDecls   +=  typ.numRewrittenVDeclsInSig
 			
 			if(!typ.isGenericType) {
 				vstats.totalMonoTypes += 1

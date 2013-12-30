@@ -309,4 +309,12 @@ aspect Stats
 		}
 		return total;
 	}
+
+	syn lazy int ASTNode.numRewrittenVDeclsInSig() {
+		int total = isVDecl() ? numRewritten() : 0;
+		for(int i = 0; i < getNumChild(); i++) {
+			total += getChild(i).numRewrittenVDeclsInSig();
+		}
+		return total;
+	}
 }

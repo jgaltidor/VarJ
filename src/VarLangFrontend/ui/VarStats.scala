@@ -123,6 +123,8 @@ class VarStats
 	var totalVDecls = 0
 	/** Num of rewritable vdecls */
 	var totalRewritableVDecls = 0
+	/** Num of rewritten vdecls */
+	var totalRewrittenVDecls = 0
 
 	// inferred stats
 
@@ -170,6 +172,8 @@ class VarStats
 	def ratioRewritableVDecls:Double =
 	 totalRewritableVDecls.toDouble / totalVDecls
 
+	def ratioRewrittenVDecls:Double =
+	 totalRewrittenVDecls.toDouble / totalVDecls
 
 	def addFrom(other:VarStats):Unit = {
 		this.totalMonoTypes += other.totalMonoTypes
@@ -200,6 +204,7 @@ class VarStats
 		this.totalRewritableFlowsTo  += other.totalRewritableFlowsTo
 		this.totalVDecls             += other.totalVDecls
 		this.totalRewritableVDecls   += other.totalRewritableVDecls
+		this.totalRewrittenVDecls    += other.totalRewrittenVDecls
 	}
 	
 	def +(other:VarStats):VarStats = {
@@ -237,7 +242,8 @@ class VarStats
 		"totalFlowsTo"            -> totalFlowsTo,
 		"totalRewritableFlowsTo"  -> totalRewritableFlowsTo,
 		"totalVDecls"             -> totalVDecls,
-		"totalRewritableVDecls"   -> totalRewritableVDecls
+		"totalRewritableVDecls"   -> totalRewritableVDecls,
+		"totalRewrittenVDecls"    -> totalRewrittenVDecls
 	))
 }
 
@@ -278,6 +284,7 @@ object VarStats
 		vs.totalRewritableFlowsTo  = json.obj("totalRewritableFlowsTo")
 		vs.totalVDecls             = json.obj("totalVDecls")
 		vs.totalRewritableVDecls   = json.obj("totalRewritableVDecls")
+		vs.totalRewrittenVDecls    = json.obj("totalRewrittenVDecls")
 
 		vs
 	}
