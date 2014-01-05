@@ -62,10 +62,11 @@ aspect InfluenceAnalysis
 	coll Set<InfluenceNode> InfluenceNode.assignedTo() [ASTUtils.createSet()]
 		with addAll root Program;
 	
+	
 	Expr contributes Collections.singleton(destinationNode().sourceDecl())
 		when hasDestinationNode() && destinationNode().isUseful()
 		to InfluenceNode.assignedTo()
-		for each getUsefulNodes(accessedINodes());
+		for each getUsefulNodes(nodesAffectingType());
 
 	MethodDecl contributes Collections.singleton(sourceDecl())
 		when isUseful()
@@ -79,20 +80,52 @@ aspect InfluenceAnalysis
 		for each ASTUtils.subtract(getUsefulNodes(hierarchyParams()),
 		                           Collections.singleton(sourceDecl()));
 
+	// add edges for qualified written-to accesses
+
 	MethodAccess contributes filterMayPromoteWildcard(formalParameterList())
 		when hasQualifierDecl() && qualifierDecl().isUseful()
 		to InfluenceNode.assignedTo()
 		for qualifierDecl().sourceDecl();
 
+	VarAccess contributes
+		filterMayPromoteWildcard(Collections.singleton(decl()))
+		when isDest() && hasQualifierDecl() && qualifierDecl().isUseful()
+		to InfluenceNode.assignedTo()
+		for qualifierDecl().sourceDecl();
 
-	syn Set<InfluenceNode> MethodAccess.accessedINodesInArgs() {
-		Set<InfluenceNode> nodes = ASTUtils.createSet();
-		for(Expr arg : getArgList()) {
-			nodes.addAll(arg.accessedINodes());
-		}
-		return nodes;
+	syn boolean VarAccess.isInstanceFieldAccess() =
+		((Variable) decl().sourceDecl()).isInstanceVariable();
+
+	/** Returns set of nodes that can affect the type
+	  * the type of this expression
+	  */
+	syn Set<InfluenceNode> Expr.nodesAffectingType() = accessedINodes();
+	
+	/** Optimization for method access.
+	  * Actual value arguments do not affect the return type
+	  * of this method access unless the method being accessed
+	  * is a generic method.
+	  */
+	eq MethodAccess.nodesAffectingType() {
+		MethodDecl meth = (MethodDecl) decl().sourceDecl();
+		return meth.isGenericMethod() ?
+			super.nodesAffectingType() :
+			Collections.<InfluenceNode>singleton(meth);
 	}
 	
+	/** Optimization for ConstructorAccess.
+	  * Actual value arguments never affect the return type.
+	  */
+	eq ConstructorAccess.nodesAffectingType() = Collections.emptySet();
+
+	/** Optimization for ClassInstanceExpr.
+	  * Actual value arguments never affect the return type.
+	  */
+	eq ClassInstanceExpr.nodesAffectingType() = Collections.emptySet();
+	
+	syn boolean MethodDecl.isGenericMethod() = false;
+	eq GenericMethodDecl.isGenericMethod() = true;
+
 	inh InfluenceNode Expr.qualifierDecl();
 	eq ASTNode.getChild().qualifierDecl() = null;
 	eq AbstractDot.getRight().qualifierDecl() = getLeft().referredDecl();
