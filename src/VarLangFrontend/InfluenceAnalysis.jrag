@@ -184,12 +184,12 @@ aspect InfluenceAnalysis
 			}
 			Value inferredUseSite =
 				ASTNode.analysisStrategy.inferredUseSite(paccess, i).eval();
-			if(inferredUseSite.gt(specifiedUseSite))
+			if(inferredUseSite.gt(specifiedUseSite)) {
 				return true;
+			}
 		}
 		return false;
 	}
-
 	
 	public Set<InfluenceNode> ASTNode.filterMayPromoteWildcard(
 		Iterable<? extends InfluenceNode> nodes)
@@ -304,7 +304,12 @@ aspect InfluenceAnalysis
 	eq MethodDecl.succ() {
 		Set<InfluenceNode> nodes = ASTUtils.createSet();
 		nodes.addAll(assignedTo());
-		for(MethodDecl meth : hierarchyMethods()) {
+		// Because Java allows covariance in the return
+		// types of overriding methods,
+		// we only need to add edges overridden methods
+		// in the super classes/interfaces.
+		// We don't need to add edges to overridding methods
+		for(MethodDecl meth : overriddenMethods()) {
 			MethodDecl sourceMeth = meth.sourceMethodDecl();
 			if(sourceMeth != this) {
 				nodes.add(sourceMeth);

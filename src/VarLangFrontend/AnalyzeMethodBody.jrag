@@ -41,7 +41,6 @@ aspect AnalyzeMethodBody
 				hierarchyParam = (ParameterDeclaration) hierarchyParam.sourceDecl();
 				if(hierarchyParam != param)
 				{
-					// assert hierarchyParam.isOfParameterizedType();
 					bounds.add(hierarchyParam.getUVar(index));
 				}
 			}
@@ -53,7 +52,10 @@ aspect AnalyzeMethodBody
 		@Override
 		public VExpr inferredUseSite(ParTypeAccess access, int index) {
 			VExpr sigOnlyInferred = super.inferredUseSite(access, index);
-			return access.isMethodParamType() ?
+			return (access.isMethodParamType() &&
+			        !access.getTypeArgument(index)
+			               .type()
+			               .containsMethodTypeVariable())?
 				new Join(sigOnlyInferred, access.getParamDecl().getUVar(index))
 				: sigOnlyInferred;
 		}
@@ -69,7 +71,7 @@ aspect AnalyzeMethodBody
 		varBounds(tv, (OnlySigAnalysis) strategy);
 
 	eq MethodDecl.varBounds(TypeVariable tv, MethodBodyAnalysis strategy) {
-		if(!isFromSource() || isNative()) {
+		if(!isFromSource()) {
 			return varBounds(tv, (OnlySigAnalysis) strategy);
 		}
 		for(MethodDecl meth : hierarchyMethods()) {

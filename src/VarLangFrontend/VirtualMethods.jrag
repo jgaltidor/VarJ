@@ -43,10 +43,22 @@ aspect VirtualMethods
 	
 	private boolean Program.sourceFilesLoaded = false;
 	
+	
+	public void ASTNode.loadAllSourceFiles() {
+		for(int i = 0; i < getNumChild(); i++) {
+			getChild(i).loadAllSourceFiles();
+		}
+	}
+
 	public void Program.loadAllSourceFiles() {
 		if(sourceFilesLoaded) return;
 		Iterator itr = compilationUnitIterator();
-		while(itr.hasNext()) itr.next();
+		while(itr.hasNext()) {
+			CompilationUnit unit = (CompilationUnit) itr.next();
+			// traverse nodes in source compilation units
+			if(unit.fromSource())
+				unit.loadAllSourceFiles();
+		}
 		sourceFilesLoaded = true;
 	}
 

@@ -77,7 +77,34 @@ aspect Utils
 	/** Defined by TypeDecl.getNestedTypeDecls() */
 	syn java.util.List<TypeDecl> GenericTypeDecl.getNestedTypeDecls()
 		= super.getNestedTypeDecls();
+
+	inh lazy boolean TypeDecl.isMethodTypeVariable();
+	eq GenericMethodDecl.getTypeParameter(int i).isMethodTypeVariable() = true;
+	eq GenericConstructorDecl.getTypeParameter(int i).isMethodTypeVariable() = true;
+	eq Program.getChild().isMethodTypeVariable() = false;
+
+
+	syn boolean TypeDecl.containsMethodTypeVariable() = false;
 	
+	eq ParTypeDecl.containsMethodTypeVariable() {
+		for(int i = 0; i < getNumArgument(); i++) {
+			if(getArgument(i).type().containsMethodTypeVariable())
+				return true;
+		}
+		return false;
+	}
+
+	eq TypeVariable.containsMethodTypeVariable() =
+		isMethodTypeVariable();
+
+	eq ArrayDecl.containsMethodTypeVariable() =
+		componentType().containsMethodTypeVariable();
+
+	eq WildcardExtendsType.containsMethodTypeVariable() =
+		getAccess().type().containsMethodTypeVariable();
+
+	eq WildcardSuperType.containsMethodTypeVariable() =
+		getAccess().type().containsMethodTypeVariable();
 	
 	/** Needed to added some utility methods to this class because JastAdd
 		* fails to parse some legal Java methods, such as generic methods

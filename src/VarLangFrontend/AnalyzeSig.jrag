@@ -29,13 +29,6 @@ aspect AnalyzeSig
 
 		public VExpr inferredUseSite(ParTypeAccess access, int index) {
 			return inferredUseSite((ParTypeDecl) access.type(), index);
-			/*
-			GenericTypeDecl gtd = (GenericTypeDecl) access.genericDecl().sourceTypeDecl();
-			VExpr inferredDVar = gtd.getDVar(index);
-			Value specifiedUVar = access.specifiedUseSite(index);
-			// inferred use-site annotation
-			return new Join(inferredDVar, specifiedUVar);
-			*/
 		}
 
 		public VExpr inferredUseSite(ParTypeDecl ptyp, int index) {
@@ -310,6 +303,14 @@ aspect AnalyzeSig
 			else
 				innerAccess = oldArg;
 			Value newUseSite = strategy.inferredUseSite(this, i).eval();
+			if(newUseSite.equals(BIVARIANT) &&
+			   oldArg.type().containsMethodTypeVariable())
+			{
+				// don't allow bivariant use-site annotation
+				// so that the occurence of the method type
+				// parameter is not erased
+				newUseSite = specifiedUseSite(i);
+			}  
 			String newArg;
 			if(innerAccess == null) // specifiedUVar == BIVARIANCE
 				newArg = "?";
