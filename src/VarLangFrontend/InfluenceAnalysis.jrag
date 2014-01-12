@@ -425,4 +425,22 @@ aspect InfluenceAnalysis
 		}
 		super.logSuccessor();
 	}
+
+
+	public void ASTNode.logShapeUse(TypeDecl shape) {
+		for(int i = 0; i < getNumChild(); i++) {
+			getChild(i).logShapeUse(shape);
+		}
+	}
+
+	public void InfluenceNode.logShapeUse(TypeDecl shape) {
+		if(type().structurallyContains(shape)) {
+			ASTNode thisNode = (ASTNode) this;
+			System.out.printf("[SHAPE USE] shape %s used in type %s of %s at %s:%s",
+				shape.fullName(), this.getTypeAccess(), this.fullName(),
+				thisNode.sourceFile(), thisNode.location());
+			System.out.println();
+		}
+		super.logShapeUse(shape);
+	}
 }

@@ -169,6 +169,32 @@ aspect Utils
 			}
 			return result;
 		}
+
+		public static Comparator<TypeDecl> fullNameTypeDeclAscending() {
+			return new Comparator<TypeDecl>() {
+				public int compare(TypeDecl t1, TypeDecl t2) {
+					return t1.fullName().compareTo(t2.fullName());
+				}
+			};
+		}
+
+		public static Comparator<GenericTypeDecl> fullNameGenericTypeDeclAscending() {
+			return new Comparator<GenericTypeDecl>() {
+				final Comparator<TypeDecl> delegate = fullNameTypeDeclAscending();
+				public int compare(GenericTypeDecl t1, GenericTypeDecl t2) {
+					return delegate.compare((TypeDecl) t1, (TypeDecl) t2);
+				}
+			};
+		}
+
+
+		public static Comparator<BodyDecl> fullNameBodyDeclAscending() {
+			return new Comparator<BodyDecl>() {
+				public int compare(BodyDecl b1, BodyDecl b2) {
+					return b1.fullName().compareTo(b2.fullName());
+				}
+			};
+		}
 	}
 	
 	
