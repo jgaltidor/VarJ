@@ -83,18 +83,26 @@ aspect InfluenceAnalysis
 	// add edges for qualified written-to accesses
 
 	MethodAccess contributes filterMayPromoteWildcard(formalParameterList())
-		when hasQualifierDecl() && qualifierDecl().isUseful()
+		when isInstanceMethodAccess()
+		     && hasQualifierDecl()
+		     && qualifierDecl().isUseful()
 		to InfluenceNode.assignedTo()
 		for qualifierDecl().sourceDecl();
 
 	VarAccess contributes
 		filterMayPromoteWildcard(Collections.singleton(decl()))
-		when isDest() && hasQualifierDecl() && qualifierDecl().isUseful()
+		when isDest()
+		     && isInstanceFieldAccess()
+		     && hasQualifierDecl()
+		     && qualifierDecl().isUseful()
 		to InfluenceNode.assignedTo()
 		for qualifierDecl().sourceDecl();
 
 	syn boolean VarAccess.isInstanceFieldAccess() =
 		((Variable) decl().sourceDecl()).isInstanceVariable();
+
+	syn boolean MethodAccess.isInstanceMethodAccess() =
+		!((MethodDecl) decl().sourceDecl()).isStatic();
 
 	/** Returns set of nodes that can affect the type
 	  * the type of this expression
@@ -108,7 +116,7 @@ aspect InfluenceAnalysis
 	  */
 	eq MethodAccess.nodesAffectingType() {
 		MethodDecl meth = (MethodDecl) decl().sourceDecl();
-		return meth.isGenericMethod() ?
+		return meth.returnTypeDependsOnParam() ?
 			super.nodesAffectingType() :
 			Collections.<InfluenceNode>singleton(meth);
 	}
@@ -123,8 +131,17 @@ aspect InfluenceAnalysis
 	  */
 	eq ClassInstanceExpr.nodesAffectingType() = Collections.emptySet();
 	
-	syn boolean MethodDecl.isGenericMethod() = false;
-	eq GenericMethodDecl.isGenericMethod() = true;
+	syn boolean MethodDecl.returnTypeDependsOnParam() = false;
+	
+	eq GenericMethodDecl.returnTypeDependsOnParam() {
+		TypeDecl returnType = type();
+		for(int i = 0; i < getNumTypeParameter(); i++) {
+			TypeVariable param = getTypeParameter(i);
+			if(returnType.structurallyContains(param))
+				return true;
+		}
+		return super.returnTypeDependsOnParam();
+	}
 
 	inh InfluenceNode Expr.qualifierDecl();
 	eq ASTNode.getChild().qualifierDecl() = null;
