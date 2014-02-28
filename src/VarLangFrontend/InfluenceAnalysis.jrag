@@ -116,9 +116,14 @@ aspect InfluenceAnalysis
 	  */
 	eq MethodAccess.nodesAffectingType() {
 		MethodDecl meth = (MethodDecl) decl().sourceDecl();
-		return meth.returnTypeDependsOnParam() ?
-			super.nodesAffectingType() :
-			Collections.<InfluenceNode>singleton(meth);
+		Set<InfluenceNode> nodes = ASTUtils.createSet();
+		nodes.add(meth);
+		if(meth.returnTypeDependsOnParam()) {
+			for(int i = 0; i < getNumArg(); i++) {
+				nodes.addAll(getArg(i).nodesAffectingType());
+			}
+		}
+		return nodes;
 	}
 	
 	/** Optimization for ConstructorAccess.
@@ -134,10 +139,23 @@ aspect InfluenceAnalysis
 	syn boolean MethodDecl.returnTypeDependsOnParam() = false;
 	
 	eq GenericMethodDecl.returnTypeDependsOnParam() {
+		int numParams = getNumParameter();
+		if(numParams == 0) {
+			return false;
+		}
 		TypeDecl returnType = type();
 		for(int i = 0; i < getNumTypeParameter(); i++) {
-			TypeVariable param = getTypeParameter(i);
-			if(returnType.structurallyContains(param))
+			TypeVariable methodTypeVar = getTypeParameter(i);
+			// first, check that the type parameter occurs
+			// in the type of a formal parameter
+			boolean varOccurrenceFound = false;
+			for(int j = 0; j < numParams; j++) {
+				ParameterDeclaration param = getParameter(j);
+				varOccurrenceFound = param.type().structurallyContains(methodTypeVar);
+				if(varOccurrenceFound)
+					break;
+			}
+			if(varOccurrenceFound && returnType.structurallyContains(methodTypeVar))
 				return true;
 		}
 		return super.returnTypeDependsOnParam();

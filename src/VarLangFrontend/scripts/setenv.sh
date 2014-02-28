@@ -29,4 +29,5 @@ JAVA5_CLASSES=/System/Library/Frameworks/JavaVM.framework/Versions/1.5/Classes/c
 LIBCP=$LIBCP:$JAVA5_CLASSES
 LIBCP=$LIBCP:$GUAVA_FP/lib/jsr305.jar
 
+# JAVA_OPTS="-Xmx2g -classpath $JAVACP"
 JAVA_OPTS="-Xmx2g -ea -classpath $JAVACP"
