@@ -39,6 +39,9 @@ aspect AnalyzeSig
 			// inferred use-site annotation
 			return new Join(inferredDVar, specifiedUVar);
 		}
+		
+		@Override
+		public boolean isSignatureOnlyAnalysis() { return true; }
 	}
 
 	syn lazy java.util.List<VExpr> TypeContainer.varBounds(TypeVariable tv, OnlySigAnalysis strategy);

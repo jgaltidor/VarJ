@@ -203,8 +203,10 @@ aspect InfluenceAnalysis
 	eq ArrayDecl.involvesGeneric() = componentType().involvesGeneric();
 	
 	// mayPromoteWildcard
-
-	syn lazy boolean InfluenceNode.mayPromoteWildcard() {
+	// no longer use lazy (cache) modifier with this attribute
+	// because JastAdd was caching the incorrect value
+	// (the initial circular attribute value for VVar.eval())
+	syn boolean InfluenceNode.mayPromoteWildcard() {
 		if(!isOfParameterizedType()) {
 			return false;
 		}

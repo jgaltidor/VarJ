@@ -274,6 +274,28 @@ aspect Stats
 	
 	eq InfluenceNode.numRewritten() = willRewrite() ? 1 : 0;
 
+
+	// eq InfluenceNode.numRewritten() { return ASTNode.calcNumRewritten(this); }
+
+	/*
+	public static int ASTNode.calcNumRewritten(InfluenceNode node) {
+		if(node.willRewrite()) {
+			assert !ASTNode.analysisStrategy.isSignatureOnlyAnalysis() || ((ASTNode) node).isVDecl();
+			// Commented out block for use only with JDB,
+			// since JDB ignore assert statements
+			// if(ASTNode.analysisStrategy.isSignatureOnlyAnalysis()
+			// 		&& !((ASTNode) node).isVDecl())
+			// {
+			// 	System.out.println("Reached bad part");
+			// 	node.mayPromoteWildcard();
+			// }
+			return 1;
+		}
+		else
+			return 0;
+	}
+	*/
+
 	syn lazy long ASTNode.numRewritableFlowsToInSig() {
 		long total = isPDecl() ? numRewritableFlowsTo() : 0;
 		for(int i = 0; i < getNumChild(); i++) {
@@ -299,8 +321,7 @@ aspect Stats
 
 	syn boolean ASTNode.isVDecl() = false;
 
-	eq InfluenceNode.isVDecl() =
-		isFromSource() && type().isVariantType();
+	eq InfluenceNode.isVDecl() = isPDecl() && type().isVariantType();
 
 	syn lazy int ASTNode.numRewritableVDeclsInSig() {
 		int total = isVDecl() ? numRewritable() : 0;

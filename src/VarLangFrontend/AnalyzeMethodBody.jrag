@@ -59,6 +59,9 @@ aspect AnalyzeMethodBody
 				new Join(sigOnlyInferred, access.getParamDecl().getUVar(index))
 				: sigOnlyInferred;
 		}
+		
+		@Override
+		public boolean isSignatureOnlyAnalysis() { return false; }
 	}
 
 	syn lazy java.util.List<VExpr> TypeContainer.varBounds(
