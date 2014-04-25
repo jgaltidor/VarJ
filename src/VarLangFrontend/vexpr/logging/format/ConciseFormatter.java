@@ -1,10 +1,9 @@
-package logutil;
+package vexpr.logging.format;
 import java.util.logging.*;
+import vexpr.logging.VarLogger;
 
 public class ConciseFormatter extends SimpleFormatter
 {
-	private static final String linesep = System.getProperty("line.separator");
-
 	// This method is called for every log records
 	public String format(LogRecord rec)
 	{
@@ -13,7 +12,7 @@ public class ConciseFormatter extends SimpleFormatter
 			.append(rec.getLevel().getName())
 			.append("]: ")
 			.append(rec.getMessage())
-			.append(linesep);
+			.append(VarLogger.linesep);
 		return sb.toString();
 	}
 }
