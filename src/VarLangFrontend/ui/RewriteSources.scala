@@ -1,4 +1,5 @@
 package ui
+import com.beust.jcommander.JCommander
 import com.beust.jcommander.Parameter
 import com.beust.jcommander.ParameterException
 import AST.ASTNode
@@ -9,11 +10,11 @@ import java.io.IOException
 import scala.collection.JavaConversions._
 
 
-object RewriteSources extends FilesParams
+object RewriteSources extends FilesCLParser
 {
-	@Parameter(names = Array("-t", "--types"), required = true,
-	           description = "Type defs to rewrite separated by ','")
-	var typesToRewriteStr:String = null
+	@Parameter(names = Array("-t", "--type"), required = true,
+	           description = "Type defs to rewrite")
+	var typesToRewriteNames:java.util.List[String] = AST.ASTUtils.createList[String]
 
 	@Parameter(names = Array("-m", "--modfile"), required = true,
 	           description = "File to write modification specification")
@@ -22,41 +23,45 @@ object RewriteSources extends FilesParams
 	@Parameter(names = Array("-d", "--outdir"), required = true,
 	           description = "Directory containing rewritten files")
 	var newSourcesDirName:String = null
-
-	/** Set of input type defs that the user specified to rewrite.
-	  * Should be accessed only after command line arguments are processed.
-	  */
-	var typesToRewriteNames:Seq[String] = null
-
-	@throws(classOf[ParameterException])
-	@throws(classOf[IOException])
-	override def preprocessArgs(args:Array[String]):Unit = {
-		super.preprocessArgs(args)
-		
-		typesToRewriteNames = typesToRewriteStr split ","
-		if(typesToRewriteNames.isEmpty)
-			throw new ParameterException("No types specified for rewrite")
-		
-		val newSourcesDir = new File(newSourcesDirName)
-		if(newSourcesDir.isFile)
-			throw new ParameterException(String.format(
-				"%s is an existing file", newSourcesDirName))
-
-		ASTNode.rewriteOut = new java.io.PrintStream(modificationSpec)
+	
+	
+	protected override def optionsAreOK:Boolean = {
+		if(!super.optionsAreOK)
+			return false
+		if(typesToRewriteNames.isEmpty) {
+			Console.err.println("No types specified for rewrite")
+			return false
+		}
+		if(new File(newSourcesDirName).isFile) {
+			Console.err.printf("%s is an existing file", newSourcesDirName)
+			Console.err.println
+			return false
+		}
+		return true
 	}
 	
 	@throws(classOf[IOException])
-	def main(args:Array[String]):Unit = {
-		val vf = new VarFrontend
-		BaseParams.processArgsAndCompile(args, vf, this, "ui.RewriteSources")
+	def main(args:Array[String]):Unit =
+	{
+		val programName = RewriteSources.getClass.getName.split("\\$").head
+		val jc = new JCommander
+		jc addObject RewriteSources
+		jc setProgramName programName
+		val program =
+		  RewriteSources.setJCommander(jc)
+		                .parseArgs(args)
+		                .buildAnalysisSettings
+		                .compile
+		                .getProgram
+		ASTNode.rewriteOut = new java.io.PrintStream(modificationSpec)
 		val typesToRewrite = new java.util.LinkedList[TypeDecl]
+		val query = AST.ASTUtils.getDefaultProgramQuery
 		for(typeName <- typesToRewriteNames) {
-			IterSeq.getType(vf.getProgram, typeName) match
-			{
-				case Some(typeDecl) => typesToRewrite add typeDecl
-				case None =>
-					Console.err.println("Class/Interface not found: " + typeName)
-			}
+			val typeDecl = query.getType(program, typeName)
+			if(typeDecl != null)
+				typesToRewrite add typeDecl
+			else
+				Console.err.println("Class/Interface not found: " + typeName)
 		}
 		println("Computing rewrites to perform")
 		// Generate modificationSpec
@@ -67,11 +72,9 @@ object RewriteSources extends FilesParams
 		// write fake replacement info so that all input source files
 		// are copied to the target directory (newSourcesDir) even if
 		// some source files did not require any rewrites
-		vf.getProgram.writeFakeReplaceInfo
+		program.writeFakeReplaceInfo
 		// all writes to ASTNode.rewriteOut performed so closing the file
 		ASTNode.rewriteOut.close
-		
-		
 		val modificationSpecFile = new File(modificationSpec)
 		val newSourcesDir = new File(newSourcesDirName)
 		if(!newSourcesDir.isDirectory) {
@@ -79,6 +82,7 @@ object RewriteSources extends FilesParams
 			newSourcesDir.mkdirs
 		}
 		println("Performing rewrites specified in: " + modificationSpecFile)
-		txtreplace.ReplaceText.rewriteFiles(modificationSpecFile, newSourcesDir)
+		backend.txtreplace.ReplaceText.rewriteFiles(
+		  modificationSpecFile, newSourcesDir)
 	}
 }
