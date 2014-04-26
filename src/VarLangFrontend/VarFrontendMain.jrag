@@ -4,9 +4,6 @@ import backend.logging.format.RenameLevelFormatter;
 
 aspect VarFrontendMain
 {
-	inh Program ASTNode.program();
-	eq Program.getChild().program() = this;
-
 	public void Program.setAnalysisSettings(AnalysisSettings settings) {
 		analysisStrategy = settings.getAnalysisStrategy();
 		LOG = settings.getLogger();
@@ -34,6 +31,19 @@ aspect VarFrontendMain
 			this.analyzeAllPrivateMembers = b.analyzeAllPrivateMembers;
 			this.logVerbosityLevel = b.logVerbosityLevel;
 			this.colorLogMessages = b.colorLogMessages;
+			checkSettingsAreValid();
+		}
+		
+		public void checkSettingsAreValid() {
+			// check logVerbosityLevel is legal
+			if(getLogLevel() == null) {
+				throw new VarAnalysisException(
+					"illegal log verbosity level: " + logVerbosityLevel);
+			}
+			// check that source files are found
+			if(getSourceFilePaths().isEmpty()) {
+				throw new VarAnalysisException("no source files found");
+			}
 		}
 		
 		public VarFrontend compile() {

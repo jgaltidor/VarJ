@@ -5,7 +5,22 @@ import java.util.Set;
   */
 aspect Utils
 {
-
+	inh Program ASTNode.program();
+	eq Program.getChild().program() = this;
+	
+	public class VarAnalysisException extends RuntimeException {
+		public VarAnalysisException() { super(); }
+		public VarAnalysisException(String message) {
+			super(message);
+		}
+		public VarAnalysisException(String message, Throwable cause) {
+			super(message, cause);
+		}
+		public VarAnalysisException(Throwable cause) {
+			super(cause);
+		}
+	}
+	
 	// fullName
 
 	syn lazy String BodyDecl.fullName() = hostType().fullName();
@@ -196,7 +211,6 @@ aspect Utils
 			};
 		}
 	}
-	
 	
 	public class NoNullsSet<E> extends java.util.HashSet<E>
 	{
