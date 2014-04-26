@@ -12,7 +12,6 @@ java -ea ui.LookupVar --generic test.WList -v 3 unittests/Lists.java
 java -ea ui.AnalyzeType --type test.Animal unittests
 java -ea ui.AnalyzeType --type test.IList unittests
 
-
 scala $SCALA_OPTS ui.InferStats --texout testtex/table.tex unittests/Lists.java:lists unittests/PLDITest.java:pldi
 scala $SCALA_OPTS ui.RewriteSources -m rewriteinfo_sig.txt -d rewrittenSources_sig -t "test.Seller,test.RList" unittests
 scala $SCALA_OPTS ui.RewriteSources -v 3 --bodies -m rewriteinfo_bodies.txt -d rewrittenSources_bodies -t "test.Seller,test.RList" unittests
