@@ -8,7 +8,7 @@ import AST.Program;
 import AST.ProgramQuery;
 import AST.GenericTypeDecl;
 
-public class LookupVar extends BaseCLParser
+public class LookupVar extends FilesCLParser
 {
 	@Parameter(names = {"-g", "--generic"}, required = true,
 						 description = "Name of generic to look up dvars")

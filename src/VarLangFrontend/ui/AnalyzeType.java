@@ -6,15 +6,15 @@ import com.beust.jcommander.ParameterException;
 
 import AST.*;
 
-public class AnalyzeType extends BaseCLParser
+public class AnalyzeType extends FilesCLParser
 {
 	@Parameter(names = {"-t", "--type"}, required = true,
 						 description = "Name of class/interface to analyze")
 	java.util.List<String> typeNames = AST.ASTUtils.createList();
 	
 	@Override
-	protected boolean argsAreOK() {
-		if(!super.argsAreOK())
+	protected boolean optionsAreOK() {
+		if(!super.optionsAreOK())
 			return false;
 		if(typeNames.isEmpty()) {
 			System.err.println("No classes/interfaces to analyze are given");

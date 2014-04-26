@@ -5,7 +5,6 @@ import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
 
 import AST.AnalysisSettings;
-import AST.Program;
 
 import java.util.List;
 
@@ -18,10 +17,6 @@ import java.util.List;
   */
 public class BaseCLParser
 {
-	// Main Parameter
-  @Parameter(description = "source files/directories")
-  protected List<String> sourcePaths = AST.ASTUtils.createList();
-
 	@Parameter(names = {"-h", "--help"}, help = true,
 	           description = "Print this help message and exit")
 	protected boolean help;
@@ -51,7 +46,7 @@ public class BaseCLParser
   
   public JCommander getJCommander() { return jcommander; }
 
-  protected BaseCLParser parseArgs(String[] args)
+  public BaseCLParser parseArgs(String[] args)
   {
 		try {
 			getJCommander().parse(args);
@@ -59,7 +54,7 @@ public class BaseCLParser
 				printUsage();
 				System.exit(0);
 			}
-			if(!argsAreOK()) {
+			if(!optionsAreOK()) {
 				printUsage();
 				System.exit(1);
 			}
@@ -71,26 +66,18 @@ public class BaseCLParser
 		return this;
   }
   
-  protected boolean argsAreOK() {
-  	if(noSourcePathsSpecified()) {
-  		System.err.println("No source paths are given");
-  		return false;
-  	}
+  protected boolean optionsAreOK() {
   	return true;
   }
   
   protected boolean helpOptionSpecified() { return help; }
-  
-  protected boolean noSourcePathsSpecified() {
-  	return sourcePaths.isEmpty();
-  }
   
   protected void printUsage() {
   	getJCommander().usage();
   	AST.VarFrontend.printJastAddUsage();
   }
   
-  public AnalysisSettings buildAnalysisSettings()
+  public AnalysisSettings buildAnalysisSettings(List<String> sourcePaths)
   {
   	AnalysisSettings settings = null;
   	try {
@@ -108,19 +95,5 @@ public class BaseCLParser
   		System.exit(1);
   	}
   	return settings;
-  }
-  
-  public static void main(String[] args) {
-  	BaseCLParser parser = new BaseCLParser();
-  	JCommander jc = new JCommander(parser);
-  	jc.setProgramName(BaseCLParser.class.getName());
-  	Program program =
-  		parser
-  		  .setJCommander(jc)
-  		  .parseArgs(args)
-  		  .buildAnalysisSettings()
-  		  .compile()
-  		  .getProgram();
-  	AST.VarFrontend.printGenericsInfo(program);
   }
 }

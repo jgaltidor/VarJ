@@ -83,6 +83,7 @@ object ComputeStats
 		libstats
 	}
 	
+	/*
 	def main(args:Array[String]):Unit = {
 		val vf = new VarFrontend
 		val params = new FilesParams
@@ -92,4 +93,5 @@ object ComputeStats
 		val allstats = new AllStats(List(libstats))
 		print(Table1.texTable(allstats))
 	}
+	*/
 }
