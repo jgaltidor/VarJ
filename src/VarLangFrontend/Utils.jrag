@@ -210,6 +210,10 @@ aspect Utils
 				}
 			};
 		}
+		
+		public static ProgramQuery getDefaultProgramQuery() {
+			return ProgramQueryImpl.getInstance();
+		}
 	}
 	
 	public class NoNullsSet<E> extends java.util.HashSet<E>

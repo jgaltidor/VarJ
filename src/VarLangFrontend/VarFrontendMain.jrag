@@ -210,7 +210,7 @@ aspect VarFrontendMain
 		}
 		
 		public static void printGenericsInfo(Program program) {
-			ProgramQuery query = ProgramQueryImpl.getInstance();
+			ProgramQuery query = ASTUtils.getDefaultProgramQuery();
 			Set<GenericTypeDecl> generics =
 				query.getSrcGenericsSortedByName(program);
 			for(GenericTypeDecl gtd : generics)

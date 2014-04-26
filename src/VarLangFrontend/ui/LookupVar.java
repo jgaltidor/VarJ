@@ -6,7 +6,6 @@ import com.beust.jcommander.ParameterException;
 
 import AST.Program;
 import AST.ProgramQuery;
-import AST.ProgramQueryImpl;
 import AST.GenericTypeDecl;
 
 public class LookupVar extends BaseCLParser
@@ -18,7 +17,7 @@ public class LookupVar extends BaseCLParser
 	public static GenericTypeDecl
 		lookupGeneric(Program program, String genericName)
 	{
-		ProgramQuery query = ProgramQueryImpl.getInstance();
+		ProgramQuery query = AST.ASTUtils.getDefaultProgramQuery();
 		return query.getGeneric(program, genericName);
 	}
 	

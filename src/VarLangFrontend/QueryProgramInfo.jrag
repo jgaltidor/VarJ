@@ -13,6 +13,7 @@ aspect QueryProgramInfo
 		SortedSet<GenericTypeDecl> getSrcGenericsSortedByName(Program program);
 		java.util.List<TypeDecl> getTypes(CompilationUnit unit);
 		GenericTypeDecl getGeneric(Program program, String genericName);
+		TypeDecl getType(Program program, String typeName);
 	}
 	
 	public class ProgramQueryImpl implements ProgramQuery
@@ -104,6 +105,15 @@ aspect QueryProgramInfo
 			for(GenericTypeDecl gtd : getGenerics(program)) {
 				if(gtd.fullName().equals(genericName))
 					return gtd;
+			}
+			return null;
+		}
+		
+		public TypeDecl getType(Program program, String typeName)
+		{
+			for(TypeDecl typeDecl :	getTypes(program)) {
+				if(typeDecl.fullName().equals(typeName))
+					return typeDecl;
 			}
 			return null;
 		}

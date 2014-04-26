@@ -55,9 +55,13 @@ public class BaseCLParser
   {
 		try {
 			getJCommander().parse(args);
-			if(shouldPrintUsage()) {
+			if(helpOptionSpecified()) {
 				printUsage();
 				System.exit(0);
+			}
+			if(!argsAreOK()) {
+				printUsage();
+				System.exit(1);
 			}
 		}
 		catch(ParameterException e) {
@@ -67,8 +71,12 @@ public class BaseCLParser
 		return this;
   }
   
-  protected boolean shouldPrintUsage() {
-  	return helpOptionSpecified() || noSourcePathsSpecified();
+  protected boolean argsAreOK() {
+  	if(noSourcePathsSpecified()) {
+  		System.err.println("No source paths are given");
+  		return false;
+  	}
+  	return true;
   }
   
   protected boolean helpOptionSpecified() { return help; }
