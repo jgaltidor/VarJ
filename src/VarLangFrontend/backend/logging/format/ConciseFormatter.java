@@ -1,6 +1,6 @@
-package vexpr.logging.format;
+package backend.logging.format;
 import java.util.logging.*;
-import vexpr.logging.VarLogger;
+import backend.logging.VarLogger;
 
 public class ConciseFormatter extends SimpleFormatter
 {

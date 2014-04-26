@@ -1,7 +1,7 @@
-package vexpr.logging;
+package backend.logging;
 import java.util.logging.*;
 import java.io.OutputStream;
-import vexpr.logging.format.RenameLevelFormatter;
+import backend.logging.format.RenameLevelFormatter;
 
 public class VarLogger
 {
@@ -137,7 +137,7 @@ public class VarLogger
 	public static void main(String[] args)
 	{
 		if (args.length < 1) {
-			System.err.println("usage: java vexpr.logging.VarLogger <verbosity level>");
+			System.err.println("usage: java backend.logging.VarLogger <verbosity level>");
 			System.exit(1);
 		}
 		int vlevel = Integer.parseInt(args[0]);

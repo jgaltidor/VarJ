@@ -1,12 +1,12 @@
-package vexpr.logging;
+package backend.logging;
 import java.util.logging.Logger;
 import java.util.logging.Formatter;
 import java.util.logging.SimpleFormatter;
 import java.util.logging.Level;
-import static vexpr.logging.VarLogger.ERROR;
-import static vexpr.logging.VarLogger.INFO;
-import static vexpr.logging.VarLogger.DEBUG;
-import vexpr.logging.format.RenameLevelFormatter;
+import static backend.logging.VarLogger.ERROR;
+import static backend.logging.VarLogger.INFO;
+import static backend.logging.VarLogger.DEBUG;
+import backend.logging.format.RenameLevelFormatter;
 
 public class Tester
 {
@@ -14,7 +14,7 @@ public class Tester
 	public static void main(String[] args)
 	{
 		if (args.length < 1) {
-			System.err.println("usage: java vexpr.logging.Tester <verbosity level>");
+			System.err.println("usage: java backend.logging.Tester <verbosity level>");
 			System.exit(1);
 		}
 		int vlevel = Integer.parseInt(args[0]);

@@ -1,6 +1,6 @@
-package vexpr.logging.format;
+package backend.logging.format;
 import java.util.logging.*;
-import static vexpr.logging.VarLogger.*;
+import static backend.logging.VarLogger.*;
 
 /**
  * This formatter allows printing out logs with the predefined

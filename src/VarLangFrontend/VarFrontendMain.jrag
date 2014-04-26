@@ -1,6 +1,6 @@
 import java.util.logging.*;
-import vexpr.logging.*;
-import vexpr.logging.format.RenameLevelFormatter;
+import backend.logging.*;
+import backend.logging.format.RenameLevelFormatter;
 
 aspect VarFrontendMain
 {

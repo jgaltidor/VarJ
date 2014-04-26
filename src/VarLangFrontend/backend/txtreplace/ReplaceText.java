@@ -1,4 +1,4 @@
-package vexpr.txtreplace;
+package backend.txtreplace;
 import java.util.*;
 import java.io.*;
 import java.util.regex.Pattern;
@@ -9,7 +9,7 @@ public class ReplaceText
 	public static void main(String[] args) throws IOException {
 		if(args.length < 2) {
 			System.err.println(
-				"usage: java txtreplace.ReplaceText <replace spec file> <output directory>");
+				"usage: java backend.txtreplace.ReplaceText <replace spec file> <output directory>");
 			System.exit(1);
 		}
 		File replaceSpecFile = new File(args[0]);
