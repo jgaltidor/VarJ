@@ -1,4 +1,5 @@
 import java.util.*;
+import static AST.ASTNode.*;
 
 aspect QueryProgramInfo
 {
@@ -11,7 +12,7 @@ aspect QueryProgramInfo
 		java.util.List<GenericTypeDecl> getSrcGenerics(Program program);
 		SortedSet<GenericTypeDecl> getSrcGenericsSortedByName(Program program);
 		java.util.List<TypeDecl> getTypes(CompilationUnit unit);
-		void printGenericInfo(GenericTypeDecl gtd);
+		GenericTypeDecl getGeneric(Program program, String genericName);
 	}
 	
 	public class ProgramQueryImpl implements ProgramQuery
@@ -88,21 +89,23 @@ aspect QueryProgramInfo
 			return types;
 		}
 		
-		public void printGenericInfo(GenericTypeDecl gtd) {
-			for(DVar dvar : gtd.getDVars()) {
-				dvar.printValueAndBounds();
-				Set<UVar> uvars = dvar.uvarsInBounds();
-				if(!uvars.isEmpty()) {
-					System.out.println("bounds on uvars generated for " + dvar);
-					for(UVar u : uvars) {
-						u.printValueAndBounds();
-						System.out.println();
-					}
-				}
-				System.out.printf("dvarBoundClosure(%s): %s%n", dvar, dvar.varBoundClosure());
-				System.out.printf("isRecursivelyBounded(%s): %s%n", dvar, dvar.isRecursivelyBounded());
-				System.out.println();
+		public java.util.List<GenericTypeDecl> getGenerics(Program program)
+		{
+			java.util.List<GenericTypeDecl> generics = ASTUtils.createList();
+			for(TypeDecl typeDecl :	getTypes(program)) {
+				if(typeDecl.isGenericType())
+					generics.add((GenericTypeDecl) typeDecl);
 			}
+			return generics;
+		}
+		
+		public GenericTypeDecl getGeneric(Program program, String genericName)
+		{
+			for(GenericTypeDecl gtd : getGenerics(program)) {
+				if(gtd.fullName().equals(genericName))
+					return gtd;
+			}
+			return null;
 		}
 	}
 }

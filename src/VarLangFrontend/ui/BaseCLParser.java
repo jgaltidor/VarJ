@@ -6,12 +6,8 @@ import com.beust.jcommander.ParameterException;
 
 import AST.AnalysisSettings;
 import AST.Program;
-import AST.ProgramQuery;
-import AST.ProgramQueryImpl;
-import AST.GenericTypeDecl;
 
 import java.util.List;
-import java.util.Set;
 
 /** Base class specifying shared command-line options parameters
   * used for frontends of the compiler/program analysis tool
@@ -45,27 +41,20 @@ public class BaseCLParser
   
   @Parameter(names = {"-j", "--jastaddj"}, description = "Argument to pass to JastAddJ")
   protected List<String> jastaddjArgs = AST.ASTUtils.createList();
+
+  private JCommander jcommander;
   
-  String programName;
-  JCommander jcommander;
-  
-  public BaseCLParser() { this(BaseCLParser.class.getName()); }
-  
-  public BaseCLParser(String programName) {
-  	this.programName = programName;
-  	this.jcommander = createJCommander();
+  public BaseCLParser setJCommander(JCommander jcommander) {
+  	this.jcommander = jcommander;
+  	return this;
   }
   
-  protected JCommander createJCommander() {
-  	JCommander jc = new JCommander(this);
-  	jc.setProgramName(programName);
-  	return jc;
-  }
-  
+  public JCommander getJCommander() { return jcommander; }
+
   protected BaseCLParser parseArgs(String[] args)
   {
 		try {
-			jcommander.parse(args);
+			getJCommander().parse(args);
 			if(shouldPrintUsage()) {
 				printUsage();
 				System.exit(0);
@@ -89,7 +78,7 @@ public class BaseCLParser
   }
   
   protected void printUsage() {
-  	jcommander.usage();
+  	getJCommander().usage();
   	AST.VarFrontend.printJastAddUsage();
   }
   
@@ -114,16 +103,16 @@ public class BaseCLParser
   }
   
   public static void main(String[] args) {
+  	BaseCLParser parser = new BaseCLParser();
+  	JCommander jc = new JCommander(parser);
+  	jc.setProgramName(BaseCLParser.class.getName());
   	Program program =
-  		new BaseCLParser()
+  		parser
+  		  .setJCommander(jc)
   		  .parseArgs(args)
   		  .buildAnalysisSettings()
   		  .compile()
   		  .getProgram();
-		ProgramQuery query = ProgramQueryImpl.getInstance();
-		Set<GenericTypeDecl> generics =
-			query.getSrcGenericsSortedByName(program);
-		for(GenericTypeDecl gtd : generics)
-			query.printGenericInfo(gtd);
+  	AST.VarFrontend.printGenericsInfo(program);
   }
 }

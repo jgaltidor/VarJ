@@ -2,11 +2,12 @@ set -ex
 
 SCALA_OPTS="-J-ea"
 
-scala $SCALA_OPTS ui.Tester unittests/Lists.java
-scala $SCALA_OPTS ui.Tester unittests
-scala $SCALA_OPTS ui.Tester --bodies unittests
-scala $SCALA_OPTS ui.LookupVar --generic test.WList unittests/Lists.java
-scala $SCALA_OPTS ui.LookupVar --generic test.WList -v 3 unittests/Lists.java
+java -ea ui.BaseCLParser unittests/Lists.java
+java -ea ui.BaseCLParser unittests
+java -ea ui.BaseCLParser --bodies unittests
+java -ea ui.LookupVar --generic test.WList unittests/Lists.java
+java -ea ui.LookupVar --generic test.WList -v 3 unittests/Lists.java
+
 scala $SCALA_OPTS ui.InferStats --texout testtex/table.tex unittests/Lists.java:lists unittests/PLDITest.java:pldi
 scala $SCALA_OPTS ui.AnalyzeType --type test.Animal unittests
 scala $SCALA_OPTS ui.AnalyzeType --type test.IList unittests
