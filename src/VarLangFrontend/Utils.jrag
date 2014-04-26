@@ -112,9 +112,9 @@ aspect Utils
 		*/
 	public class ASTUtils
 	{
-		public static <E> java.util.List<E> copyList(java.util.List<E> list) {
+		public static <E> java.util.List<E> copyList(Iterable<E> itr) {
 			java.util.List<E> newList = createList();
-			newList.addAll(list);
+			for(E elem : itr) newList.add(elem);
 			return newList;
 		}
 		
@@ -122,9 +122,9 @@ aspect Utils
 			return new java.util.ArrayList<E>();
 		}
 
-		public static <E> Set<E> copySet(Set<E> set) {
+		public static <E> Set<E> copySet(Iterable<E> itr) {
 			Set<E> newSet = createSet();
-			newSet.addAll(set);
+			for(E elem : itr) newSet.add(elem);
 			return newSet;
 		}
 		

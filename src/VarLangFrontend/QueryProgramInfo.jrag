@@ -1,0 +1,108 @@
+import java.util.*;
+
+aspect QueryProgramInfo
+{
+	public interface ProgramQuery
+	{
+		java.util.List<CompilationUnit> getCompilationUnits(Program program);
+		java.util.List<CompilationUnit> getSrcCompilationUnits(Program program);
+		java.util.List<TypeDecl> getTypes(Program program);
+		java.util.List<TypeDecl> getSrcTypes(Program program);
+		java.util.List<GenericTypeDecl> getSrcGenerics(Program program);
+		SortedSet<GenericTypeDecl> getSrcGenericsSortedByName(Program program);
+		java.util.List<TypeDecl> getTypes(CompilationUnit unit);
+		void printGenericInfo(GenericTypeDecl gtd);
+	}
+	
+	public class ProgramQueryImpl implements ProgramQuery
+	{
+		private static final ProgramQueryImpl INSTANCE = new ProgramQueryImpl();
+		public static ProgramQueryImpl getInstance() { return INSTANCE; }
+		private ProgramQueryImpl() { }
+		
+		public java.util.List<CompilationUnit> getCompilationUnits(Program program)
+		{
+			java.util.List<CompilationUnit> units = ASTUtils.createList();
+			Iterator<?> itr = program.compilationUnitIterator();
+			while(itr.hasNext()) {
+				units.add((CompilationUnit) itr.next());
+			}
+			return units;
+		}
+		
+		public java.util.List<CompilationUnit> getSrcCompilationUnits(Program program)
+		{
+			java.util.List<CompilationUnit> units = ASTUtils.createList();
+			for(CompilationUnit unit : getCompilationUnits(program)) {
+				if(unit.fromSource())
+					units.add(unit);
+			}
+			return units;
+		}
+		
+		public java.util.List<TypeDecl> getTypes(Program program)
+		{
+			java.util.List<TypeDecl> types = ASTUtils.createList();
+			for(CompilationUnit unit : getCompilationUnits(program)) {
+				types.addAll(getTypes(unit));
+			}
+			return types;
+		}
+		
+		public java.util.List<TypeDecl> getSrcTypes(Program program)
+		{
+			java.util.List<TypeDecl> types = ASTUtils.createList();
+			for(CompilationUnit unit : getSrcCompilationUnits(program)) {
+				types.addAll(getTypes(unit));
+			}
+			return types;
+		}
+		
+		public java.util.List<GenericTypeDecl> getSrcGenerics(Program program)
+		{
+			java.util.List<GenericTypeDecl> generics = ASTUtils.createList();
+			for(CompilationUnit unit : getSrcCompilationUnits(program)) {
+				for(TypeDecl typeDecl : getTypes(unit)) {
+					if(typeDecl.isGenericType())
+						generics.add((GenericTypeDecl) typeDecl);
+				}
+			}
+			return generics;
+		}
+		
+		public SortedSet<GenericTypeDecl>
+			getSrcGenericsSortedByName(Program program)
+		{
+			TreeSet<GenericTypeDecl> generics =
+				new TreeSet(ASTUtils.fullNameGenericTypeDeclAscending());
+			generics.addAll(getSrcGenerics(program));
+			return generics;
+		}
+		
+		public java.util.List<TypeDecl> getTypes(CompilationUnit unit) {
+			java.util.List<TypeDecl> types = ASTUtils.createList();
+			for(TypeDecl typeDecl : unit.getTypeDeclList()) {
+				types.add(typeDecl);
+				types.addAll(typeDecl.getNestedTypeDecls());
+			}
+			return types;
+		}
+		
+		public void printGenericInfo(GenericTypeDecl gtd) {
+			for(DVar dvar : gtd.getDVars()) {
+				dvar.printValueAndBounds();
+				Set<UVar> uvars = dvar.uvarsInBounds();
+				if(!uvars.isEmpty()) {
+					System.out.println("bounds on uvars generated for " + dvar);
+					for(UVar u : uvars) {
+						u.printValueAndBounds();
+						System.out.println();
+					}
+				}
+				System.out.printf("dvarBoundClosure(%s): %s%n", dvar, dvar.varBoundClosure());
+				System.out.printf("isRecursivelyBounded(%s): %s%n", dvar, dvar.isRecursivelyBounded());
+				System.out.println();
+			}
+		}
+	}
+}

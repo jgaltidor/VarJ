@@ -1,4 +1,4 @@
-package txtreplace;
+package vexpr.txtreplace;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.Comparator;

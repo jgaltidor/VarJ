@@ -1,4 +1,4 @@
-package txtreplace;
+package vexpr.txtreplace;
 
 public class ReplaceInfo
 {

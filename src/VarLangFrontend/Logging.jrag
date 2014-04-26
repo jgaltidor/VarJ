@@ -1,10 +1,9 @@
-import java.util.logging.Logger;
-import java.util.logging.Level;
-import logutil.LogUtil;
+import java.util.logging.*;
 
 aspect Logging
 {
-	public static final Level ASTNode.DEBUG = LogUtil.DEBUG;
-	public static final Level ASTNode.INFO  = LogUtil.INFO;
-	public static final Level ASTNode.ERROR = LogUtil.ERROR;
+	public static Logger ASTNode.LOG = null;
+	public static final Level ASTNode.DEBUG = vexpr.logging.VarLogger.DEBUG;
+	public static final Level ASTNode.INFO  = vexpr.logging.VarLogger.INFO;
+	public static final Level ASTNode.ERROR = vexpr.logging.VarLogger.ERROR;
 }

@@ -1,6 +1,7 @@
 package vexpr.logging;
 import java.util.logging.*;
 import java.io.OutputStream;
+import vexpr.logging.format.RenameLevelFormatter;
 
 public class VarLogger
 {
@@ -131,6 +132,31 @@ public class VarLogger
 	}
 	
 	public static final String linesep = System.getProperty("line.separator");
+	
+	/** Main method for testing purposes */
+	public static void main(String[] args)
+	{
+		if (args.length < 1) {
+			System.err.println("usage: java vexpr.logging.VarLogger <verbosity level>");
+			System.exit(1);
+		}
+		int vlevel = Integer.parseInt(args[0]);
+		Level level = VarLogger.getLogLevel(vlevel);
+		Formatter formatter = VarLogger.canHandleColor() ?
+			new RenameLevelFormatter(
+				RenameLevelFormatter.ColorNameStrategy.getInstance())
+			: new SimpleFormatter();
+		Logger LOG = new VarLogger.FormatterBuilder()
+		                 .formatter(formatter)
+		                 .level(level)
+		                 .build()
+		                 .getLogger();
+    System.out.println("Log level: " + LOG.getLevel());
+		LOG.log(ERROR, "A error message;");
+		LOG.log(INFO,  "An info message;");
+		LOG.log(DEBUG, "A debug message;");
+	}
+	
 	
 	/*
 	

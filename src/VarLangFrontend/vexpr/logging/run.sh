@@ -1,1 +1,1 @@
-java vexpr.logging.Tester 3
+java vexpr.logging.VarLogger 3

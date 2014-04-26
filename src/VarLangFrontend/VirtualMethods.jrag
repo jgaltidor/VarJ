@@ -4,9 +4,6 @@ import java.util.Set;
 
 aspect VirtualMethods
 {
-	inh Program ASTNode.program();
-	eq Program.getChild().program() = this;
-
 	syn lazy java.util.List<MethodDecl> MethodDecl.overridingMethods() {
 		java.util.List<TypeDecl> subtypes = program().findSubtypes(hostType());
 		java.util.List<MethodDecl> oms = ASTUtils.createList();

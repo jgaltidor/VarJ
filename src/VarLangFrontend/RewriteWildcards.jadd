@@ -1,4 +1,4 @@
-import txtreplace.ReplaceInfo;
+import vexpr.txtreplace.ReplaceInfo;
 import java.util.Collections;
 import java.util.Set;
 
