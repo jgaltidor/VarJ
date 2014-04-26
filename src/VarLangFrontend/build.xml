@@ -63,7 +63,7 @@
 <target name="build" depends="gen,jcommander">
   <!-- Compile Java sources -->
 	<javac debug="true" nowarn="true" srcdir="." destdir="." includes="**/*.java"
-	       excludes="unittests/**,notyet/**,old/**,rewrittenSources/**"
+	       excludes="unittests/**,notyet/**,old/**,rewrittenSources/**,ui/notyet/**"
          classpath=".:${tools}/beaver-rt.jar:${tools}/junit.jar:"
          includeantruntime="false"/>
   <!-- Compile Scala sources -->
