@@ -12,9 +12,7 @@ import java.io.IOException
 // import implicit conversion for converting java.util collections
 import scala.collection.JavaConversions._
 
-import scala.util.parsing.json.{JSON,
-                                JSONObject,
-                                JSONArray}
+import scala.util.parsing.json.JSON
 
 object RewriteSelected extends FilesCLParser
 {
