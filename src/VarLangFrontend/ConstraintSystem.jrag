@@ -21,8 +21,10 @@ aspect ConstraintSystem
 
 	syn lazy java.util.List<VExpr> VVar.bounds();
 	
-	eq DVar.bounds() = ASTNode.analysisStrategy.varBounds(this);
-	eq UVar.bounds() = ASTNode.analysisStrategy.varBounds(this);
+	eq DVar.bounds() =
+		ASTNode.settings().analysisStrategy.varBounds(this);
+	eq UVar.bounds() =
+		ASTNode.settings().analysisStrategy.varBounds(this);
 		
 	syn lazy boolean VVar.isRecursivelyBounded()
 		= varBoundClosure().contains(this);

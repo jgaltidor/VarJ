@@ -67,7 +67,7 @@ object RewriteSources extends FilesCLParser
 		// Generate modificationSpec
 		for(typdecl <- typesToRewrite) {
 			println("Computing rewrites for: " + typdecl.fullName)
-			typdecl.rewriteMemberTypes
+			typdecl.rewriteTypesInSig
 		}
 		// write fake replacement info so that all input source files
 		// are copied to the target directory (newSourcesDir) even if

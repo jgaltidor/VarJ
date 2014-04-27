@@ -5,15 +5,6 @@ import java.util.HashSet;
 
 aspect AnalysisBase
 {
-	/** Stores the analysis strategy used by the constraint system
-	  * solver for generating bounds on variance variables (e.g.
-	  * DVars and UVars).
-	  * The constraint solver will compute solutions based on
-	  * bounds computed using analysisStrategy.
-	  */
-	public static AnalysisStrategy ASTNode.analysisStrategy = null;
-
-
 	/** Interface of AST constructs containing type expressions (accesses)
 	  * that constrain the variance of type parameters
 	  */

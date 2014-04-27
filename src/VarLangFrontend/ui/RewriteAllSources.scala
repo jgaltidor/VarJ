@@ -39,10 +39,10 @@ object RewriteAllSources extends FilesCLParser
 		                   .parseArgs(args)
 		                   .buildAnalysisSettings
 		                   .compile
-		                  .getProgram
+		                   .getProgram
 		ASTNode.rewriteOut = new java.io.PrintStream(modificationSpec)
 		// Generate modificationSpec
-		program.rewriteAllVarTypes
+		program.rewriteTypesInSig()
 		// all writes to ASTNode.rewriteOut performed so closing the file
 		ASTNode.rewriteOut.close
 	

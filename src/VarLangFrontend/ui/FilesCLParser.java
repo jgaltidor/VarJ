@@ -6,6 +6,8 @@ import com.beust.jcommander.ParameterException;
 
 import java.util.List;
 
+import AST.Program;
+
 public class FilesCLParser extends BaseCLParser
 {
 	/** Main Parameter */
@@ -45,18 +47,24 @@ public class FilesCLParser extends BaseCLParser
   	return buildAnalysisSettings(getSourcePaths());
   }
   
-  public static void main(String[] args) {
+  public static Program typicalCompile(String[] args, String programName)
+  {
   	FilesCLParser parser = new FilesCLParser();
   	JCommander jc = new JCommander(parser);
-  	jc.setProgramName(FilesCLParser.class.getName());
-  	AST.Program program =
+  	jc.setProgramName(programName);
+  	return
   		parser
   		  .setJCommander(jc)
   		  .parseArgs(args)
   		  .buildAnalysisSettings()
   		  .compile()
   		  .getProgram();
-  	AST.VarFrontend.printGenericsInfo(program);
+  }
+  
+  public static void main(String[] args) {
+		Program program =
+		  typicalCompile(args, FilesCLParser.class.getName());
+		AST.VarFrontend.printGenericsInfo(program);
   }
 }
 	

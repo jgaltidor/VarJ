@@ -4,16 +4,26 @@ import backend.logging.format.RenameLevelFormatter;
 
 aspect VarFrontendMain
 {
-	public void Program.setAnalysisSettings(AnalysisSettings settings) {
-		analysisStrategy = settings.getAnalysisStrategy();
+	private static AnalysisSettings ASTNode.settings = null;
+	
+	public static AnalysisSettings ASTNode.settings() {
+		return settings;
+	}
+
+	public static void ASTNode.setSettings(AnalysisSettings settings) {
+		ASTNode.settings = settings;
+	
+		// analysisStrategy = settings.getAnalysisStrategy();
 		LOG = settings.getLogger();
 		LOG.log(INFO, "log level: " + LOG.getLevel());
+		LOG.log(INFO, "jastAddOptions: " +
+			ASTUtils.toString(settings.jastAddOptions));
 		LOG.log(INFO, "analyzeAllPrivateMembers: " +
 		  settings.analyzeAllPrivateMembers);
 		LOG.log(INFO, "analyzeMethodBodies: " +
 		  settings.analyzeMethodBodies);
-		LOG.log(INFO, "jastAddOptions: " +
-			ASTUtils.toString(settings.jastAddOptions));
+		LOG.log(INFO, "rewrite strategy: " +
+		  settings.rewriteStrategy);
 		LOG.log(INFO, "sourcePaths: " +
 			ASTUtils.toString(settings.sourcePaths));
 	}
@@ -27,6 +37,16 @@ aspect VarFrontendMain
 	
 		public final int logVerbosityLevel;
 		public final boolean colorLogMessages;
+		
+		public final RewriteStrategy rewriteStrategy;
+		
+		/** Stores the analysis strategy used by the constraint system
+			* solver for generating bounds on variance variables (e.g.
+			* DVars and UVars).
+			* The constraint solver will compute solutions based on
+			* bounds computed using analysisStrategy.
+			*/
+		public final AnalysisStrategy analysisStrategy;
 
 		private AnalysisSettings(Builder b) {
 			this.sourcePaths = b.sourcePaths;
@@ -35,7 +55,10 @@ aspect VarFrontendMain
 			this.analyzeAllPrivateMembers = b.analyzeAllPrivateMembers;
 			this.logVerbosityLevel = b.logVerbosityLevel;
 			this.colorLogMessages = b.colorLogMessages;
+			this.rewriteStrategy = b.rewriteStrategy;
 			checkSettingsAreValid();
+			
+			this.analysisStrategy = createAnalysisStrategy();
 		}
 		
 		public void checkSettingsAreValid() {
@@ -51,8 +74,8 @@ aspect VarFrontendMain
 		}
 		
 		public VarFrontend compile() {
+			ASTNode.setSettings(this);
 			VarFrontend frontend = new VarFrontend();
-			frontend.getProgram().setAnalysisSettings(this);
 			VarFrontend.compile(frontend,
 			  createCompilerArgs().toArray(new String[0]));
 			return frontend;
@@ -76,18 +99,18 @@ aspect VarFrontendMain
 			return VarLogger.getLogLevel(logVerbosityLevel);
 		}
 		
-		public StrategyWithVisibility.Visibility getVisibilityStrategy() {
-			return analyzeAllPrivateMembers ?
-				StrategyWithVisibility.Visibility.ALL_PRIVATE :
-				StrategyWithVisibility.Visibility.MINIMAL;
-		}
-		
-		public AnalysisStrategy getAnalysisStrategy() {
+		private AnalysisStrategy createAnalysisStrategy() {
 			StrategyWithVisibility.Visibility visibility =
-				getVisibilityStrategy();
+				createVisibilityStrategy();
 			return analyzeMethodBodies ?
 				new MethodBodyAnalysis(visibility) :
 				new OnlySigAnalysis(visibility);
+		}
+		
+		private StrategyWithVisibility.Visibility createVisibilityStrategy() {
+			return analyzeAllPrivateMembers ?
+				StrategyWithVisibility.Visibility.ALL_PRIVATE :
+				StrategyWithVisibility.Visibility.MINIMAL;
 		}
 		
 		public java.util.List<String> createCompilerArgs() {
@@ -143,6 +166,9 @@ aspect VarFrontendMain
 		
 			private int logVerbosityLevel = 0;
 			private boolean colorLogMessages = false;
+			
+			private RewriteStrategy rewriteStrategy =
+				DefaultRewriteStrategy.getInstance();
 		
 			public Builder(java.util.List<String> sourcePaths) {
 				this.sourcePaths = sourcePaths;
@@ -165,6 +191,10 @@ aspect VarFrontendMain
 			}
 			public Builder colorLogMessages(boolean colorLogMessages) {
 				this.colorLogMessages = colorLogMessages;
+				return this;
+			}
+			public Builder rewriteStrategy(RewriteStrategy rewriteStrategy) {
+				this.rewriteStrategy = rewriteStrategy;
 				return this;
 			}
 			public AnalysisSettings build() {

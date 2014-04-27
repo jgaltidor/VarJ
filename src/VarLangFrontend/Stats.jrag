@@ -280,10 +280,10 @@ aspect Stats
 	/*
 	public static int ASTNode.calcNumRewritten(InfluenceNode node) {
 		if(node.willRewrite()) {
-			assert !ASTNode.analysisStrategy.isSignatureOnlyAnalysis() || ((ASTNode) node).isVDecl();
+			assert !ASTNode.settings().analysisStrategy.isSignatureOnlyAnalysis() || ((ASTNode) node).isVDecl();
 			// Commented out block for use only with JDB,
 			// since JDB ignore assert statements
-			// if(ASTNode.analysisStrategy.isSignatureOnlyAnalysis()
+			// if(ASTNode.settings().analysisStrategy.isSignatureOnlyAnalysis()
 			// 		&& !((ASTNode) node).isVDecl())
 			// {
 			// 	System.out.println("Reached bad part");
