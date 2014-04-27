@@ -31,6 +31,10 @@ aspect RewritesSelected
     }
 	}
 
+	public void Program.rewriteTypesInSig(SelectedRewriteStrategy strategy) {
+		rewriteTypesInSig((RewriteStrategy) strategy);
+	}
+
 	public void InfluenceNode.rewriteTypesInSig(SelectedRewriteStrategy strategy)
 	{
 		if(strategy.includedDeclNames.contains(fullName()) &&
