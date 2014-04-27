@@ -83,6 +83,7 @@ public class BaseCLParser
   	try {
   	  settings =
   	    new AnalysisSettings.Builder(sourcePaths)
+  	     .jastAddOptions(jastaddjArgs)
 		     .analyzeMethodBodies(analyzeBodies)
 		     .analyzeAllPrivateMembers(analyzeAllPrivate)
 		     .logVerbosityLevel(verbosity)

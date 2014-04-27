@@ -12,6 +12,10 @@ aspect VarFrontendMain
 		  settings.analyzeAllPrivateMembers);
 		LOG.log(INFO, "analyzeMethodBodies: " +
 		  settings.analyzeMethodBodies);
+		LOG.log(INFO, "jastAddOptions: " +
+			ASTUtils.toString(settings.jastAddOptions));
+		LOG.log(INFO, "sourcePaths: " +
+			ASTUtils.toString(settings.sourcePaths));
 	}
 
 	public class AnalysisSettings
