@@ -82,7 +82,7 @@ public class BaseCLParser
   	AnalysisSettings settings = null;
   	try {
   	  settings =
-  	    new AnalysisSettings.Builder(sourcePaths)
+  	    createSettingsBuilder(sourcePaths)
   	     .jastAddOptions(jastaddjArgs)
 		     .analyzeMethodBodies(analyzeBodies)
 		     .analyzeAllPrivateMembers(analyzeAllPrivate)
@@ -96,5 +96,14 @@ public class BaseCLParser
   		System.exit(1);
   	}
   	return settings;
+  }
+  
+  /** This method enables setting more options in the
+    * builder before actually building the Analysis settings
+    */
+  public AnalysisSettings.Builder
+  	createSettingsBuilder(List<String> sourcePaths)
+  {
+  	return new AnalysisSettings.Builder(sourcePaths);
   }
 }

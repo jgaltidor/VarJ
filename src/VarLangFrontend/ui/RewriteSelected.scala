@@ -12,12 +12,16 @@ import java.io.IOException
 // import implicit conversion for converting java.util collections
 import scala.collection.JavaConversions._
 
+import scala.util.parsing.json.{JSON,
+                                JSONObject,
+                                JSONArray}
 
-object RewriteSources extends FilesCLParser
+object RewriteSelected extends FilesCLParser
 {
-	@Parameter(names = Array("-t", "--type"), required = true,
-	           description = "Type defs to rewrite")
-	var typesToRewriteNames:java.util.List[String] = AST.ASTUtils.createList[String]
+	@Parameter(names = Array("--declsfile"), required = true,
+	           description = "JSON file specifying which declarations to " +
+	                         "include/exclude for rewriting with wildcards")
+	var includesExcludesFileName:String = null
 
 	@Parameter(names = Array("-m", "--modfile"), required = true,
 	           description = "File to write modification specification")
@@ -26,15 +30,30 @@ object RewriteSources extends FilesCLParser
 	@Parameter(names = Array("-d", "--outdir"), required = true,
 	           description = "Directory containing rewritten files")
 	var newSourcesDirName:String = null
+
+
+	class IncludesExcludesPair(val includes:Seq[String], val excludes:Seq[String])
+	{ }
+	
+	def getIncludesExcludes(jsonFile:File):IncludesExcludesPair =
+		getIncludesExcludesFromJSONString(Utils.getText(jsonFile))
+
+	def getIncludesExcludesFromJSONString(jsonStr:String):IncludesExcludesPair =
+		JSON.parseFull(jsonStr) match {
+			case Some(json) =>
+				val map = json.asInstanceOf[Map[String, List[String]]]
+				val includes = map("includes")
+				val excludes = map("excludes")
+				new IncludesExcludesPair(includes, excludes)
+			case None =>
+				throw new AST.VarAnalysisException(
+					"JSON string could not be parsed:\n" + jsonStr)
+		}
 	
 	
 	protected override def optionsAreOK:Boolean = {
 		if(!super.optionsAreOK)
 			return false
-		if(typesToRewriteNames.isEmpty) {
-			Console.err.println("No types specified for rewrite")
-			return false
-		}
 		if(new File(newSourcesDirName).isFile) {
 			Console.err.printf("%s is an existing file", newSourcesDirName)
 			Console.err.println
@@ -42,56 +61,48 @@ object RewriteSources extends FilesCLParser
 		}
 		return true
 	}
-
+	
 	override def createSettingsBuilder(
 		sourcePaths:java.util.List[String]):AnalysisSettings.Builder =
 	{
-		val rewriteOut = new java.io.PrintStream(modificationSpec)
+		val includesExcludes = getIncludesExcludes(
+			new File(includesExcludesFileName))
+		val rewriteStrategy = new AST.SelectedRewriteStrategy(
+			includesExcludes.includes, includesExcludes.excludes)
 		val builder = super.createSettingsBuilder(sourcePaths)
-		builder.rewriteOut(rewriteOut)
+		val rewriteOut = new java.io.PrintStream(modificationSpec)
+		builder.rewriteStrategy(rewriteStrategy)
+		       .rewriteOut(rewriteOut)
 	}
-
+	
 	
 	@throws(classOf[IOException])
 	def main(args:Array[String]):Unit =
 	{
-		val programName = RewriteSources.getClass.getName.split("\\$").head
+		val programName = RewriteSelected.getClass.getName.split("\\$").head
 		val jc = new JCommander
-		jc addObject RewriteSources
+		jc addObject RewriteSelected
 		jc setProgramName programName
 		val program =
-		  RewriteSources.setJCommander(jc)
+		  RewriteSelected.setJCommander(jc)
 		                .parseArgs(args)
 		                .buildAnalysisSettings
 		                .compile
 		                .getProgram
-		val typesToRewrite = new java.util.LinkedList[TypeDecl]
-		val query = AST.ASTUtils.getDefaultProgramQuery
-		for(typeName <- typesToRewriteNames) {
-			val typeDecl = query.getType(program, typeName)
-			if(typeDecl != null)
-				typesToRewrite add typeDecl
-			else
-				Console.err.println("Class/Interface not found: " + typeName)
-		}
-		println("Computing rewrites to perform")
 		// Generate modificationSpec
-		for(typdecl <- typesToRewrite) {
-			println("Computing rewrites for: " + typdecl.fullName)
-			typdecl.rewriteTypesInSig
-		}
-		// write fake replacement info so that all input source files
-		// are copied to the target directory (newSourcesDir) even if
-		// some source files did not require any rewrites
-		program.writeFakeReplaceInfo
-		// all writes to ASTNode.settings.rewriteOut performed so closing the file
+		program.rewriteTypesInSig()
+		// all writes to ASTNode.settings.rewriteOut performed
+		// so closing the file
 		ASTNode.settings.rewriteOut.close
-		val modificationSpecFile = new File(modificationSpec)
+
+		// create directory for newSourcesDirName if it
+		// does not exists
 		val newSourcesDir = new File(newSourcesDirName)
 		if(!newSourcesDir.isDirectory) {
 			println("Creating directory: " + newSourcesDir)
 			newSourcesDir.mkdirs
 		}
+		val modificationSpecFile = new File(modificationSpec)
 		println("Performing rewrites specified in: " + modificationSpecFile)
 		backend.txtreplace.ReplaceText.rewriteFiles(
 		  modificationSpecFile, newSourcesDir)

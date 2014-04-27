@@ -1,12 +1,7 @@
 import backend.txtreplace.ReplaceInfo;
 
 aspect RewriteWildcardsBase
-{
-	/** Output stream to the rewrite specification file */
-	public static java.io.PrintStream ASTNode.rewriteOut = null;
-	
-	public static RewriteStrategy ASTNode.rewriteStrategy = null;
-	
+{	
 	/** Every concrete class implementing RewriteStrategy
 	  * should override all of the methods in this interface
 	  * to ensure the correct method is invoked at runtime.
@@ -81,7 +76,7 @@ aspect RewriteWildcardsBase
 	syn boolean InfluenceNode.isRewritable() =
 		isRewritable(settings().rewriteStrategy);
 
-	syn lazy boolean InfluenceNode.isRewritable(RewriteStrategy strategy) circular [true] {
+	syn boolean InfluenceNode.isRewritable(RewriteStrategy strategy) circular [true] {
 		if(!strategy.rewriteCheck(this)) {
 			return false;
 		}
@@ -140,7 +135,7 @@ aspect RewriteWildcardsBase
 		ReplaceInfo fakeReplacement = new ReplaceInfo(
 			sourceFile(), -1, -1, -1, -1, " ", " ");
 		LOG.log(INFO, "fake rewrite: " + fakeReplacement);
-		rewriteOut.println(fakeReplacement);
+		settings().rewriteOut.println(fakeReplacement);
 	}
 
 	public void InfluenceNode.writeToWildcards() {
@@ -176,7 +171,7 @@ aspect RewriteWildcardsBase
 			oldAccess,
 			newAccess);
 		LOG.log(INFO, "rewrite: " + replacement);
-		rewriteOut.println(replacement);
+		settings().rewriteOut.println(replacement);
 	}
 
 

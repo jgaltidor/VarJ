@@ -2,7 +2,10 @@ package ui
 import com.beust.jcommander.JCommander
 import com.beust.jcommander.Parameter
 import com.beust.jcommander.ParameterException
+
 import AST.ASTNode
+import AST.AnalysisSettings
+
 import java.io.File
 import java.io.IOException
 
@@ -27,6 +30,14 @@ object RewriteAllSources extends FilesCLParser
 		return true
 	}
 
+	override def createSettingsBuilder(
+		sourcePaths:java.util.List[String]):AnalysisSettings.Builder =
+	{
+		val rewriteOut = new java.io.PrintStream(modificationSpec)
+		val builder = super.createSettingsBuilder(sourcePaths)
+		builder.rewriteOut(rewriteOut)
+	}
+
 	@throws(classOf[IOException])
 	def main(args:Array[String]):Unit =
 	{
@@ -40,11 +51,10 @@ object RewriteAllSources extends FilesCLParser
 		                   .buildAnalysisSettings
 		                   .compile
 		                   .getProgram
-		ASTNode.rewriteOut = new java.io.PrintStream(modificationSpec)
 		// Generate modificationSpec
 		program.rewriteTypesInSig()
 		// all writes to ASTNode.rewriteOut performed so closing the file
-		ASTNode.rewriteOut.close
+		ASTNode.settings.rewriteOut.close
 	
 		// create directory for newSourcesDirName if it
 		// does not exists

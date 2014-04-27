@@ -20,7 +20,7 @@ class RList<E>
 		System.out.println("RList started");
 		LinkedList<String> strs = new LinkedList<String>();
 		strs.add("one"); strs.add("two");
-		RList<? extends String> rlist = new RList<String>(strs);
+		RList<String> rlist = new RList<String>(strs);
 		for(int i = 0; i < rlist.size(); i++) {
 			System.out.printf("rlist.get(%d): %s", i, rlist.get(i));
 			System.out.println();
@@ -47,7 +47,7 @@ class WList<E>
 	static void test() {
 		System.out.println("WList started");
 		LinkedList<String> strs = new LinkedList<String>();
-		WList<? super String> wlist = new WList<String>(strs);
+		WList<String> wlist = new WList<String>(strs);
 		System.out.println("Adding \"one\" to wlist");
 		wlist.add("one");
 		System.out.println("Adding \"two\" to wlist");

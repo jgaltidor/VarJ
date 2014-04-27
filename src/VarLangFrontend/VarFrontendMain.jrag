@@ -1,6 +1,7 @@
 import java.util.logging.*;
 import backend.logging.*;
 import backend.logging.format.RenameLevelFormatter;
+import java.io.PrintStream;
 
 aspect VarFrontendMain
 {
@@ -40,6 +41,9 @@ aspect VarFrontendMain
 		
 		public final RewriteStrategy rewriteStrategy;
 		
+		/** Output stream to the rewrite specification file */
+		public final PrintStream rewriteOut;
+		
 		/** Stores the analysis strategy used by the constraint system
 			* solver for generating bounds on variance variables (e.g.
 			* DVars and UVars).
@@ -56,6 +60,7 @@ aspect VarFrontendMain
 			this.logVerbosityLevel = b.logVerbosityLevel;
 			this.colorLogMessages = b.colorLogMessages;
 			this.rewriteStrategy = b.rewriteStrategy;
+			this.rewriteOut = b.rewriteOut;
 			checkSettingsAreValid();
 			
 			this.analysisStrategy = createAnalysisStrategy();
@@ -169,6 +174,8 @@ aspect VarFrontendMain
 			
 			private RewriteStrategy rewriteStrategy =
 				DefaultRewriteStrategy.getInstance();
+			
+			public PrintStream rewriteOut = null;
 		
 			public Builder(java.util.List<String> sourcePaths) {
 				this.sourcePaths = sourcePaths;
@@ -195,6 +202,10 @@ aspect VarFrontendMain
 			}
 			public Builder rewriteStrategy(RewriteStrategy rewriteStrategy) {
 				this.rewriteStrategy = rewriteStrategy;
+				return this;
+			}
+			public Builder rewriteOut(PrintStream rewriteOut) {
+				this.rewriteOut = rewriteOut;
 				return this;
 			}
 			public AnalysisSettings build() {

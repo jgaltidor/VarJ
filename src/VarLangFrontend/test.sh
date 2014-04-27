@@ -21,8 +21,45 @@ scala $SCALA_OPTS ui.TexTable testtex/table.tex sig.json bod.json
 scala $SCALA_OPTS ui.RewriteSources -m rewriteinfo_sig.txt -d rewrittenSources_sig -t test.Seller -t test.RList unittests
 scala $SCALA_OPTS ui.RewriteSources -v 3 --bodies -m rewriteinfo_bodies.txt -d rewrittenSources_bodies -t test.Seller -t test.RList unittests
 
+echo Compiling generated sources in rewrittenSources_sig
+cd rewrittenSources_sig/unittests
+javac *.java
+echo Going back to original directory
+cd ../..
+
+echo Compiling generated sources in rewrittenSources_bodies
+cd rewrittenSources_bodies/unittests
+javac *.java
+echo Going back to original directory
+cd ../..
+
 scala $SCALA_OPTS ui.RewriteAllSources -v 3 -m rewriteinfo_sig.txt -d rewrittenSources_sig unittests
 scala $SCALA_OPTS ui.RewriteAllSources -v 3 --bodies -m rewriteinfo_bodies.txt -d rewrittenSources_bodies unittests
+
+echo Compiling generated sources in rewrittenSources_sig
+cd rewrittenSources_sig/unittests
+javac *.java
+echo Going back to original directory
+cd ../..
+
+echo Compiling generated sources in rewrittenSources_bodies
+cd rewrittenSources_bodies/unittests
+javac *.java
+echo Going back to original directory
+cd ../..
+
+scala $SCALA_OPTS ui.RewriteSelected --declsfile unittests/includesExcludes.json \
+                                     -v 3 \
+                                     -m rewriteinfo_sig.txt \
+                                     -d rewrittenSources_sig \
+                                     unittests/IncludesExcludesTest.java
+
+scala $SCALA_OPTS ui.RewriteSelected --bodies \
+                                     --declsfile unittests/includesExcludes.json \
+                                     -v 3 \
+                                     -m rewriteinfo_bodies.txt \
+                                     -d rewrittenSources_bodies \
+                                     unittests/IncludesExcludesTest.java
 
 echo Compiling generated sources in rewrittenSources_sig
 cd rewrittenSources_sig/unittests

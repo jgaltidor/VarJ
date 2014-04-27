@@ -1,0 +1,17 @@
+{
+"includes" :
+ [
+   "test.IncludesExcludesTest.foo1",
+   "test.IncludesExcludesTest.foo2.list",
+   "test.IncludesExcludesTest.foo3.list",
+   "test.IncludesExcludesTest.foo4.itr"
+ ],
+"excludes" :
+ [
+   "test.IncludesExcludesTest.foo3"
+ ],
+"_comments" :
+ [
+  "test.IncludesExcludesTest.foo3.list should not be written because it flows to test.IncludesExcludesTest.foo3. test.IncludesExcludesTest.foo4.itr selects a local variable declaration."
+ ]
+}

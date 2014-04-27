@@ -357,7 +357,7 @@ aspect InfluenceAnalysis
 
 	// reachableINodes
 	
-	syn lazy Set<InfluenceNode> InfluenceNode.reachableINodes() circular [succ()] {
+	syn Set<InfluenceNode> InfluenceNode.reachableINodes() circular [succ()] {
 		Set<InfluenceNode> nodes = ASTUtils.createSet();
 		for(InfluenceNode node : succ()) {
 			nodes.add(node);
