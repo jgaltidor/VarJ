@@ -59,19 +59,16 @@
 </target>
 
 <!-- compile sources -->
-<!-- <target name="build" depends="gen,init-scala,jcommander"> -->
-<target name="build" depends="gen,jcommander">
+<target name="build" depends="gen,init-scala,jcommander">
   <!-- Compile Java sources -->
 	<javac debug="true" nowarn="true" srcdir="." destdir="." includes="**/*.java"
-	       excludes="unittests/**,notyet/**,old/**,rewrittenSources/**,ui/notyet/**"
+	       excludes="unittests/**,notyet/**,old/**,rewrittenSources/**"
          classpath=".:${tools}/beaver-rt.jar:${tools}/junit.jar:"
          includeantruntime="false"/>
   <!-- Compile Scala sources -->
-  <!--
   <scalac classpathref="scala.classpath" srcdir="."
           includes="**/*.scala"
           excludes="unittests/**,notyet/**,old/**,rewrittenSources/**" />
-  -->
 </target>
 
 <target name="jcommander">
