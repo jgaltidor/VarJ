@@ -52,14 +52,14 @@ scala $SCALA_OPTS ui.RewriteSelected --declsfile unittests/includesExcludes.json
                                      -v 3 \
                                      -m rewriteinfo_sig.txt \
                                      -d rewrittenSources_sig \
-                                     unittests/IncludesExcludesTest.java
+                                     unittests
 
 scala $SCALA_OPTS ui.RewriteSelected --bodies \
                                      --declsfile unittests/includesExcludes.json \
                                      -v 3 \
                                      -m rewriteinfo_bodies.txt \
                                      -d rewrittenSources_bodies \
-                                     unittests/IncludesExcludesTest.java
+                                     unittests
 
 echo Compiling generated sources in rewrittenSources_sig
 cd rewrittenSources_sig/unittests
