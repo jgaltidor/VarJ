@@ -230,7 +230,7 @@ aspect Stats
 	  * parameterized type from source */
 	syn boolean ASTNode.isPDecl() = false;
 	eq InfluenceNode.isPDecl() =
-		isFromSource() && isOfParameterizedType();
+		isFromSource() && type().containsParameterizedType();
 	
 	syn int ASTNode.numDecls() = 0;
 	eq InfluenceNode.numDecls() = 1;

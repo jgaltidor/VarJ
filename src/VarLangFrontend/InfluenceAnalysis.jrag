@@ -13,6 +13,7 @@ aspect InfluenceAnalysis
 		public TypeDecl type();
 		syn lazy InfluenceNode sourceDecl();
 		public Access getTypeAccess();
+		public TypeDecl hostType();
 	}
 
 	MethodDecl implements InfluenceNode; // Represents really the return type of a method
@@ -186,7 +187,22 @@ aspect InfluenceAnalysis
 	/** Takes advantage of the fact that a rewritten node would never
 	  * flow to a node of an instantiation of a purely invariant type
 	  */
-	syn lazy boolean InfluenceNode.isUseful() {
+	syn lazy boolean InfluenceNode.isUseful();
+	
+	eq VariableDeclaration.isUseful() = mayPromoteWildcard();
+	
+	eq FieldDeclaration.isUseful() = mayPromoteWildcard();
+
+	eq ParameterDeclaration.isUseful() {
+		TypeDecl type = sourceDecl().type();
+		if(type.involvesGeneric()) {
+			return type.isParameterizedType() ?
+				mayPromoteWildcard() : true;
+		}
+		else return false;
+	}
+
+	eq MethodDecl.isUseful() {
 		TypeDecl type = sourceDecl().type();
 		if(type.involvesGeneric()) {
 			return type.isParameterizedType() ?
@@ -206,21 +222,21 @@ aspect InfluenceAnalysis
 	// no longer use lazy (cache) modifier with this attribute
 	// because JastAdd was caching the incorrect value
 	// (the initial circular attribute value for VVar.eval())
-	syn boolean InfluenceNode.mayPromoteWildcard() {
-		if(!isOfParameterizedType()) {
-			return false;
-		}
-		if(!isFromSource()) {
-			return type().isVariantType();
-		}
-		ParTypeAccess paccess = (ParTypeAccess) getTypeAccess();
-		for(int i = 0; i < paccess.getNumTypeArgument(); i++) {
-			Value specifiedUseSite = paccess.specifiedUseSite(i);
+	syn boolean InfluenceNode.mayPromoteWildcard() =
+		isFromSource() ?
+			getTypeAccess().mayPromoteWildcard() :
+			type().isVariantType();
+	
+	syn boolean Access.mayPromoteWildcard() = type().mayPromoteWildcard();
+	
+	eq ParTypeAccess.mayPromoteWildcard() {
+		for(int i = 0; i < getNumTypeArgument(); i++) {
+			Value specifiedUseSite = specifiedUseSite(i);
 			if(specifiedUseSite.equals(BIVARIANT)) {
 				continue;
 			}
 			Value inferredUseSite =
-				ASTNode.settings().analysisStrategy.inferredUseSite(paccess, i).eval();
+				ASTNode.settings().analysisStrategy.inferredUseSite(this, i).eval();
 			if(inferredUseSite.gt(specifiedUseSite)) {
 				return true;
 			}
@@ -228,6 +244,35 @@ aspect InfluenceAnalysis
 		return false;
 	}
 	
+	syn boolean TypeDecl.mayPromoteWildcard() = false;
+	
+	eq ParTypeDecl.mayPromoteWildcard() {
+		for (int i = 0; i < getNumArgument(); i++) {
+			Value specifiedUseSite = specifiedUseSite(i);
+			if(specifiedUseSite.equals(BIVARIANT)) {
+				continue;
+			}
+			Value inferredUseSite =
+				ASTNode.settings().analysisStrategy.inferredUseSite(this, i).eval();
+			if(inferredUseSite.gt(specifiedUseSite)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	eq ArrayDecl.mayPromoteWildcard() =
+		componentType().mayPromoteWildcard();
+	
+	
+	syn boolean TypeDecl.containsParameterizedType() = false;
+	eq ParTypeDecl.containsParameterizedType() = true;
+	eq ArrayDecl.containsParameterizedType() =
+		componentType().containsParameterizedType();
+		
+	syn boolean InfluenceNode.isOfParameterizedType() =
+		getTypeAccess().isParTypeAccess();
+
 	public Set<InfluenceNode> ASTNode.filterMayPromoteWildcard(
 		Iterable<? extends InfluenceNode> nodes)
 	{
@@ -240,7 +285,6 @@ aspect InfluenceAnalysis
 		}
 		return filteredNodes;
 	}
-
 
 	// sourceDecl
 
@@ -397,10 +441,6 @@ aspect InfluenceAnalysis
 		}
 		return true;
 	}
-	
-	syn boolean InfluenceNode.isOfParameterizedType() =
-		getTypeAccess().isParTypeAccess();
-
 
 	// nodesAffectedBySig
 

@@ -33,6 +33,9 @@ aspect AnalyzeMethodBody
 				return Collections.<VExpr>singletonList(uvar.specifiedUseSite());
 			}
 			java.util.List<VExpr> bounds = ASTUtils.createList();
+			ASTNode.LOG.log(ASTNode.DEBUG, String.format(
+				"getMemberAccessesInMethodBody(%s): %s", uvar,
+				uvar.getMemberAccessesInMethodBody()));
 			for(MemberAccess access : uvar.getMemberAccessesInMethodBody()) {
 				bounds.addAll(access.varBounds(this));
 			}
@@ -192,9 +195,9 @@ aspect AnalyzeMethodBody
 		if(immediatelyQualifiedBy(param)) {
 			MethodDecl meth = (MethodDecl) decl().sourceDecl();
 			MethodInvkAccess access = new MethodInvkAccess(uvar, meth);
-			LOG.log(INFO, String.format(
-				"member access for '%s' qualified by %s: %s",
-				this, param.fullName(), access));
+			LOG.log(DEBUG, String.format(
+				"member access for '%s' on %s:%s qualified by %s: %s",
+				this, sourceFile(), location(), param.fullName(), access));
 			accesses.add(access);
 		}
 		return accesses;
@@ -241,7 +244,7 @@ aspect AnalyzeMethodBody
 		if(immediatelyQualifiedBy(param)) {
 			TypeDecl innerClass = type().sourceTypeDecl();
 			InnerClassAccess access = new InnerClassAccess(uvar, innerClass);
-			LOG.log(INFO, String.format(
+			LOG.log(DEBUG, String.format(
 				"member access for '%s' qualified by %s: %s",
 				this, param.fullName(), access));
 			accesses.add(access);
@@ -271,7 +274,7 @@ aspect AnalyzeMethodBody
 				// Enhanced for statements implicitly access the iterator
 				// method.
 				EnhancedForIteratorAccess access = new EnhancedForIteratorAccess(uvar);
-				LOG.log(INFO, String.format(
+				LOG.log(DEBUG, String.format(
 					"iterator() access for use of %s in for-each expression '%s': %s",
 					param.fullName(), this, access));
 				accesses.add(access);
@@ -291,7 +294,20 @@ aspect AnalyzeMethodBody
 		}
 		
 		public abstract java.util.List<VExpr> varBounds(AnalysisStrategy strategy);
+		
+		protected final VExpr getNonOptimizedBound() {
+			return uvar.getDVar();
+		}
+		
+		protected static boolean inSameHostType(TypeDecl typeDecl, InfluenceNode node) {
+			return typeDecl.hostType() == node.hostType();
+		}
+		
+		protected static boolean inSameHostType(TypeDecl t1, TypeDecl t2) {
+			return t1.hostType() == t2.hostType();
+		}
 	}
+
 
 	public class FieldAccess extends MemberAccess {
 		public final FieldDeclaration field;
@@ -305,6 +321,9 @@ aspect AnalyzeMethodBody
 		
 		public java.util.List<VExpr> varBounds(AnalysisStrategy strategy)
 		{
+			if(!inSameHostType(sourceTypeParam, field)) {
+				return Collections.singletonList(getNonOptimizedBound());
+			}
 			TypeDecl typ = field.type();
 			if(!typ.structurallyContains(sourceTypeParam)) {
 				return Collections.emptyList();
@@ -323,10 +342,11 @@ aspect AnalyzeMethodBody
 			super(uvar);
 			this.meth = meth;
 		}
-		
 		public java.util.List<VExpr> varBounds(AnalysisStrategy strategy)
 		{
-			return strategy.varBounds(meth, sourceTypeParam);
+			return inSameHostType(sourceTypeParam, meth) ?
+				strategy.varBounds(meth, sourceTypeParam) :
+				Collections.singletonList(getNonOptimizedBound());
 		}
 	}
 
@@ -381,7 +401,7 @@ aspect AnalyzeMethodBody
 						bound = new Join(sourceUseSite, destinationUseSite);
 					}
 					else {
-						bound = uvar.getDVar();
+						bound = getNonOptimizedBound();
 					}
 					return Collections.singletonList(bound);
 				}
@@ -400,7 +420,9 @@ aspect AnalyzeMethodBody
 		}
 		
 		public java.util.List<VExpr> varBounds(AnalysisStrategy strategy) {
-			return strategy.varBounds(innerClass, sourceTypeParam);
+			return inSameHostType(sourceTypeParam, innerClass) ?
+				strategy.varBounds(innerClass, sourceTypeParam) :
+				Collections.singletonList(getNonOptimizedBound());
 		}
 	}
 

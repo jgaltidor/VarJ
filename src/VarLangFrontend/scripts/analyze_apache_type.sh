@@ -5,4 +5,4 @@ LIBS=$SCALA_HOME/lib/scala-library.jar
 set -ex
 # Analyze Apache Type
 echo Analyzing Apache Type $1
-java -Xmx1g -classpath $LIBS:$CLASSPATH  ui.AnalyzeType -t $1  $SRC
+java $JAVA_OPTS ui.AnalyzeType -j -classpath -j $LIBCP --bodies -v 3 -t $1 $SRC
