@@ -55,10 +55,7 @@ aspect AnalyzeMethodBody
 		@Override
 		public VExpr inferredUseSite(ParTypeAccess access, int index) {
 			VExpr sigOnlyInferred = super.inferredUseSite(access, index);
-			return (access.isMethodParamType() &&
-			        !access.getTypeArgument(index)
-			               .type()
-			               .containsMethodTypeVariable())?
+			return access.isMethodParamType() ?
 				new Join(sigOnlyInferred, access.getParamDecl().getUVar(index))
 				: sigOnlyInferred;
 		}
@@ -164,11 +161,12 @@ aspect AnalyzeMethodBody
 		return bounds;
 	}
 
-	syn lazy java.util.List<MemberAccess> UVar.getMemberAccessesInMethodBody()
+	syn java.util.List<MemberAccess> UVar.getMemberAccessesInMethodBody()
 	{
 		ParameterDeclaration param = getParam();
 		assert param.isMethodParam();
-		MethodDecl meth = (MethodDecl) param.enclosingBodyDecl();
+		MethodDecl meth =
+			((MethodDecl) param.enclosingBodyDecl()).sourceMethodDecl();
 		if(meth.hasBlock()) // if method has a method body
 			return meth.getBlock().getMemberAccesses(this);
 		else
@@ -299,14 +297,26 @@ aspect AnalyzeMethodBody
 			return uvar.getDVar();
 		}
 		
-		protected static boolean inSameHostType(TypeDecl typeDecl, InfluenceNode node) {
-			return typeDecl.hostType() == node.hostType();
+		protected static boolean inSameHostType(TypeVariable tv, InfluenceNode node) {
+			return tv.hostGeneric() == node.hostType();
 		}
 		
 		protected static boolean inSameHostType(TypeDecl t1, TypeDecl t2) {
 			return t1.hostType() == t2.hostType();
 		}
 	}
+
+	/*
+	syn lazy GenericTypeDecl TypeVariable.hostGeneric() =
+		(getParent().getParent() instanceof GenericTypeDecl) ?
+			(GenericTypeDecl) getParent().getParent() :
+			null;
+	*/
+
+	inh lazy GenericTypeDecl TypeVariable.hostGeneric();
+	eq GenericClassDecl.getTypeParameter(int i).hostGeneric() = this;
+	eq GenericInterfaceDecl.getTypeParameter(int i).hostGeneric() = this;
+	eq Program.getChild().hostGeneric() = null;
 
 
 	public class FieldAccess extends MemberAccess {
@@ -347,6 +357,9 @@ aspect AnalyzeMethodBody
 			return inSameHostType(sourceTypeParam, meth) ?
 				strategy.varBounds(meth, sourceTypeParam) :
 				Collections.singletonList(getNonOptimizedBound());
+		}
+		public String toString() {
+			return String.format("MethodInvkAccess(%s)", meth.fullName());
 		}
 	}
 

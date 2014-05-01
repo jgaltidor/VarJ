@@ -235,8 +235,7 @@ aspect InfluenceAnalysis
 			if(specifiedUseSite.equals(BIVARIANT)) {
 				continue;
 			}
-			Value inferredUseSite =
-				ASTNode.settings().analysisStrategy.inferredUseSite(this, i).eval();
+			Value inferredUseSite = inferredUseSite(i);
 			if(inferredUseSite.gt(specifiedUseSite)) {
 				return true;
 			}
@@ -252,8 +251,7 @@ aspect InfluenceAnalysis
 			if(specifiedUseSite.equals(BIVARIANT)) {
 				continue;
 			}
-			Value inferredUseSite =
-				ASTNode.settings().analysisStrategy.inferredUseSite(this, i).eval();
+			Value inferredUseSite = inferredUseSite(i);
 			if(inferredUseSite.gt(specifiedUseSite)) {
 				return true;
 			}

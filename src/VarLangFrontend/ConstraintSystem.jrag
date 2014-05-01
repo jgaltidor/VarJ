@@ -106,4 +106,11 @@ aspect ConstraintSystem
 	}
 
 	syn boolean GenericTypeDecl.isInvariant() = !isVariant();
+	
+	
+	syn Value ParTypeDecl.inferredUseSite(int index) =
+		ASTNode.settings().analysisStrategy.inferredUseSite(this, index).eval();
+		
+	syn Value ParTypeAccess.inferredUseSite(int index) =
+		ASTNode.settings().analysisStrategy.inferredUseSite(this, index).eval();
 }

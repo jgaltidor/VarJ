@@ -61,12 +61,12 @@ scala $SCALA_OPTS ui.RewriteSelected --bodies \
                                      -d rewrittenSources_bodies \
                                      unittests
 
-# scala $SCALA_OPTS ui.RewriteSelected --bodies \
-#                                      --declsfile unittests/paperexample.json \
-#                                      -v 3 \
-#                                      -m rewriteinfo_bodies.txt \
-#                                      -d rewrittenSources_bodies \
-#                                      unittests/PaperExample.java &> out.txt
+scala $SCALA_OPTS ui.RewriteSelected --bodies \
+                                     --declsfile unittests/paperexample.json \
+                                     -v 3 \
+                                     -m rewriteinfo_bodies.txt \
+                                     -d rewrittenSources_bodies \
+                                     unittests/PaperExample.java
 
 echo Compiling generated sources in rewrittenSources_sig
 cd rewrittenSources_sig/unittests

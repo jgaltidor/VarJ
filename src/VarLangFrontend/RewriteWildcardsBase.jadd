@@ -90,20 +90,22 @@ aspect RewriteWildcardsBase
 	
 	
 	// rewriteCheck(RewriteStrategy strategy)
+	
+	
 	syn lazy boolean InfluenceNode.rewriteCheck(RewriteStrategy strategy);
 	
 	eq VariableDeclaration.rewriteCheck(RewriteStrategy strategy)
-		= isFromSource();
+		= minimalRewriteCheck(this);
 	
 	eq FieldDeclaration.rewriteCheck(RewriteStrategy strategy)
-		= isFromSource();
+		= minimalRewriteCheck(this);
 	
 	/** Checking if return type is a type variable
 	  * because of overriding.
 	  */
 	eq MethodDecl.rewriteCheck(RewriteStrategy strategy) =
 		(!isStatic() && type().isTypeVariable()) ?
-			false : isFromSource();
+			false : minimalRewriteCheck(this);
 
 	/** Checking if param's type is a type variable
 	  * because of overriding.
@@ -112,13 +114,46 @@ aspect RewriteWildcardsBase
 		if(isMethodParam()) {
 			MethodDecl meth = (MethodDecl) enclosingBodyDecl();
 			return (!meth.isStatic() && type().isTypeVariable()) ?
-				false : isFromSource();
+				false : minimalRewriteCheck(this);
 		}
-		else return isFromSource();
+		else return minimalRewriteCheck(this);
 	}
 
 	eq VariableArityParameterDeclaration.rewriteCheck(RewriteStrategy strategy)
 		= false;
+	
+	public static boolean ASTNode.minimalRewriteCheck(InfluenceNode node) {
+		return node.isFromSource() &&
+		       node.getTypeAccess().inferredTypeKeepsMethodVars();
+	}
+
+	syn boolean Access.inferredTypeKeepsMethodVars() =
+		type().inferredTypeKeepsMethodVars();
+	
+	eq ParTypeAccess.inferredTypeKeepsMethodVars() {
+		for(int i = 0; i < getNumTypeArgument(); i++) {
+			if(getTypeArgument(i).type().containsMethodTypeVariable()
+			   && inferredUseSite(i).equals(BIVARIANT))
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+	
+	syn boolean TypeDecl.inferredTypeKeepsMethodVars() = true;
+	
+	eq ParTypeDecl.inferredTypeKeepsMethodVars() {
+		for (int i = 0; i < getNumArgument(); i++) {
+			Value inferredUseSite = inferredUseSite(i);
+			if(getArgument(i).type().containsMethodTypeVariable()
+			   && inferredUseSite(i).equals(BIVARIANT))
+			{
+				return false;
+			}
+		}
+		return true;
+	}
 
 
 	// writeFakeReplaceInfo
