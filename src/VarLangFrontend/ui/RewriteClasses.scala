@@ -13,10 +13,10 @@ import java.io.IOException
 import scala.collection.JavaConversions._
 
 
-object RewriteSources extends FilesCLParser
+object RewriteClasses extends FilesCLParser
 {
 	@Parameter(names = Array("-t", "--type"), required = true,
-	           description = "Type defs to rewrite")
+	           description = "Classes/interfaces to rewrite")
 	var typesToRewriteNames:java.util.List[String] = AST.ASTUtils.createList[String]
 
 	@Parameter(names = Array("-m", "--modfile"), required = true,
@@ -55,12 +55,12 @@ object RewriteSources extends FilesCLParser
 	@throws(classOf[IOException])
 	def main(args:Array[String]):Unit =
 	{
-		val programName = RewriteSources.getClass.getName.split("\\$").head
+		val programName = RewriteClasses.getClass.getName.split("\\$").head
 		val jc = new JCommander
-		jc addObject RewriteSources
+		jc addObject RewriteClasses
 		jc setProgramName programName
 		val program =
-		  RewriteSources.setJCommander(jc)
+		  RewriteClasses.setJCommander(jc)
 		                .parseArgs(args)
 		                .buildAnalysisSettings
 		                .compile

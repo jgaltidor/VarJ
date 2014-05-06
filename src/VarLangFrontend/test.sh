@@ -18,8 +18,8 @@ scala $SCALA_OPTS ui.InferStats --texout testtex/table.tex --bodies --json bod.j
 
 scala $SCALA_OPTS ui.TexTable testtex/table.tex sig.json bod.json
 
-scala $SCALA_OPTS ui.RewriteSources -m rewriteinfo_sig.txt -d rewrittenSources_sig -t test.Seller -t test.RList unittests
-scala $SCALA_OPTS ui.RewriteSources -v 3 --bodies -m rewriteinfo_bodies.txt -d rewrittenSources_bodies -t test.Seller -t test.RList unittests
+scala $SCALA_OPTS ui.RewriteClasses -m rewriteinfo_sig.txt -d rewrittenSources_sig -t test.Seller -t test.RList unittests
+scala $SCALA_OPTS ui.RewriteClasses -v 3 --bodies -m rewriteinfo_bodies.txt -d rewrittenSources_bodies -t test.Seller -t test.RList unittests
 
 echo Compiling generated sources in rewrittenSources_sig
 cd rewrittenSources_sig/unittests
