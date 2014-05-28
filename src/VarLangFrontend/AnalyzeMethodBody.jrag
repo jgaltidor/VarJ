@@ -344,6 +344,11 @@ aspect AnalyzeMethodBody
 			}
 			return Collections.<VExpr>singletonList(bound);
 		}
+		
+		public String toString() {
+			return String.format("FieldAccess(%s, %s, isTargetOfWrite=%b)",
+				uvar.getParam().fullName(), field.fullName(), isTargetOfWrite);
+		}
 	}
 
 	public class MethodInvkAccess extends MemberAccess {
@@ -359,7 +364,8 @@ aspect AnalyzeMethodBody
 				Collections.singletonList(getNonOptimizedBound());
 		}
 		public String toString() {
-			return String.format("MethodInvkAccess(%s)", meth.fullName());
+			return String.format("MethodInvkAccess(%s, %s)",
+				uvar.getParam().fullName(), meth.fullName());
 		}
 	}
 
@@ -372,6 +378,11 @@ aspect AnalyzeMethodBody
 			MethodDecl meth =
 				(MethodDecl) typ.memberMethods("iterator").iterator().next();
 			return (MethodDecl) meth.sourceDecl();
+		}
+		
+		public String toString() {
+			return String.format("EnhancedForIteratorAccess(%s)",
+			 uvar.getParam().fullName());
 		}
 	}
 
@@ -422,6 +433,11 @@ aspect AnalyzeMethodBody
 			}
 			else return Collections.emptyList();
 		}
+		
+		public String toString() {
+			return String.format("AssigningVar(%s = %s)",
+				dest.fullName(), uvar.getParam().fullName());
+		}
 	}
 
 	public class InnerClassAccess extends MemberAccess {
@@ -436,6 +452,11 @@ aspect AnalyzeMethodBody
 			return inSameHostType(sourceTypeParam, innerClass) ?
 				strategy.varBounds(innerClass, sourceTypeParam) :
 				Collections.singletonList(getNonOptimizedBound());
+		}
+		
+		public String toString() {
+			return String.format("InnerClassAccess(%s, %s)",
+				uvar.getParam().fullName(), innerClass.fullName());
 		}
 	}
 

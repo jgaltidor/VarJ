@@ -61,7 +61,8 @@ class LibStats(val clsStats: VarStats, val intStats: VarStats)
 	def toJSON = JSONObject(Map(
 		"Library"       -> name,
 		"clsStats"      -> clsStats.toJSON,
-		"intStats"      -> intStats.toJSON
+		"intStats"      -> intStats.toJSON,
+		"runningTime"   -> runningTime
 	))
 }
 
@@ -75,6 +76,11 @@ object LibStats
 		val ls = new LibStats(clsStats, intStats)
 		json.obj get "Library" match {
 			case Some(libval) => ls.name = libval.asInstanceOf[String]
+			case None => ()
+		}
+		json.obj get "runningTime" match {
+			case Some(libval) =>
+				ls.runningTime = libval.asInstanceOf[Double].toLong
 			case None => ()
 		}
 		ls
