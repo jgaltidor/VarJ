@@ -1,4 +1,10 @@
-ROOTOFLIBS=../../libs_nov2010_fix
+# Configs
+ROOTOFLIBS_BASENAME=analyzed_libs
+ROOTOFLIBS=../../$ROOTOFLIBS_BASENAME
+SCALA_HOME=/opt/myinstalls/programs/scala
+# classes.jar used for analyzing Guava library (Release 8)
+JAVA5_CLASSES=/System/Library/Frameworks/JavaVM.framework/Versions/1.5/Classes/classes.jar
+
 APACHE=$ROOTOFLIBS/collections-generic-4.01
 GUAVA=$ROOTOFLIBS/guava-libraries-read-only
 JAVASTAR=$ROOTOFLIBS/jdk1.6.0_06_src
@@ -7,8 +13,7 @@ JSCIENCE=$ROOTOFLIBS/jscience-4.3
 TROVE=$ROOTOFLIBS/trove-2.1.0
 
 # Classpath passed to Java
-JAVACP=$SCALA_HOME/lib/scala-library.jar:$CLASSPATH
-# Adding libraries used by Trove
+JAVACP=$SCALA_HOME/lib/scala-library.jar:VarJ.jar:$CLASSPATH
 
 # Get full (canonical) paths of lib directories
 APACHE_FP=`./scripts/realpath.py $APACHE`
@@ -25,7 +30,6 @@ LIBCP=$LIBCP:$TROVE_FP/lib/junit.jar
 LIBCP=$LIBCP:$JSCIENCE_FP/lib/javolution.jar
 LIBCP=$LIBCP:$JSCIENCE_FP/lib/geoapi.jar
 # Adding libraries used by Guava
-JAVA5_CLASSES=/System/Library/Frameworks/JavaVM.framework/Versions/1.5/Classes/classes.jar
 LIBCP=$LIBCP:$JAVA5_CLASSES
 LIBCP=$LIBCP:$GUAVA_FP/lib/jsr305.jar
 

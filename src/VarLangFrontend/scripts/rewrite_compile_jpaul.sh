@@ -5,7 +5,7 @@ echo Generating rewritten jpaul library
 java $JAVA_OPTS ui.RewriteAllSources -j -classpath -j $LIBCP -m rewriteinfo.txt -d rewrittenSources $JPAUL/src
 
 echo Going to directory containing rewritten jpaul
-cd rewrittenSources/libs_nov2010_fix/jpaul-2.5.1/src
+cd rewrittenSources/$ROOTOFLIBS_BASENAME/jpaul-2.5.1/src
 
 echo Compiling generated sources
 mkdir -p build

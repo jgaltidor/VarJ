@@ -7,7 +7,7 @@ echo Generating rewritten jscience library
 java $JAVA_OPTS ui.RewriteAllSources --bodies -j -classpath -j $LIBCP -m rewriteinfo.txt -d rewrittenSources $JSCIENCE/src
 
 echo Going to directory containing rewritten apache
-cd rewrittenSources/libs_nov2010_fix/jscience-4.3/src
+cd rewrittenSources/$ROOTOFLIBS_BASENAME/jscience-4.3/src
 
 echo Compiling generated sources
 mkdir -p build

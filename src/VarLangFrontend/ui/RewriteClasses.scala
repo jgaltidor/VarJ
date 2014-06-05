@@ -20,7 +20,7 @@ object RewriteClasses extends FilesCLParser
 	var typesToRewriteNames:java.util.List[String] = AST.ASTUtils.createList[String]
 
 	@Parameter(names = Array("-m", "--modfile"), required = true,
-	           description = "File to write modification specification")
+	           description = "File to write modification (list of rewrites) specification")
 	var modificationSpec:String = null
 
 	@Parameter(names = Array("-d", "--outdir"), required = true,

@@ -6,7 +6,7 @@ echo Generating rewritten Guava library
 java $JAVA_OPTS ui.RewriteAllSources -j -classpath -j $LIBCP -m rewriteinfo.txt -d rewrittenSources $GUAVA/src
 
 echo Going to directory containing rewritten apache
-cd rewrittenSources/libs_nov2010_fix/guava-libraries-read-only/src
+cd rewrittenSources/$ROOTOFLIBS_BASENAME/guava-libraries-read-only/src
 
 echo Compiling generated sources
 mkdir -p build

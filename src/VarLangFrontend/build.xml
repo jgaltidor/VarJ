@@ -177,6 +177,13 @@
 	<beaver file="parser/JavaParser.beaver" terminalNames="yes" compress="yes" useSwitch="yes"/>
 </target>
 
+<!-- remove binary distribution (jars) and generated files -->
+<target name="distclean" depends="clean">
+    <!-- delete jar files -->
+    <delete quiet="true" file="VarJ.jar"/>
+    <delete quiet="true" file="VarJ-src.jar"/>
+</target>
+
 <!-- remove generated source files and .class files -->
 <target name="clean" depends="cleanGen">
     <!-- delete all .class files recursively -->
@@ -186,8 +193,6 @@
     <delete quiet="true" dir="parser" />
     <delete quiet="true" dir="scanner" />
     <delete quiet="true" dir="com" />
-    <delete quiet="true" file="VarLang.jar"/>
-    <delete quiet="true" file="VarLang-src.jar"/>
 </target>
 
 <!-- remove generated source files -->
@@ -206,9 +211,9 @@
 
 <!-- build binaries -->
 <target name="jar" depends="build">
-  <jar destfile="VarLang.jar" basedir="." includes="**/*.class" excludes="unittests/**">
+  <jar destfile="VarJ.jar" basedir="." includes="**/*.class" excludes="unittests/**">
     <manifest>
-      <attribute name="Main-Class" value="ui.Tester"/>
+      <attribute name="Main-Class" value="ui.RewriteAllSources"/>
     </manifest>
   </jar>
 </target>
@@ -216,8 +221,8 @@
 
 <!-- build a source distribution -->
 <target name="source" depends="build" >
-	<delete file="VarLang-src.jar" />
-  <jar destfile="VarLang-src.jar">
+	<delete file="VarJ-src.jar" />
+  <jar destfile="VarJ-src.jar">
   	<fileset dir="${src}">
   		<!-- VarLangFrontend -->
   		<include name="VarLangFrontend/**/*.java" />
