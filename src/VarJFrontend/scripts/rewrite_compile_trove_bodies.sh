@@ -2,10 +2,10 @@ source ./scripts/setenv.sh
 set -ex
 # Rewriting Trove
 echo Generating rewritten trove library
-java $JAVA_OPTS ui.RewriteAllSources -j -classpath -j $LIBCP -m rewriteinfo.txt -d rewrittenSources $TROVE/src
+java $JAVA_OPTS ui.RewriteAllSources --bodies -j -classpath -j $LIBCP -m rewriteinfo.txt -d rewrittenSources $TROVE/src
 
 echo Going to directory containing rewritten trove
-cd rewrittenSources/$ROOTOFLIBS_BASENAME/trove-2.1.0/src
+cd rewrittenSources/$ANALYZEDLIBS_BASENAME/trove-2.1.0/src
 
 
 echo Compiling generated sources

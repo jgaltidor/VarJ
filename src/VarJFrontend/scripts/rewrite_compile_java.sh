@@ -5,7 +5,7 @@ echo Generating rewritten apache library
 java $JAVA_OPTS ui.RewriteAllSources -j -classpath -j $LIBCP -m rewriteinfo.txt -d rewrittenSources $JAVASTAR
 
 echo Going to directory containing rewritten apache
-cd rewrittenSources/$ROOTOFLIBS_BASENAME/jdk1.6.0_06_src
+cd rewrittenSources/$ANALYZEDLIBS_BASENAME/jdk1.6.0_06_src
 
 echo Compiling generated sources
 mkdir -p build

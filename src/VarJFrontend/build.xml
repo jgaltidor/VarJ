@@ -6,7 +6,7 @@
        gen             - generates java files
        genClean        - removes all generated files and their class files
 -->
-<project name="VarLangFrontend" default="build">
+<project name="VarJFrontend" default="build">
 <!-- root directory of source -->
 <property name="src" value=".." />
 <!-- name of JastAddJ folder -->
@@ -39,7 +39,7 @@
 <property environment="env"/>
 
 <!-- Getting SCALA_HOME environment variable -->
-<property name="SCALA_HOME" value="${env.SCALA_HOME}" />
+<property name="SCALA_HOME" value="../3rd_party_libs/scala-2.9.3" />
 
 
 <!-- Target for constructing values used to compile Scala sources -->
@@ -224,26 +224,26 @@
 	<delete file="VarJ-src.jar" />
   <jar destfile="VarJ-src.jar">
   	<fileset dir="${src}">
-  		<!-- VarLangFrontend -->
-  		<include name="VarLangFrontend/**/*.java" />
-  		<include name="VarLangFrontend/**/*.scala" />
-  		<include name="VarLangFrontend/**/*.ast" />
-  		<include name="VarLangFrontend/**/*.jrag" />
-  		<include name="VarLangFrontend/**/*.jadd" />
+  		<!-- VarJFrontend -->
+  		<include name="VarJFrontend/**/*.java" />
+  		<include name="VarJFrontend/**/*.scala" />
+  		<include name="VarJFrontend/**/*.ast" />
+  		<include name="VarJFrontend/**/*.jrag" />
+  		<include name="VarJFrontend/**/*.jadd" />
   		<!-- include build script -->
-  		<include name="VarLangFrontend/build.xml" />
+  		<include name="VarJFrontend/build.xml" />
   		
-  		<exclude name="VarLangFrontend/old/**" />
-  		<exclude name="VarLangFrontend/notyet/**" />
-  		<exclude name="VarLangFrontend/unittests/**" />
-  		<exclude name="VarLangFrontend/rewrittenSources/**" />
+  		<exclude name="VarJFrontend/old/**" />
+  		<exclude name="VarJFrontend/notyet/**" />
+  		<exclude name="VarJFrontend/unittests/**" />
+  		<exclude name="VarJFrontend/rewrittenSources/**" />
   		
   		<!-- exclude binary files -->
-  		<exclude name="VarLangFrontend/**/*.class" />
+  		<exclude name="VarJFrontend/**/*.class" />
 			<!-- exclude generated files -->
-			<exclude name="VarLangFrontend/scanner/**" />
-			<exclude name="VarLangFrontend/parser/**" />
-			<exclude name="VarLangFrontend/${package}/**" />
+			<exclude name="VarJFrontend/scanner/**" />
+			<exclude name="VarJFrontend/parser/**" />
+			<exclude name="VarJFrontend/${package}/**" />
 			
 			<!-- include 3rd party libraries -->
 			<include name="${JastAddJ}/**" />
