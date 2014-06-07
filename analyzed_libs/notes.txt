@@ -1,5 +1,0 @@
-GNU Trove
-----------
-Required generating source files from template
-Apache ant target 'generate' in trove-2.1.0/build.xml
-generates sources using the templates.
