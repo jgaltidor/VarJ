@@ -1,4 +1,4 @@
-# JastAddJ doesn't handle UTF-8 well.
+#! /bin/bash
 source ./scripts/setenv.sh
 set -ex
 # Rewriting JScience

@@ -1,3 +1,4 @@
+#! /bin/bash
 set -x
 
 libs='trove jscience jpaul java guava apache'

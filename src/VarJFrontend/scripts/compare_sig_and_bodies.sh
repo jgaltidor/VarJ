@@ -1,3 +1,4 @@
+#! /bin/bash
 set -ex
 
 ./scripts/analyze_all.sh

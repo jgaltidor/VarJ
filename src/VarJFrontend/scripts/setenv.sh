@@ -1,3 +1,5 @@
+#! /bin/bash
+
 # Configs
 ANALYZEDLIBS_BASENAME=analyzed_libs
 ANALYZEDLIBS=../../$ANALYZEDLIBS_BASENAME
@@ -35,3 +37,7 @@ LIBCP=$LIBCP:$GUAVA_FP/lib/jsr305.jar
 
 # JAVA_OPTS="-Xmx2g -classpath $JAVACP"
 JAVA_OPTS="-Xmx2g -ea -classpath $JAVACP"
+
+
+# Add scripts directory to the PATH
+PATH=`./scripts/realpath.py ./scripts`:$PATH
