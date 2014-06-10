@@ -21,64 +21,87 @@ java $JAVA_OPTS ui.InferStats --texout testtex/table.tex --bodies --json bod.jso
 
 java $JAVA_OPTS ui.TexTable testtex/table.tex sig.json bod.json
 
-java $JAVA_OPTS ui.RewriteClasses -m rewriteinfo_sig.txt -d rewrittenSources_sig -t test.Seller -t test.RList unittests
-java $JAVA_OPTS ui.RewriteClasses -v 3 --bodies -m rewriteinfo_bodies.txt -d rewrittenSources_bodies -t test.Seller -t test.RList unittests
+# rewritten test pair 1
+java $JAVA_OPTS ui.RewriteClasses -m rewriteinfo1_sig.txt -d rewrittenSources1_sig -t test.Seller -t test.RList unittests
+java $JAVA_OPTS ui.RewriteClasses -v 3 --bodies -m rewriteinfo1_bodies.txt -d rewrittenSources1_bodies -t test.Seller -t test.RList unittests
 
-echo Compiling generated sources in rewrittenSources_sig
-cd rewrittenSources_sig/unittests
+echo Compiling generated sources in rewrittenSources1_sig
+cd rewrittenSources1_sig/unittests
 javac *.java
 echo Going back to original directory
 cd ../..
 
-echo Compiling generated sources in rewrittenSources_bodies
-cd rewrittenSources_bodies/unittests
+echo Compiling generated sources in rewrittenSources1_bodies
+cd rewrittenSources1_bodies/unittests
 javac *.java
 echo Going back to original directory
 cd ../..
 
-java $JAVA_OPTS ui.RewriteAllSources -v 3 -m rewriteinfo_sig.txt -d rewrittenSources_sig unittests
-java $JAVA_OPTS ui.RewriteAllSources -v 3 --bodies -m rewriteinfo_bodies.txt -d rewrittenSources_bodies unittests
+# rewritten test pair 2
+java $JAVA_OPTS ui.RewriteAllSources -v 3 -m rewriteinfo2_sig.txt -d rewrittenSources2_sig unittests
+java $JAVA_OPTS ui.RewriteAllSources -v 3 --bodies -m rewriteinfo2_bodies.txt -d rewrittenSources2_bodies unittests
 
-echo Compiling generated sources in rewrittenSources_sig
-cd rewrittenSources_sig/unittests
+echo Compiling generated sources in rewrittenSources2_sig
+cd rewrittenSources2_sig/unittests
 javac *.java
 echo Going back to original directory
 cd ../..
 
-echo Compiling generated sources in rewrittenSources_bodies
-cd rewrittenSources_bodies/unittests
+echo Compiling generated sources in rewrittenSources2_bodies
+cd rewrittenSources2_bodies/unittests
 javac *.java
 echo Going back to original directory
 cd ../..
 
+# rewritten test pair 3
 java $JAVA_OPTS ui.RewriteSelected --declsfile unittests/includesExcludes.json \
                                      -v 3 \
-                                     -m rewriteinfo_sig.txt \
-                                     -d rewrittenSources_sig \
+                                     -m rewriteinfo3_sig.txt \
+                                     -d rewrittenSources3_sig \
                                      unittests
 
 java $JAVA_OPTS ui.RewriteSelected --bodies \
                                      --declsfile unittests/includesExcludes.json \
                                      -v 3 \
-                                     -m rewriteinfo_bodies.txt \
-                                     -d rewrittenSources_bodies \
+                                     -m rewriteinfo3_bodies.txt \
+                                     -d rewrittenSources3_bodies \
                                      unittests
 
-java $JAVA_OPTS ui.RewriteSelected --bodies \
-                                     --declsfile unittests/paperexample.json \
-                                     -v 3 \
-                                     -m rewriteinfo_bodies.txt \
-                                     -d rewrittenSources_bodies \
-                                     unittests/PaperExample.java
-
-echo Compiling generated sources in rewrittenSources_sig
-cd rewrittenSources_sig/unittests
+echo Compiling generated sources in rewrittenSources3_sig
+cd rewrittenSources3_sig/unittests
 javac *.java
 echo Going back to original directory
 cd ../..
 
-echo Compiling generated sources in rewrittenSources_bodies
-cd rewrittenSources_bodies/unittests
+echo Compiling generated sources in rewrittenSources3_bodies
+cd rewrittenSources3_bodies/unittests
+javac *.java
+echo Going back to original directory
+cd ../..
+
+# rewritten test pair 4
+
+java $JAVA_OPTS ui.RewriteSelected --declsfile unittests/paperexample.json \
+                                     -v 3 \
+                                     -m rewriteinfo4_sig.txt \
+                                     -d rewrittenSources4_sig \
+                                     unittests/PaperExample.java
+
+java $JAVA_OPTS ui.RewriteSelected --bodies \
+                                     --declsfile unittests/paperexample.json \
+                                     -v 3 \
+                                     -m rewriteinfo4_bodies.txt \
+                                     -d rewrittenSources4_bodies \
+                                     unittests/PaperExample.java
+
+echo Compiling generated sources in rewrittenSources4_sig
+cd rewrittenSources4_sig/unittests
+javac *.java
+echo Going back to original directory
+cd ../..
+
+echo Compiling generated sources in rewrittenSources4_bodies
+cd rewrittenSources4_bodies/unittests
 javac *.java
 echo Going back to original directory
 cd ../..
