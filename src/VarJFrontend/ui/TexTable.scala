@@ -1,22 +1,18 @@
 package ui
 import scala.util.parsing.json.{JSONObject,JSONArray}
 
-class Table1
+trait TexTableGenerator
 {
-	import Table1._ // Importing static members of Table1
+	def texTable(allstats:AllStats):String
+}
 
-	def tableHeader =
-"""\begin{tabular}{|ll|c|c|c|c|c|c|c|c|c|c|c|c|c|} \hline
-Library & & \# Type     & \# Generic  & \multicolumn{5}{c|}{Type Definitions} & Recursive & Unnecess. & Over-specif.\\
-        & & defs & defs & invar. & variant & cov. & contrav. & biv. & variances & wildcards   & methods  \\
-\hline
-"""
+abstract class TableTemplate extends TexTableGenerator
+{
+	def tableHeader:String
 
-	def tableSuffix =
-"""\end{tabular}
-"""
+	def tableSuffix = TableTemplate.defaultTableSuffix
 
-	def endTableRow = " \\\\ \n"
+	def endTableRow = TableTemplate.defaultEndTableRow
 
 	def texTable(allstats:AllStats):String = {
 		val sb = new StringBuilder(2 << 12)
@@ -47,7 +43,7 @@ Library & & \# Type     & \# Generic  & \multicolumn{5}{c|}{Type Definitions} & 
 
 	def texTotalRows(totalLibStats:LibStats):String =
 	{
-		import Table1.texBold
+		import TableTemplate.texBold
 		val sb = new StringBuilder(700)
 		// first row
 		sb.append("""\multirow{3}{*}{%s} & %s &""".format(
@@ -62,30 +58,19 @@ Library & & \# Type     & \# Generic  & \multicolumn{5}{c|}{Type Definitions} & 
 		sb.toString
 	}
 
-
 	def statTexRow(vs:VarStats):String =
-		statTexRow(vs, Table1.any2String)
-	
-	def statTexRow(vs:VarStats, formatter:Any => String):String =
-		Utils.joinstr(" & ",
-			formatter(vs.totalTypeDefs),
-			formatter(vs.totalGenerics),
-			formatter(texPercent(vs.ratioInVar)),
-			formatter(texPercent(vs.ratioVar)),
-			formatter(texPercent(vs.ratioCoVar)),
-			formatter(texPercent(vs.ratioContraVar)),
-			formatter(texPercent(vs.ratioBiVar)),
-			formatter(texPercent(vs.ratioRecVarParams)),
-			formatter(texPercent(vs.ratioUselessWildCards)),
-			formatter(texPercent(vs.ratioOverSpecified))
-		)
+		statTexRow(vs, TableTemplate.any2String)
+
+	def statTexRow(vs:VarStats, formatter:Any => String):String
 }
 
-object Table1
+object TableTemplate
 {
-	private val theInstance = new Table1
-	
-	def texTable(allstats:AllStats) = theInstance texTable allstats
+	def defaultTableSuffix =
+"""\end{tabular}
+"""
+
+	def defaultEndTableRow = " \\\\ \n"
 
 	def any2String(a:Any):String = a.toString
 	
@@ -105,17 +90,56 @@ object Table1
 		"""\highlight{\textbf{%s}}""" format a.toString
 }
 
-class Table2
+class Table1 extends TableTemplate
 {
-	import Table1._
- 	private val table1Delegate = new Table1
-  
-  def tableHeader = table1Delegate.tableHeader
-  def tableSuffix = table1Delegate.tableSuffix
-  def endTableRow = table1Delegate.endTableRow
-  def statTexRow(vs:VarStats) = table1Delegate statTexRow vs
-  def statTexRow(vs:VarStats, formatter:Any => String) =
-  	table1Delegate statTexRow (vs, formatter)
+  import TableTemplate._
+
+	override def tableHeader =
+"""\begin{tabular}{|ll|c|c|c|c|c|c|c|c|c|c|c|c|c|} \hline
+Library & & \# Type     & \# Generic  & \multicolumn{5}{c|}{Type Definitions} & Recursive & Unnecess. & Over-specif.\\
+        & & defs & defs & invar. & variant & cov. & contrav. & biv. & variances & wildcards   & methods  \\
+\hline
+"""
+
+	override def statTexRow(vs:VarStats, formatter:Any => String) =
+		Utils.joinstr(" & ",
+			formatter(vs.totalTypeDefs),
+			formatter(vs.totalGenerics),
+			formatter(texPercent(vs.ratioInVar)),
+			formatter(texPercent(vs.ratioVar)),
+			formatter(texPercent(vs.ratioCoVar)),
+			formatter(texPercent(vs.ratioContraVar)),
+			formatter(texPercent(vs.ratioBiVar)),
+			formatter(texPercent(vs.ratioRecVarParams)),
+			formatter(texPercent(vs.ratioUselessWildCards)),
+			formatter(texPercent(vs.ratioOverSpecified))
+		)
+}
+
+object Table1 extends TexTableGenerator
+{
+	private val theInstance = new Table1
+	def texTable(allstats:AllStats) = theInstance texTable allstats
+}
+
+trait TexTableGenerator2
+{
+	def texTable(sigStats:AllStats, bodStats:AllStats):String
+}
+
+abstract class TableTemplate2 extends TexTableGenerator2
+{
+	import TableTemplate._
+
+	def tableHeader:String
+
+	def tableSuffix = defaultTableSuffix
+	def endTableRow = defaultEndTableRow
+
+	def statTexRow(vs:VarStats):String =
+		statTexRow(vs, TableTemplate.any2String)
+
+	def statTexRow(vs:VarStats, formatter:Any => String):String
 
 	def texTable(sigStats:AllStats, bodStats:AllStats):String = {
 		val sb = new StringBuilder(2 << 12)
@@ -130,7 +154,7 @@ class Table2
 		sb.append("\\hline \n")
 		sb.append(tableSuffix)
 		sb.toString
-	}	
+	}
 
 	def libTexRows(sigStats:LibStats, bodStats:LibStats):String =
 	{
@@ -176,31 +200,30 @@ class Table2
 	}
 }
 
-object Table2
+class Table2 extends TableTemplate2
+{
+	import Table2.table1Delegate
+
+	override def tableHeader = table1Delegate.tableHeader
+
+	override def statTexRow(vs:VarStats, formatter:Any => String) =
+		table1Delegate.statTexRow(vs, formatter)
+}
+
+object Table2 extends TexTableGenerator2
 {
 	private val theInstance = new Table2
-	
+
 	def texTable(sigStats:AllStats, bodStats:AllStats) =
 		theInstance texTable (sigStats, bodStats)
 
-	def main(args:Array[String]):Unit = {
-		if(args.length < 3) {
-			Console.err.println(
-				"usage: <out tex file> <sig json file> <bod json file>")
-			sys.exit(1)
-		}
-		val outTexFileName = args(0)
-		val sigStats = AllStats.fromJSONSFile(args(1))
-		val bodStats = AllStats.fromJSONSFile(args(2))
-		Utils.writeToFile(
-			texTable(sigStats, bodStats),
-			outTexFileName)
-	}
+	private val table1Delegate = new Table1
 }
 
-class Table3 extends Table1
+
+class Table3 extends TableTemplate
 {
-	import Table1._ // Importing static members of Table1
+	import TableTemplate._ // Importing static members of Table1
 
 	override def tableHeader =
 """
@@ -220,11 +243,7 @@ Library & & \# Parameterized & \# Rewritable & Rewriteable & Rewritten & Rewritt
 \hline
 """
 
-	override def statTexRow(vs:VarStats):String =
-		statTexRow(vs, Table1.any2String)
-
-
-	override def statTexRow(vs:VarStats, formatter:Any => String):String =
+	override def statTexRow(vs:VarStats, formatter:Any => String) =
 		Utils.joinstr(" & ",
 			formatter(vs.totalPDecls),
 			
@@ -239,7 +258,7 @@ Library & & \# Parameterized & \# Rewritable & Rewriteable & Rewritten & Rewritt
 		)
 }
 
-object Table3
+object Table3 extends TexTableGenerator
 {
 	private val theInstance = new Table3
 	
@@ -263,19 +282,17 @@ object Table3
 	}
 }
 
-class Table4 extends Table2
+class Table4 extends TableTemplate2
 {
 	private val table3Delegate = new Table3
 	override def tableHeader = table3Delegate.tableHeader
 	
-	override def statTexRow(vs:VarStats) =
-		table3Delegate statTexRow vs
 	override def statTexRow(vs:VarStats, formatter:Any => String) =
 		table3Delegate statTexRow (vs, formatter)
 }
 
 
-object Table4
+object Table4 extends TexTableGenerator2
 {
 	private val theInstance = new Table4
 	
@@ -298,9 +315,9 @@ object Table4
 }
 
 
-class Table5 extends Table1
+class Table5 extends TableTemplate
 {
-	import Table1._ // Importing static members of Table1
+	import TableTemplate._ // Importing static members of Table1
 
 	override def tableHeader =
 """
@@ -318,10 +335,7 @@ Library & & \# Variant & Rewritable   & Rewritable & Rewritten    & Rewritten  \
 \hline
 """
 
-	override def statTexRow(vs:VarStats):String =
-		statTexRow(vs, Table1.any2String)
-
-	override def statTexRow(vs:VarStats, formatter:Any => String):String =
+	override def statTexRow(vs:VarStats, formatter:Any => String) =
 		Utils.joinstr(" & ",
 			formatter(vs.totalVDecls),
 			formatter(vs.totalRewritableVDecls),
@@ -332,7 +346,7 @@ Library & & \# Variant & Rewritable   & Rewritable & Rewritten    & Rewritten  \
 		)
 }
 
-object Table5
+object Table5 extends TexTableGenerator
 {
 	private val theInstance = new Table5
 	
@@ -357,18 +371,15 @@ object Table5
 }
 
 
-class Table6 extends Table2
+class Table6 extends TableTemplate2
 {
 	private val table5Delegate = new Table5
 	override def tableHeader = table5Delegate.tableHeader
-	
-	override def statTexRow(vs:VarStats) =
-		table5Delegate statTexRow vs
 	override def statTexRow(vs:VarStats, formatter:Any => String) =
 		table5Delegate statTexRow (vs, formatter)
 }
 
-object Table6
+object Table6 extends TexTableGenerator2
 {
 	private val theInstance = new Table6
 	
@@ -390,6 +401,134 @@ object Table6
 	}
 }
 
+/** Type Parameter Inference Results */
+class Table7 extends TableTemplate
+{
+	import TableTemplate._
+
+	override def tableHeader =
+"""
+% Table columns: (1) Library
+%                (2) (category: classes, interfaces, total)
+%                (3) # of Type parameter
+%                (4) % of invariant type parameters
+%                (5) % of variant type parameters
+%                (6) % of covariant type parameters
+%                (7) % of contravariant type parameters
+%                (8) % of bivariant type parameters
+%                (9) % of recursive variance parameters
+
+\begin{tabular}{|ll|c|c|c|c|c|c|c|c|c|c|c|c|} \hline
+Library & & \# Type   & \multicolumn{5}{c|}{Type Parameters}     & Recursive \\
+        & & Params    & invar. & variant & cov. & contrav. & biv. & variances\\
+\hline
+"""
+
+	override def statTexRow(vs:VarStats, formatter:Any => String) =
+		Utils.joinstr(" & ",
+			formatter(vs.totalTypeParams),
+			formatter(texPercent(vs.ratioInVarParams)),
+			formatter(texPercent(vs.ratioVarParams)),
+			formatter(texPercent(vs.ratioCoVarParams)),
+			formatter(texPercent(vs.ratioContraVarParams)),
+			formatter(texPercent(vs.ratioBiVarParams)),
+			formatter(texPercent(vs.ratioRecVarParams))
+		)
+}
+
+class Table8 extends TableTemplate2
+{
+	private val table7Delegate = new Table7
+	override def tableHeader = table7Delegate.tableHeader
+	
+	override def statTexRow(vs:VarStats, formatter:Any => String) =
+		table7Delegate statTexRow (vs, formatter)
+}
+
+object Table8 extends TexTableGenerator2
+{
+	private val theInstance = new Table8
+	
+	def texTable(sigStats:AllStats, bodStats:AllStats) =
+		theInstance texTable (sigStats, bodStats)
+}
+
+class Table9 extends TableTemplate
+{
+	import TableTemplate._
+
+	override def tableHeader =
+"""\begin{tabular}{|ll|c|c|c|c|c|c|c|c|c|c|} \hline
+Library & & \#    & \#  & \multicolumn{5}{c|}{Type Definitions} \\
+        & & Types & Generics & invar. & variant & cov. & contrav. & biv. \\
+\hline
+"""
+
+	override def statTexRow(vs:VarStats, formatter:Any => String) =
+		Utils.joinstr(" & ",
+			formatter(vs.totalTypeDefs),
+			formatter(vs.totalGenerics),
+			formatter(texPercent(vs.ratioInVar)),
+			formatter(texPercent(vs.ratioVar)),
+			formatter(texPercent(vs.ratioCoVar)),
+			formatter(texPercent(vs.ratioContraVar)),
+			formatter(texPercent(vs.ratioBiVar))
+		)
+}
+
+class Table10 extends TableTemplate2
+{
+	private val table9Delegate = new Table9
+	override def tableHeader = table9Delegate.tableHeader
+	
+	override def statTexRow(vs:VarStats, formatter:Any => String) =
+		table9Delegate statTexRow (vs, formatter)
+}
+
+object Table10 extends TexTableGenerator2
+{
+	private val theInstance = new Table10
+	
+	def texTable(sigStats:AllStats, bodStats:AllStats) =
+		theInstance texTable (sigStats, bodStats)
+}
+
+class Table11 extends TableTemplate
+{
+	import TableTemplate._
+
+	override def tableHeader =
+"""\begin{tabular}{|ll|c|c|c|c|c|c|c|c|} \hline
+Library & & \#    & \#        & Unnecessary & Over-specified \\
+        & & Types & Generics  & wildcards   & methods  \\
+\hline
+"""
+
+	override def statTexRow(vs:VarStats, formatter:Any => String) =
+		Utils.joinstr(" & ",
+			formatter(vs.totalTypeDefs),
+			formatter(vs.totalGenerics),
+			formatter(texPercent(vs.ratioUselessWildCards)),
+			formatter(texPercent(vs.ratioOverSpecified))
+		)
+}
+
+class Table12 extends TableTemplate2
+{
+	private val table11Delegate = new Table11
+	override def tableHeader = table11Delegate.tableHeader
+	
+	override def statTexRow(vs:VarStats, formatter:Any => String) =
+		table11Delegate statTexRow (vs, formatter)
+}
+
+object Table12 extends TexTableGenerator2
+{
+	private val theInstance = new Table12
+	
+	def texTable(sigStats:AllStats, bodStats:AllStats) =
+		theInstance texTable (sigStats, bodStats)
+}
 
 object TexTable
 {
@@ -402,14 +541,22 @@ object TexTable
 		val outTexFileName = args(0)
 		val sigStats = AllStats.fromJSONSFile(args(1))
 		val bodStats = AllStats.fromJSONSFile(args(2))
+		
 		Utils.writeToFile(
 			Table2.texTable(sigStats, bodStats),
 			outTexFileName)
-		Utils.appendToFile(
-			Table4.texTable(sigStats, bodStats),
-			outTexFileName)
-		Utils.appendToFile(
-			Table6.texTable(sigStats, bodStats),
-			outTexFileName)
+		
+		val generators:List[TexTableGenerator2] =
+			List(Table4,
+			     Table6,
+			     Table8,
+			     Table10,
+			     Table12)
+		
+		for(generator <- generators) {
+			Utils.appendToFile(
+				generator.texTable(sigStats, bodStats),
+				outTexFileName)
+		}
 	}
 }
