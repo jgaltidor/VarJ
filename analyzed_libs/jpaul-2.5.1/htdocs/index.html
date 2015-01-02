@@ -1,0 +1,302 @@
+<html>
+
+<head>
+ <title>
+ jpaul - Java Program Analysis Utilities Library
+ </title>
+</head>
+
+
+<body>
+
+<h1>jpaul - Java Program Analysis Utilities Library</h1>
+
+<table border=0>
+<tr>
+<td>
+&nbsp;&nbsp;&nbsp;&nbsp;
+</td>
+<td>
+Credo: <i>"Papers have been written enough, let us see
+systems!"</i> - Reinhard Wilhelm
+</td>
+</tr>
+</table>
+
+
+<p>
+<strong>jpaul</strong> is a Java implementation of several algorithms
+that are widely used in program analysis.  Compiler writers often
+reimplement a (relatively small) set of algorithms: graph algorithms,
+dataflow engines, set constraint solvers etc.  The goal of the
+<strong>jpaul</strong> project is to have these algorithms implemented
+independently of any compiler infrastructure project.
+<strong>jpaul</strong> emphasizes (in order): correctness,
+flexibility, ease-of-use, and asymptotic complexity (we are not very
+interested in cutting-edge low level optimizations).  The intended
+audience consists of program analysis researchers in need of a
+correct, elegant, and fast way of prototyping their analysis ideas.
+
+<p>
+<strong>jpaul</strong> is implemented in Generic Java (<a
+href="http://java.sun.com/j2se/1.5.0/index.jsp">JDK 1.5</a>); you
+don't need any other package in order to use <strong>jpaul</strong>.
+For development, <strong>jpaul</strong> has very common dependencies:
+<a href="http://ant.apache.org">ant</a> and
+<a href="http://junit.org">junit</a>.
+
+<p>
+The entire code is released under the terms of the <a
+href="COPYING.html">(Modified) BSD Licence</a>.  In the spirit of
+scientific honesty, researchers who use <strong>jpaul</strong> are
+encouraged to acknowledge <strong>jpaul</strong> explicitly in their
+scientific publications; here is a 
+<a href="jpaul-bibtex.txt">suggested BibTeX entry</a>.
+
+<p>
+<font color="red"><b>NEWS:</b></font>
+<b>Version 2.5 released on March 13, 2006! - 
+<a href="http://sourceforge.net/project/shownotes.php?group_id=131236&release_id=401431">Release
+Notes</a>; <a
+href="http://sourceforge.net/project/showfiles.php?group_id=131236">Download Area</a>
+<br></b>
+
+<ul>
+
+<li><a href="#current-features">Current Features</a>
+
+<li><a href="#getting-started">Getting started</a>
+
+<li>Javadoc: <a href="javadoc">current</a>, 
+<a href="javadoc-2.5">2.5</a>, 
+<a href="javadoc-2.4.1">2.4.1</a>, 
+<a href="javadoc-2.3">2.3</a>, 
+
+<li><a href="#mailing-lists">Mailing Lists</a>
+
+<li><a href="#users">Projects that use <strong>jpaul</strong></a>
+
+<li><a href="#team">The <strong>jpaul</strong> Team</a>
+
+<li><a href="#ack">Acknowledgements</a>
+
+<li><a href="http://sourceforge.net/projects/jpaul/">Project webpage
+on SourceForge</a>
+
+<li>Online interface for
+<a href="http://sourceforge.net/tracker/?atid=720510&group_id=131236&func=browse">bug reports</a>
+and
+<a href="http://sourceforge.net/tracker/?atid=720513&group_id=131236&func=browse">feature requests</a>
+
+</ul>
+
+
+</ul>
+
+
+<a name="current-features"><h2>Current Features</h2></a>
+
+<ul>
+
+<li>Graph algorithms - package <a
+href="javadoc/jpaul/Graphs/package-summary.html#package_description">jpaul.Graphs</a>:
+
+<ul>
+
+<li>Generic definition of a directed graph (digraph) as a set of
+<i>root</i> vertices and a <i>navigator</i> that describes the arcs of
+the graph.  This design allows the use of our library even for graphs
+whose arcs are not explicitly stored in the vertices.
+
+<li>General digraph algorithms: dfs traversals, reachability, shortest
+paths, etc.
+
+<li>Strongly connected components (SCCs): given a digraph, we can
+construct its topologically sorted component digraph - a digraph whose
+vertices are the SCCs of the original graph.
+
+<li>Basic block representation of a digraph.
+
+<li>Directed binary trees (special digraphs).  Utilities for iterating
+efficiently over such trees in pre-/in-/post-order.
+
+</ul>
+
+
+<p>
+<li>Generic and efficient solver for systems of inequality constraints
+over lattices - package <a
+href="javadoc/jpaul/Constraints/package-summary.html#package_description">jpaul.Constraints</a>.
+Generalization of classical set constraint solvers.  Allows the user
+to define its own kinds of constraints.  As an example of the
+constraint solver framework, we also implemented a set constraint
+solver - package <a
+href="javadoc/jpaul/Constraints/SetConstraints/package-summary.html#package_description">jpaul.Constraints.SetConstraints</a>.
+
+<p>
+<li>Generic NFAs and regular expressions - package <a
+href="javadoc/jpaul/RegExps/package-summary.html#package_description">jpaul.RegExps</a>:
+
+<ul>
+
+<li>Conversion from NFA to regular expressions
+
+</ul>
+
+<p>
+<li>Useful data structures - package <a
+href="javadoc/jpaul/DataStructs/package-summary.html#package_description">jpaul.DataStructs</a>:
+
+<ul>
+
+<li>Binary and ternary relations
+
+<li>Classes for the factory pattern
+
+<li>Copy-on-write data structures
+
+<li>Work sets for fixed-point computations
+
+</ul>
+
+
+<p>
+<li>Other goodies - package <a
+href="javadoc/jpaul/Misc/package-summary.html#package_description">jpaul.Misc</a>
+
+</ul>
+
+
+
+<a name="getting-started"><h2>Getting Started</h2></a>
+
+<ul>
+
+<li><strong>Easiest way:</strong> To use <strong>jpaul</strong>, it
+suffices to download the <code>jpaul-<i>&lt;version&gt;</i>.jar</code>
+file and add it to your CLASSPATH.  Click <a
+href="http://sourceforge.net/project/showfiles.php?group_id=131236">here</a>
+for the download site.
+
+<p>
+<strong>Note for Eclipse users</strong> (courtesy <a
+href="http://people.csail.mit.edu/akiezun">Adam Kiezun</a>)<strong>:</strong> you may
+add the downloaded <code>.jar</code> file to your Eclipse project, select the
+<code>.jar</code> and choose "<code>Build Path</code> &nbsp; &gt;
+&nbsp; <code>Add
+to Build Path</code>" from the context menu.  This will allow you to
+use the <strong>jpaul</strong> code and also to see the
+<strong>jpaul</strong> code you're using in Eclipse.
+
+<p>
+Alternatively, if you want to do changes inside
+<strong>jpaul</strong>, you may download the file
+<code>jpaul-<i>&lt;version&gt;</i>-src.zip</code> from <a
+href="http://sourceforge.net/project/showfiles.php?group_id=131236">here</a>.
+It contains all files of the project, including
+<code>jpaul.jar</code>, Java source files, Javadoc, tests, etc.
+
+<p>
+<li>Anonymous (read-only) CVS access to the source code:<br><br>
+<tt>
+cvs -z3 -d:pserver:anonymous@cvs.sourceforge.net:/cvsroot/jpaul co jpaul<br>
+</tt><br>
+Press Enter if prompted for a password.
+
+
+<p>
+<li>Full developer CVS access: First, make yourself an account on <a
+href="http://www.sourceforge.net">SourceForge</a>, and contact the <a
+href="http://sourceforge.net/users/salcianu/">project admin</a> (Alex
+Salcianu) to obtain the right to edit the source.  Next, you can
+start with the following commands:<br><br>
+<tt>
+export CVS_RSH=ssh<br>
+cvs -z3 -d:ext:developername@cvs.sourceforge.net:/cvsroot/jpaul co
+jpaul<br>
+</tt><br>
+
+</ul>
+
+<a name="mailing-lists"><h2>Mailing Lists</h2></a>
+
+There are two mailing lists:
+
+<ul>
+
+<li><strong>jpaul</strong> users list: jpaul-users@lists.sourceforge.net
+<a href="http://lists.sourceforge.net/lists/listinfo/jpaul-users">
+Archives/Subscribe/Unsubscribe</a>
+
+<p>
+<li><strong>jpaul</strong> developers list: jpaul-devel@lists.sourceforge.net
+<a href="http://lists.sourceforge.net/lists/listinfo/jpaul-devel">
+Archives/Subscribe/Unsubscribe</a>
+
+</ul>
+
+
+<a name="users"><h2>Projects that use <strong>jpaul</strong></h2></a>
+
+<ul>
+
+<li>Alex Salcianu uses <strong>jpaul</strong> extensively in the <a
+href="http://jppa.sourceforge.net">jppa</a> (Java Pointer and Purity
+Analysis) project.  In particular, <strong>jpaul</strong> was used to
+reimplement an inter-procedural, compositional pointer analysis for
+Java.  The implementation using <strong>jpaul</strong> is not only
+cleaner and more flexible, but also faster than the original one: the
+constraint solver from <strong>jpaul</strong> has a better grasp on
+the "big picture" and can perfom optimizations that were impossible in
+the original implementation.
+
+<p>
+<li><a href="http://people.csail.mit.edu/akiezun">Adam Kiezun</a> uses
+the graph package of <strong>jpaul</strong> in a project that performs
+generics-related refactorings in Eclipse - see his <a
+href="http://people.csail.mit.edu/akiezun/de05-kiezun.pdf">OOPSLA'05
+demo</a>.  An early adopter, Adam has been a happy user of
+<strong>jpaul</strong> ever since :)
+
+<p>
+<li>Please drop <a href="mailto:salcianu@#@alum.mit.edu">me</a> an
+email if you are a <strong>jpaul</strong> user.  I would be happy to
+hear your feedback and list your project here!
+
+</ul>
+
+<a name="team"><h2>The <strong>jpaul</strong> Team</h2></a>
+
+<strong>jpaul</strong> was started by <a
+href="http://www.mit.edu/~salcianu">Alex Salcianu</a> in February
+2005.  <a href="http://people.csail.mit.edu/akiezun/">Adam Kiezun</a>
+provided many useful comments and formally joined the
+<strong>jpaul</strong> team in January 2006.
+
+
+<a name="ack"><h2>Acknowledgements</h2></a>
+
+<strong>jpaul</strong> contains pieces of code contributed by the
+following people: <a href="http://www.stanford.edu/~suhabe/">Suhabe
+Bugrara</a> (the initial version of the <code>RegExps</code> package),
+<a href="http://www-faculty.cs.uiuc.edu/~marinov/">Darko Marinov</a>
+(the Emacs <code>prj.el</code> script) and <a
+href="http://cscott.net">C. Scott Ananian</a> (the initial versions of
+<code>ReverseListIterator</code> and <code>UnionFind</code>).  Some of
+the code from this project was initially developed for the <a
+href="http://www.flex-compiler.lcs.mit.edu/">MIT FLEX</a> compiler
+infrastructure.
+
+
+<hr>
+
+Hosted by <A href="http://sourceforge.net"> <IMG src="http://sourceforge.net/sflogo.php?group_id=131236&amp;type=5" width="210" height="62" border="0" alt="SourceForge.net Logo" /></A>
+
+
+<hr>
+
+Copyright (c) 2005 - <a href="http://www.mit.edu/~salcianu">Alexandru Salcianu</a>
+
+</body>
+
+</html>

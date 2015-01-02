@@ -1,0 +1,22 @@
+/** A variable to stand for an unknown (value or
+  * variance expression) within a variance expression.
+  */
+abstract VVar : VExpr; 
+
+/** Extending VExpr with DVars, which are basically
+  * identifiers/variables in VExprs that refer to
+  * a type parameter of a generic Generic Type Definition
+  */
+DVar : VVar ::= <GenericTypeDecl:GenericTypeDecl> <TypeVariable:TypeVariable>;
+
+/** Extending VExpr with UVars, which are variables that
+  * refer use-site annotations of type arguments that could
+  * possibly be relaxed.
+  * Index refers to the index of the use-site annotation in
+  * the declared parameterized type of Param.
+  * For example, if the declared parameterized type of the
+  * parameter named x is Pair<String, Double>, then
+  * UVar(x, 1) refers to the use-site annotation to infer
+  * to apply to the second type argument Double.
+  */
+UVar : VVar ::= <Param:ParameterDeclaration> <Index:Integer>;

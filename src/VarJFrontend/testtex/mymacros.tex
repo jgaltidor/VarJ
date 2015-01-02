@@ -1,0 +1,31 @@
+\usepackage{hyperref} % Adds links to references
+
+% Probably want to use AMS macros
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{amsfonts}
+
+% For using color
+\usepackage[usenames,dvipsnames]{color}
+
+% Adding and removing line space
+\newcommand{\linespace}{\vspace{\baselineskip}}
+\newcommand{\minuslinespace}{\vspace{-\baselineskip}}
+% Stop indenting of paragraphs
+\newcommand{\stopParagraphIdent}{\setlength{\parindent}{0pt}}
+
+%% We have some bulleted lists with multi-paragraph items. These are a
+%% bit wasteful of space, and a bit hard to read because of lack of
+%% paragraph indentation, when put in an "itemize"
+%% environment. "bullets" is an alternative that keeps the paragraphs
+%% looking more like paragraphs. 
+\newenvironment{bullets}%
+{\begin{list}{$\bullet$}{\setlength{\leftmargin}{1.5ex}%
+\setlength{\itemindent}{.5ex}}
+\setlength{\parindent}{2ex}
+}%
+{\end{list}}
+
+\definecolor{LightGray}{gray}{0.75}
+\newcommand{\highlight}[1]{\colorbox{LightGray}{#1}}

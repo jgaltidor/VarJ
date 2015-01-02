@@ -1,0 +1,6 @@
+@Misc{jpaul,
+  author = {Alexandru D. S\u{a}lcianu etal},
+  title  = {{jpaul}~--~{J}ava {P}rogram {A}nalysis {U}tilities {L}ibrary},
+  year   = {2005},
+  howpublished = {Available from http://jpaul.sourceforge.net}
+}

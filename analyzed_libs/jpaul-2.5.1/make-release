@@ -1,0 +1,106 @@
+#!/bin/bash
+
+# Copyright 2006 Alexandru Salcianu - salcianu@alum.mit.edu
+# Released under the Modified BSD Licence; see COPYING for details.
+# $Id: make-release,v 1.2 2006/03/25 01:49:29 salcianu Exp $
+
+# Auxiliary script for the making jpaul releases on SourceForge
+
+# NOTE: this script could probably be merged into the build.xml file
+# used by ant; I (Alex Salcianu) simply did not know how to do several
+# things in ant, and I also did not have time to search online for
+# doc.  If you know how to move this script to ant, your contribution
+# is welcome, with one condition: the ant code should be portable, not
+# some obscure feature that works only on version x.y, running on the
+# OS z.t.
+
+function print_usage() {
+    echo -e "Usage"
+    echo -e "\tmake-release <versionId>"
+    echo -e "where <versionId> has form <major>.<minor>[.<subminor>]"
+    echo -e "Read the RELEASE file for more information."
+}
+
+VERSIONID=$1
+
+pushd `pwd`
+
+if [ -z "$VERSIONID" ]; then
+    print_usage;
+    exit 1;
+fi
+
+
+echo Moving to the jpaul home
+cd `dirname $0`
+echo Current dir = `pwd`
+echo
+
+
+# Normally, the RELEASE file said that we should do the following:
+#
+# 3. Update the RELEASE string field from src/jpaul/Version.java to be
+#    the new release identifier.
+#
+# We don't actually do this: I don't like code generation; instead, we
+# verify that the RELEASE fields has been updated to teh correct value
+
+if grep "String RELEASE" src/jpaul/Version.java | grep \"$VERSIONID\"; then
+    echo Verified: jpaul.Version.RELEASE == \"$VERSIONID\"
+else
+    echo "FATAL:"
+    echo -e "\tDid you forget to update the field jpaul.Version.RELEASE?"
+    echo -e "\tIt should be \"$VERSIONID\" ..."
+    echo -e "\tCurrent line is"
+    echo -e "\t\t"`grep "String RELEASE" src/jpaul/Version.java`
+    echo -e "\tPlease edit file src/jpaul/Version.java"
+    exit 3;
+fi
+
+
+# 1. Make sure the current code compiles and works: ant test
+
+echo "Running ant test - this may take a while"
+if ant test; then
+    echo GOOD: all tests pass!
+else
+    echo FATAL: ant test failed
+    exit 2;
+fi
+
+
+# 4. Build the release: ant release
+#    This action produces two files in the parent directory .. :
+#      jpaul.jar (only the jar and the sources)
+#      jpaul-src.zip (the full, development-level sources, including the
+#      tests and the scripts for building the final jar)
+
+ant release
+
+if [ "$?" != "0" ]; then
+    echo Error while building the release
+    exit;
+fi
+
+
+# 5. cd ..
+# 6. mv jpaul.jar jpaul-<version>.jar
+#    mv jpaul-src.zip jpaul-<version>-src.zip
+
+if  cd .. && \
+    mv jpaul.jar jpaul-${VERSIONID}.jar && \
+    mv jpaul-src.zip jpaul-${VERSIONID}-src.zip &&
+    cd jpaul/htdocs && \
+    cp -r javadoc javadoc-${VERSIONID}; then
+    
+    echo "SUCCESS!"
+    echo
+    echo Relevant files jpaul-${VERSIONID}.jar and jpaul-${VERSIONID}-src.zip left in `pwd`
+    echo 
+    echo Follow the rest of the instructions from RELEASE
+    
+else
+    echo Error moving the resulting files
+fi
+
+

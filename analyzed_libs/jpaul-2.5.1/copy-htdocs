@@ -1,0 +1,4 @@
+## Copyright (C) 2005 Alex Salcianu - salcianu@alum.mit.edu
+## Licensed under the Modified BSD Licence; see COPYING for details.
+#!/bin/bash
+scp -r htdocs salcianu@shell.sourceforge.net:/home/groups/j/jp/jpaul

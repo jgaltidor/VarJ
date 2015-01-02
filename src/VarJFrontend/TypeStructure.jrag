@@ -1,0 +1,153 @@
+import java.util.Iterator;
+import java.util.Set;
+
+aspect TypeStructure
+{
+	syn lazy java.util.List<TypeDecl> TypeDecl.superTypes() = Collections.emptyList();
+	
+	eq ClassDecl.superTypes() {
+		java.util.List<TypeDecl> superTypes = ASTUtils.createList();
+		if ( hasSuperclass()) {
+			TypeDecl s = superclass();
+			superTypes.add(s);
+		}
+		for ( Iterator ifIt = interfacesIterator(); ifIt.hasNext(); ) {
+			TypeDecl iface = (TypeDecl) ifIt.next();
+			superTypes.add(iface);
+		}
+		return superTypes;
+	}
+
+	eq InterfaceDecl.superTypes() {
+		java.util.List<TypeDecl> superTypes = ASTUtils.createList();
+		for ( Iterator ifIt = superinterfacesIterator(); ifIt.hasNext(); ) {
+			TypeDecl iface = (TypeDecl) ifIt.next();
+			superTypes.add(iface);
+		}
+		return superTypes;
+	}
+
+	// structurallyContains
+	
+	syn lazy boolean TypeDecl.structurallyContains(TypeDecl t) = this == t;
+	
+	eq WildcardExtendsType.structurallyContains(TypeDecl t) =
+		super.structurallyContains(t) || getAccess().type().structurallyContains(t);
+		
+	eq WildcardSuperType.structurallyContains(TypeDecl t) =
+		super.structurallyContains(t) || getAccess().type().structurallyContains(t);
+
+	eq ArrayDecl.structurallyContains(TypeDecl t) =
+		super.structurallyContains(t) || componentType().structurallyContains(t);
+
+	eq ParTypeDecl.structurallyContains(TypeDecl t) {
+		if(super.structurallyContains(t)) return true;
+		for(int i=0; i<getNumArgument(); i++) {
+			if(getArgument(i).type().structurallyContains(t))
+				return true;
+		}
+		return false;
+	}
+
+	syn lazy boolean BodyDecl.structurallyContains(TypeDecl t) = false;
+
+	eq FieldDeclaration.structurallyContains(TypeDecl t) =
+		type().structurallyContains(t);
+
+	eq MethodDecl.structurallyContains(TypeDecl t) {
+		if(type().structurallyContains(t)) return true;
+		for (int i=0; i<getNumParameter(); i++) {
+			if(getParameter(i).type().structurallyContains(t)) return true;
+		}
+		return false;
+	}
+
+	eq GenericMethodDecl.structurallyContains(TypeDecl t) {
+		if(super.structurallyContains(t)) return true;
+		for(int i = 0; i < getNumTypeParameter(); i++) {
+			TypeVariable tv = getTypeParameter(i);
+			if(tv.structurallyContains(t)) return true;			
+			for (int j = 0; j < tv.getNumTypeBound(); j++) {
+				if(tv.getTypeBound(j).type().structurallyContains(t))
+					return true;
+			}
+		}
+		return false;
+	}
+
+	// isInTypeClosure
+	syn lazy boolean TypeDecl.isInTypeClosure(TypeDecl t) = typedefClosure().contains(t);
+	
+	syn Set<TypeDecl> TypeDecl.typedefClosure() circular [Collections.emptySet()]
+		= Collections.emptySet();
+	
+	eq ClassDecl.typedefClosure() {
+		Set<TypeDecl> set = ASTUtils.createSet();
+		set.add(this);
+		for(int j=0; j < getNumBodyDecl(); j++) {
+			set.addAll(getBodyDecl(j).typedefClosure());
+		}
+		return set;
+	}
+
+	eq InterfaceDecl.typedefClosure() {
+		Set<TypeDecl> set = ASTUtils.createSet();
+		set.add(this);
+		for(int j=0; j < getNumBodyDecl(); j++) {
+			set.addAll(getBodyDecl(j).typedefClosure());
+		}
+		return set;
+	}
+	
+	eq ParTypeDecl.typedefClosure() {
+		Set<TypeDecl> set = ASTUtils.createSet();
+		for (int i = 0; i<getNumArgument(); i++) {
+			set.addAll(getArgument(i).type().typedefClosure());
+		}
+		return set;
+	}
+
+	eq WildcardExtendsType.typedefClosure() = getAccess().type().typedefClosure();
+
+	eq WildcardSuperType.typedefClosure() = getAccess().type().typedefClosure();
+
+	eq ArrayDecl.typedefClosure() = componentType().typedefClosure();	
+
+
+	// BodyDecl.typedefClosure
+
+	syn Set<TypeDecl> BodyDecl.typedefClosure() circular [Collections.emptySet()] =
+		Collections.emptySet();
+	
+	eq FieldDeclaration.typedefClosure() = type().typedefClosure();
+	
+	eq MethodDecl.typedefClosure() {
+		Set<TypeDecl> set = ASTUtils.createSet();
+		set.addAll(type().typedefClosure());
+		for (int i=0; i<getNumParameter(); i++) {
+			set.addAll(getParameter(i).type().typedefClosure());
+		}
+		return set;
+	}
+
+
+	syn lazy boolean TypeDecl.passesToGenericInSig(TypeVariable tv) {
+		for (int j=0; j < getNumBodyDecl(); j++) {
+			if(getBodyDecl(j).passesToGeneric(tv)) return true;
+		}
+		return false;
+	}
+
+	syn lazy boolean BodyDecl.passesToGeneric(TypeVariable tv) = false;
+	
+	eq FieldDeclaration.passesToGeneric(TypeVariable tv) =
+		type().structurallyContains(tv);
+
+	eq MethodDecl.passesToGeneric(TypeVariable tv) {
+		if(type().structurallyContains(tv)) return true;
+		for (int i=0; i<getNumParameter(); i++) {
+			if(getParameter(i).type().structurallyContains(tv)) return true;
+		}
+		return false;
+	}
+}

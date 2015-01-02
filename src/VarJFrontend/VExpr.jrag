@@ -1,0 +1,79 @@
+import backend.Val;
+
+aspect VExpr
+{
+	public static final Value ASTNode.COVARIANT = new Value(Val.COVARIANT);
+	public static final Value ASTNode.CONTRAVARIANT = new Value(Val.CONTRAVARIANT);
+	public static final Value ASTNode.INVARIANT = new Value(Val.INVARIANT);
+	public static final Value ASTNode.BIVARIANT = new Value(Val.BIVARIANT);
+
+	// Comparison order methods
+	
+	syn boolean Value.equals(Value other) =
+		getVal().equals(other.getVal());
+	
+	syn boolean Value.gt(Value other) =
+		getVal().gt(other.getVal());
+
+	syn boolean Value.lt(Value other) =
+		getVal().lt(other.getVal());
+
+	syn boolean Value.gteq(Value other) =
+		getVal().gteq(other.getVal());
+
+	syn boolean Value.lteq(Value other) =
+		getVal().lteq(other.getVal());
+
+	// binary operators
+
+	syn Value Value.transform(Value other) =
+		new Value(getVal().transform(other.getVal()));
+
+	syn Value Value.meet(Value other) =
+		new Value(getVal().meet(other.getVal()));
+
+	syn Value Value.join(Value other) =
+		new Value(getVal().join(other.getVal()));
+	
+	
+	// eval
+	
+	syn Value VExpr.eval();
+	
+	eq Transform.eval() = getLeft().eval().transform(getRight().eval());
+
+	eq Meet.eval() = getLeft().eval().meet(getRight().eval());
+
+	eq Join.eval() = getLeft().eval().join(getRight().eval());
+		
+	eq Value.eval() = this;
+
+	// toString()
+	
+	syn String List.toString() {
+		StringBuffer sb = new StringBuffer("[");
+		final int num = getNumChild();
+		for(int i = 0; i < num-1; i++) {
+			sb.append(getChild(i).toString() + ',');
+		}
+		if(num > 0)
+			sb.append(getChild(num-1));
+		sb.append(']');
+		return sb.toString();
+	}
+
+	// syn String VProgram.toString() = String.format("VProgram(%s)", getVExprList());
+
+	syn String VExpr.toString();
+	
+	eq Transform.toString() = String.format("Transform(%s, %s)",
+		getLeft(), getRight());
+
+	eq Join.toString() = String.format("Join(%s, %s)",
+		getLeft(), getRight());
+
+	eq Meet.toString() = String.format("Meet(%s, %s)",
+		getLeft(), getRight());
+
+	eq Value.toString() = getVal().toString();
+}

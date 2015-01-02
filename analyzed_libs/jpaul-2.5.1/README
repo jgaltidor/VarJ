@@ -1,0 +1,38 @@
+jpaul - Java Program Analysis Utilities Library
+
+INSTALLATION FOR DEVELOPMENT PURPOSES
+=====================================
+
+To build the jpaul sources, you need the following tools:
+
+1. JDK 1.5 or later
+   http://java.sun.com/j2se/1.5.0/index.jsp
+
+2. Apache Ant
+   http://ant.apache.org
+
+3. JUnit 2.0 or later
+   http://junit.sourceforge.net
+
+   VERY IMPORTANT: we currently use junit 3.8.1.  We've placed the
+   relevant junit.jar in the lib/ subdirectory and we strongly
+   recommend you to place this .jar on your CLASSPATH.  Unfortunately,
+   we've been unable to edit our ant build.xml file to make the junit
+   ant task work without this update to the CLASSPATH environment
+   variable; hopefully, one day ant will improve its support of junit.
+
+
+---------------------------------------------------------------------
+
+After you change the sources, you can use ant to build them, perform
+testing, generate documentation, package relevant classfiles in a .jar
+etc.  To find out the possible ant targets in the build.xml file, just
+execute
+
+  ant -projecthelp 
+
+=====================================================================
+Copyright 2005 Alexandru Salcianu - salcianu@alum.mit.edu
+Released under the Modified BSD Licence; see COPYING for details.
+
+This file's CVS version: $Id: README,v 1.5 2006/02/10 18:26:15 salcianu Exp $

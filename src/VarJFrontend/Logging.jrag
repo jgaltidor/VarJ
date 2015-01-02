@@ -1,0 +1,9 @@
+import java.util.logging.*;
+
+aspect Logging
+{
+	public static Logger ASTNode.LOG = null;
+	public static final Level ASTNode.DEBUG = backend.logging.VarLogger.DEBUG;
+	public static final Level ASTNode.INFO  = backend.logging.VarLogger.INFO;
+	public static final Level ASTNode.ERROR = backend.logging.VarLogger.ERROR;
+}

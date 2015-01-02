@@ -1,0 +1,284 @@
+import java.util.logging.*;
+import backend.logging.*;
+import backend.logging.format.RenameLevelFormatter;
+import java.io.PrintStream;
+
+aspect VarFrontendMain
+{
+	private static AnalysisSettings ASTNode.settings = null;
+	
+	public static AnalysisSettings ASTNode.settings() {
+		return settings;
+	}
+
+	public static void ASTNode.setSettings(AnalysisSettings settings) {
+		ASTNode.settings = settings;
+	
+		// analysisStrategy = settings.getAnalysisStrategy();
+		LOG = settings.getLogger();
+		LOG.log(INFO, "log level: " + LOG.getLevel());
+		LOG.log(INFO, "jastAddOptions: " +
+			ASTUtils.toString(settings.jastAddOptions));
+		LOG.log(INFO, "analyzeAllPrivateMembers: " +
+		  settings.analyzeAllPrivateMembers);
+		LOG.log(INFO, "analyzeMethodBodies: " +
+		  settings.analyzeMethodBodies);
+		LOG.log(INFO, "rewrite strategy: " +
+		  settings.rewriteStrategy);
+		LOG.log(INFO, "sourcePaths: " +
+			ASTUtils.toString(settings.sourcePaths));
+	}
+
+	public class AnalysisSettings
+	{
+		public final java.util.List<String> sourcePaths;
+		public final java.util.List<String> jastAddOptions;
+		public final boolean analyzeMethodBodies;
+		public final boolean analyzeAllPrivateMembers;
+	
+		public final int logVerbosityLevel;
+		public final boolean colorLogMessages;
+		
+		public final RewriteStrategy rewriteStrategy;
+		
+		/** Output stream to the rewrite specification file */
+		public final PrintStream rewriteOut;
+		
+		/** Stores the analysis strategy used by the constraint system
+			* solver for generating bounds on variance variables (e.g.
+			* DVars and UVars).
+			* The constraint solver will compute solutions based on
+			* bounds computed using analysisStrategy.
+			*/
+		public final AnalysisStrategy analysisStrategy;
+
+		private AnalysisSettings(Builder b) {
+			this.sourcePaths = b.sourcePaths;
+			this.jastAddOptions = b.jastAddOptions;
+			this.analyzeMethodBodies = b.analyzeMethodBodies;
+			this.analyzeAllPrivateMembers = b.analyzeAllPrivateMembers;
+			this.logVerbosityLevel = b.logVerbosityLevel;
+			this.colorLogMessages = b.colorLogMessages;
+			this.rewriteStrategy = b.rewriteStrategy;
+			this.rewriteOut = b.rewriteOut;
+			checkSettingsAreValid();
+			
+			this.analysisStrategy = createAnalysisStrategy();
+		}
+		
+		public void checkSettingsAreValid() {
+			// check logVerbosityLevel is legal
+			if(getLogLevel() == null) {
+				throw new VarAnalysisException(
+					"illegal log verbosity level: " + logVerbosityLevel);
+			}
+			// check that source files are found
+			if(getSourceFilePaths().isEmpty()) {
+				throw new VarAnalysisException("no source files found");
+			}
+		}
+		
+		public VarFrontend compile() {
+			ASTNode.setSettings(this);
+			VarFrontend frontend = new VarFrontend();
+			VarFrontend.compile(frontend,
+			  createCompilerArgs().toArray(new String[0]));
+			return frontend;
+		}
+		
+		public Logger getLogger() {
+			Level level = getLogLevel();
+			RenameLevelFormatter.LevelNameStrategy lnstrategy =
+			  (colorLogMessages && VarLogger.canHandleColor()) ?
+				  RenameLevelFormatter.ColorNameStrategy.getInstance() :
+				  RenameLevelFormatter.IdentityNameStrategy.getInstance();
+			RenameLevelFormatter formatter = new RenameLevelFormatter(lnstrategy);
+			return new VarLogger.FormatterBuilder()
+			            .formatter(formatter)
+			            .level(level)
+			            .build()
+			            .getLogger();
+		}
+		
+		public Level getLogLevel() {
+			return VarLogger.getLogLevel(logVerbosityLevel);
+		}
+		
+		private AnalysisStrategy createAnalysisStrategy() {
+			StrategyWithVisibility.Visibility visibility =
+				createVisibilityStrategy();
+			return analyzeMethodBodies ?
+				new MethodBodyAnalysis(visibility) :
+				new OnlySigAnalysis(visibility);
+		}
+		
+		private StrategyWithVisibility.Visibility createVisibilityStrategy() {
+			return analyzeAllPrivateMembers ?
+				StrategyWithVisibility.Visibility.ALL_PRIVATE :
+				StrategyWithVisibility.Visibility.MINIMAL;
+		}
+		
+		public java.util.List<String> createCompilerArgs() {
+			java.util.List<String> compilerArgs = ASTUtils.createList();
+			compilerArgs.addAll(jastAddOptions);
+			compilerArgs.addAll(getSourceFilePaths());
+			return compilerArgs;
+		}
+		
+		public java.util.List<String> getSourceFilePaths() {
+			return collectSourceFiles(sourcePaths);
+		}
+	
+		public static java.util.List<String> collectSourceFiles(Collection<?> paths) {
+			java.util.List<String> srcfiles = ASTUtils.createList();
+			collectSourceFiles(paths, srcfiles);
+			return srcfiles;
+		}
+
+		public static void collectSourceFiles(Collection<?> paths,
+			Collection<String> srcfiles)
+		{
+			for(Object path : paths)
+				getFiles(path.toString(), srcfiles);
+		}
+
+		public static void getFiles(String path, Collection<String> srcfiles) {
+			File f = new File(path);
+			if(f.isFile() && path.endsWith(".java")) {
+				srcfiles.add(path);
+			}
+			else if(f.isDirectory()) {
+				for(File child : f.listFiles())
+					getFiles(child.getPath(), srcfiles);
+			}
+		}
+
+		public static java.util.List<String> collectSourceFiles(String path) {
+			java.util.List<String> srcfiles = ASTUtils.createList();
+			getFiles(path, srcfiles);
+			return srcfiles;
+		}
+		
+		public static class Builder
+		{
+			// Require parameters
+			private final java.util.List<String> sourcePaths;
+	
+			// Optional parameters
+			private java.util.List<String> jastAddOptions = Collections.emptyList();
+			private boolean analyzeMethodBodies = false;
+			private boolean analyzeAllPrivateMembers = false;
+		
+			private int logVerbosityLevel = 0;
+			private boolean colorLogMessages = false;
+			
+			private RewriteStrategy rewriteStrategy =
+				DefaultRewriteStrategy.getInstance();
+			
+			public PrintStream rewriteOut = null;
+		
+			public Builder(java.util.List<String> sourcePaths) {
+				this.sourcePaths = sourcePaths;
+			}
+			public Builder jastAddOptions(java.util.List<String> jastAddOptions) {
+				this.jastAddOptions = jastAddOptions;
+				return this;
+			}
+			public Builder analyzeMethodBodies(boolean analyzeMethodBodies) {
+				this.analyzeMethodBodies = analyzeMethodBodies;
+				return this;
+			}
+			public Builder analyzeAllPrivateMembers(boolean analyzeAllPrivateMembers) {
+				this.analyzeAllPrivateMembers = analyzeAllPrivateMembers;
+				return this;
+			}
+			public Builder logVerbosityLevel(int logVerbosityLevel) {
+				this.logVerbosityLevel = logVerbosityLevel;
+				return this;
+			}
+			public Builder colorLogMessages(boolean colorLogMessages) {
+				this.colorLogMessages = colorLogMessages;
+				return this;
+			}
+			public Builder rewriteStrategy(RewriteStrategy rewriteStrategy) {
+				this.rewriteStrategy = rewriteStrategy;
+				return this;
+			}
+			public Builder rewriteOut(PrintStream rewriteOut) {
+				this.rewriteOut = rewriteOut;
+				return this;
+			}
+			public AnalysisSettings build() {
+				return new AnalysisSettings(this);
+			}
+		}
+	}
+	
+	public class VarFrontend extends Frontend
+	{
+		protected VarFrontend() { }
+	
+		public Program getProgram() { return program; }
+	
+		// Making printUsage public
+		public static void printJastAddUsage() {
+			new Frontend().printUsage();
+		}
+
+		public static boolean compile(Frontend front, String args[]) {
+			return front.process(args, new BytecodeParser(), new JavaParser()
+			{
+				public CompilationUnit parse(java.io.InputStream is, String fileName)
+					throws java.io.IOException, beaver.Parser.Exception
+				{
+					return new parser.JavaParser().parse(is, fileName);
+				}
+			});
+		}
+		
+		/** Main method for testing purposes */
+		public static void main(String[] args)
+		{
+			java.util.List<String> sourcePaths = ASTUtils.createList();
+			sourcePaths.add("unittests" + java.io.File.separator
+				+ "Lists.java");
+			Program program =
+				new AnalysisSettings.Builder(sourcePaths)
+					.analyzeMethodBodies(false)
+					.analyzeAllPrivateMembers(false)
+					.logVerbosityLevel(3)
+					.colorLogMessages(true)
+					.build()
+					.compile()
+					.getProgram();
+			printGenericsInfo(program);
+		}
+		
+		public static void printGenericsInfo(Program program) {
+			ProgramQuery query = ASTUtils.getDefaultProgramQuery();
+			Set<GenericTypeDecl> generics =
+				query.getSrcGenericsSortedByName(program);
+			for(GenericTypeDecl gtd : generics)
+				printGenericInfo(gtd);
+		}
+		
+		public static void printGenericInfo(GenericTypeDecl gtd) {
+			for(DVar dvar : gtd.getDVars()) {
+				dvar.printValueAndBounds();
+				Set<UVar> uvars = dvar.uvarsInBounds();
+				if(!uvars.isEmpty()) {
+					System.out.println("bounds on uvars generated for " + dvar);
+					for(UVar u : uvars) {
+						u.printValueAndBounds();
+						System.out.println();
+					}
+				}
+				System.out.printf("dvarBoundClosure(%s): %s%n",
+				  dvar, dvar.varBoundClosure());
+				System.out.printf("isRecursivelyBounded(%s): %s%n",
+				  dvar, dvar.isRecursivelyBounded());
+				System.out.println();
+			}
+		}
+	}
+}

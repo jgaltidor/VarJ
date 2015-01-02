@@ -1,0 +1,116 @@
+import java.util.Collections;
+import java.util.Set;
+
+aspect ConstraintSystem
+{
+	syn Value GenericTypeDecl.computeVar(int index)
+		= computeVar(getTypeParameter(index));
+
+	syn Value GenericTypeDecl.computeVar(TypeVariable tv)
+		= getDVar(tv).eval();
+
+	syn lazy Value VVar.eval() circular [BIVARIANT]  {
+		Value var = BIVARIANT;
+		for(VExpr bound : bounds()) {			
+			var = var.meet(bound.eval());
+			if(var.equals(INVARIANT))
+				return INVARIANT;
+		}
+		return var;
+	}
+
+	syn lazy java.util.List<VExpr> VVar.bounds();
+	
+	eq DVar.bounds() =
+		ASTNode.settings().analysisStrategy.varBounds(this);
+	eq UVar.bounds() =
+		ASTNode.settings().analysisStrategy.varBounds(this);
+		
+	syn lazy boolean VVar.isRecursivelyBounded()
+		= varBoundClosure().contains(this);
+
+	// varBoundClosure
+
+	syn lazy Set<VVar> VVar.varBoundClosure() circular [Collections.emptySet()]
+	{
+		Set<VVar> vars = ASTUtils.createSet();
+		for(VExpr bound : bounds()) {
+			for(VVar var : bound.getVars()) {
+				vars.add(var);
+				if(!var.equals(this))
+					vars.addAll(var.varBoundClosure());
+			}
+		}
+		return vars;
+	}
+	
+	syn Set<VVar> VVar.varsInBounds() {
+		Set<VVar> vars = ASTUtils.createSet();
+		for(VExpr bound : bounds()) {
+			vars.addAll(bound.getVars());
+		}
+		return vars;
+	}
+	
+	syn Set<DVar> VVar.dvarsInBounds() {
+		Set<DVar> dvars = ASTUtils.createSet();
+		for(VVar var : varsInBounds()) {
+			if(var.isDVar()) {
+				dvars.add((DVar) var);
+			}
+		}
+		return dvars;		
+	}
+
+	syn Set<UVar> VVar.uvarsInBounds() {
+		Set<UVar> uvars = ASTUtils.createSet();
+		for(VVar var : varsInBounds()) {
+			if(var.isUVar()) {
+				uvars.add((UVar) var);
+			}
+		}
+		return uvars;		
+	}
+
+	public void VVar.printValueAndBounds() {
+		System.out.println(toString() + ".eval: " + eval());
+		System.out.println("-------------------------------");
+		java.util.List<VExpr> upperBounds = bounds();
+		if(!upperBounds.isEmpty()) {
+			int ctr = 1;
+			for(VExpr bound : upperBounds) {
+				System.out.printf("  bound %d: %s", ctr++, bound);
+				System.out.println();
+			}
+		}
+		else {
+			System.out.println("NO BOUNDS");
+		}
+		System.out.println();
+	}
+	
+	syn boolean TypeDecl.isVariantType() = false;
+	
+	eq ParTypeDecl.isVariantType() {
+		GenericTypeDecl gtd = (GenericTypeDecl) sourceTypeDecl();
+		return gtd.isVariant();
+	}
+
+	syn boolean GenericTypeDecl.isVariant() {
+		for(int i = 0; i < getNumTypeParameter(); i++) {
+			Value variance = computeVar(i);
+			if(!variance.equals(INVARIANT))
+				return true;
+		}
+		return false;
+	}
+
+	syn boolean GenericTypeDecl.isInvariant() = !isVariant();
+	
+	
+	syn Value ParTypeDecl.inferredUseSite(int index) =
+		ASTNode.settings().analysisStrategy.inferredUseSite(this, index).eval();
+		
+	syn Value ParTypeAccess.inferredUseSite(int index) =
+		ASTNode.settings().analysisStrategy.inferredUseSite(this, index).eval();
+}

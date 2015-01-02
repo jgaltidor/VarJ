@@ -1,0 +1,232 @@
+current (name TBA)
+
+----------------------------------------------------------------------
+
+jpaul 2.5.1
+
+1. Fixed an embarassing error in the previous release: in jpaul 2.5,
+   the jpaul.Version.RELEASE field was still "2.4.1".  Now, we have a
+   more automated release procedure, that checks for such mistakes.
+
+2. Adam found and fixed a few datastructures that were not
+   serializable yet.  They are now!
+
+----------------------------------------------------------------------
+
+jpaul 2.5
+
+1. Similar to the Java Collections framework, added a synchronization
+   wrapper for Relations; see the newly-added static method
+
+   Relation.synchronizedRelation(Relation<K,V> rel);
+
+2. New methods: Relation.isEmpty(), Relation.clear()
+
+3. Use wildcards to provide more flexibility in Relations:
+
+   New method: 
+     Relation.addAll(K key, Collection<? extends V> values)
+   (see it's Javadoc on why we couldn't simply improve addAll)
+
+   Improvement:
+     Relation.containsAll(K key, Collection<? extends V> values)
+
+4. jpaul datastructures are now serializable
+
+5. New constructor for ArraySet: ArraySet(T... ts)
+
+----------------------------------------------------------------------
+
+jpaul 2.4.1
+
+Small changes:
+
+Following Adam Kiezun's comments, the class DisjointSet from the
+package jpaul.DataStructs has been renamed UnionFind (to better
+reflect its purpose), and its interface has been improved greatly.
+
+
+----------------------------------------------------------------------
+
+jpaul 2.4
+
+"Consolidation" release: no ground-breaking addition, but a lot of
+changes triggered by bug reports and feature requests.  
+
+THESE CHANGES REQUIRE CHANGES IN THE CLIENT CODE, especially those
+that involve name changes.  However, I don't expect this to be a
+problem: the new names were unused before; just compile with the new
+version and next go to the line numbers for all compilation errors;
+you should be able to fix everything pretty fast, using a search &
+replace strategy.  If angry, please consider the fact that all these
+changes are supposed to make jpaul easier to use on long term; also,
+to avoid being taken by surprise by future changes, please monitor the
+bug/feature request trackers on jpaul's web page on SourceForge -
+http://sourceforge.net/projects/jpaul.  You are invited to take part
+in the discussion related to each item on these trackers.
+
+Now, here are the changes / additions:
+
+1. The name of the bi-directional navigator class has been changed
+   from Navigator to BiDiNavigator (in package jpaul.Graphs).  This
+   solved a naming confusion: usually XXXSomething is a subclass of
+   Something; this was not the case with ForwardNavigator and
+   Navigator (the subclassing relation was completely the opposite!).
+   Now, we have more explicit, less confusing names.
+
+2. The name of several methods from jpaul.Graphs.SCComponent have been
+   changed:
+
+     nodes() -> vertices() 
+       [digraphs have vertices and arcs, instead of nodes and edges]
+
+     entries() -> entryVertices()
+     exits()   -> exitVertices()
+       [for consistency and clarity]
+
+     Also, these methods all return Sets now.
+
+     Other changes to SCComponent involve making sure that all
+     returned collections (sets of vertices, entries, exits, etc) are
+     truly unmodifiable.
+
+3. Other name improvements:
+
+     BinTreeNav (from jpaul.Graphs) -> BinTreeNavigator
+        [ the old name was not consistent with BiDiNavigator and
+        ForwardNavigator ]
+
+     DiGraph.size() has been replaced with two methods:
+        DiGraph.numVertices() and DiGraph.numArcs()
+
+     LDiGraph (from jpaul.Graphs) -> LabeledDiGraph
+
+     DiGraph.reverseNav -> DiGraph.reverseBiDiNavigator
+        [ for readability and consistency with BiDiNavigator ]
+
+4. A lot of effort has been put into making sure that our usage of
+   collections is deterministic (the changes from 2.3 were not enough
+   ...).  Mechanically replacing each HashSet/Map with a
+   LinkedHashSet/Map is too inefficient.  Fortunately, we need to
+   change only those sets/maps that we iterate over.  Special classes
+   (jpaul.DataStructs.NonIterableSet/Map.java) have been added to
+   allow the type checker to verify that we don't iterate over the
+   remaining HashSet/Maps.  If you need speed, you can use
+   NonIterableSet/Map that don't offer any direct/indirect way of
+   iterating over their elements (no iterator(), toString(), etc).
+
+5. Traversals can now be terminated prematurely (before examining all
+   elements / vertices) by throwing a special (unchecked) exception
+   jpaul.DataStructs.InterruptTraversalException.  See
+   DiGraph.forAllVertices/dfs and Relation.forAllEntries for more
+   details
+
+   In addition to this rather radical termination (that stops the
+   entire traversal), DFS traversals of DiGraphs can now decide to
+   ignore only the (recursive) traversal of the children of the
+   currently visited vertex.  A new method, DiGraph.dfs2(), has been
+   added for this.  Its first argument is an ActionPredicate that
+   performs an optional "on-entry" action and returns a boolean
+   indicating whether the visit of the current vertex v should proceed
+   as normal (with the recursive visit of v's children and the
+   execution of the "on-exit" action).
+
+   This feature may be of interest to people who traverse special
+   DiGraphs, like Absract Syntax Tree (ASTs), and want to ignore
+   certain sub-graphs/trees, i.e., do not examine the bodies of
+   methods from inner-classes.
+
+   These two new termination possibilities do not require any change
+   in the current code (that don't use these features).
+
+6. New class in jpaul.Misc: ActionPredicate (used by Point 6 above).
+   Corresponds to a predicate with side-effects.  To avoid mixing pure
+   and side-effecting things, Predicate and ActionPredicate are NOT
+   in any subclassing relationship.
+ 
+7. Two new additions to jpaul.DataStructs
+
+     ArrayIterator: read-only iterator over an array of elements
+
+     ArraySet: compact, read-only set (it is used in the
+     representation of jpaul.Graphs.SCComponent's with small number of
+     vertices).
+
+8. A starting executable point has been added to the generated .jar.
+   If you execute "java -jar jpaul.jar" (using a 1.2+ JVM), the main
+   method from the class jpaul.Version executes and prints the release
+   number and some small info, including info on submitting bug
+   reports and feature requests.
+
+
+----------------------------------------------------------------------
+
+jpaul 2.3
+
+Does not contain any new package or major addition over 2.2.  Still,
+it incorporates a few suggestions from Adam Kiezun, one of the brave
+early users of jpaul, offering a bunch of important improvements:
+
+1. File structure and packaging: The testing code has been placed in a
+   separate directory tree.  This change should be irrelevant to
+   people that download and use the .jar file, but will be a good news
+   for people who download the sources and edit them.  Also, the .jar
+   packa
+
+2. Packaging: the released .jar contains both code and Java sources
+   (but no testing code, build scripts etc).  This should improve the
+   lifes of Eclipse users
+
+3. A lot of Javadoc has been added, especially in the Constraints
+   package (these additions were triggered by a presentation I had to
+   make at NEPLS: I had to remind a bit which optimizations we do in
+   the solver; as I anyway read the code again, why not crystalize my
+   ideas in some comments?)
+
+4. To help the Eclipse users, the .java source files have been
+   included in the .jar archive.  Now, Eclipse users can use jpaul.jar
+   and access (for documentation purposes) the jpaul sources, all
+   using a single file.
+
+5. Small improvements here and there.  E.g., the pair-returning
+   DiGraph.size() method has been replaced with two methods
+   numVertices and numArcs.
+
+
+----------------------------------------------------------------------
+
+jpaul 2.2.1
+
+Corrects a small bug in 2.2.  Promise to be more careful with releases
+in the future :)
+
+
+----------------------------------------------------------------------
+
+jpaul 2.2
+
+Couple of new packages:
+
+1. New package, jpaul.RegExps, providing support for generic
+   Non-deterministic Finite Automata (NFAs) and regular expressions
+   over any alphabet (strings are basically lists of elements of some
+   type A).  The NFA to regexp conversion is already implemented (it
+   is used in Alex Salcianu's work on purity/mutation analysis).
+
+2. Additions to jpaul.Graphs: support for binary trees (a special case
+   of digraphs).  See BinTreeNav and BinTreeUtil in the package
+   jpaul.Graphs.
+
+3. Several other small changes and improvements: the most noticeable
+   is the placement of all set/map/relation factories in
+   SetFacts/MapFacts respectively RelFacts (as static inner classes).
+   This way, there is only one place to look for such factories.  For
+   programs that use the older jpaul versions, changes should be
+   minimal: e.g., replace jpaul.DataStructs.HashSetFactory with
+   jpaul.DataStructs.SetFacts.HashSetFactory.
+
+
+======================================================================
+Copyright (C) 2005, Alexandru Salcianu - salcianu@alum.mit.edu
+Released under the Modified BSD Licence; see COPYING for details.
+$Id: ChangeLog.txt,v 1.9 2006/04/05 15:40:02 salcianu Exp $

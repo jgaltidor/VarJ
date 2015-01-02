@@ -1,0 +1,85 @@
+
+This file contains a list of the necessary steps for a jpaul release
+on SourceForge.  Some of the steps (4, 5, 6 + 9) are automatized by the
+script make-release (that works on Unix systems); make-release also
+verifies that all tests pass.  You should do the others steps by hand.
+
+ 0. Agree on an identifier for the new version.  We use ids of the form
+
+    <majorVersionNumber>.<minorVersionNumber>[.<reallyMinorVersionNumber>
+
+    E.g., 1.0, or 2.4.1.  The third component (optional) is reserved
+    for versions that correspond to minor fixes (e.g., a bug that was
+    found just after a release).  Deciding on what is a major / minor
+    change is a very subjective matter.  As a very general rule,
+    adding a new package / functionality is definitely considered a
+    major change; adding a new feature for an existing package / class,
+    is generally a minor version; fixing a few bugs qualifies as a
+    minor change.
+
+ 1. Make sure the current code compiles and works: ant test
+
+ 2. Commit and tag the sources:
+
+    cvs commit
+    cvs tag Release_<version'>
+
+    where <version'> is the version id (see point 0. above) except
+    that all dots have been replaced by _ (to make cvs happy), e.g.,
+    cvs tag Release_2_5 for version 2.5
+
+    NOTE: if you added new files, make sure to add them to the
+    repository before starting the whole release process.
+
+ 3. Update the RELEASE string field from src/jpaul/Version.java to be
+    the new release identifier.
+
+ 4. Build the release: ant release
+    This action produces two files in the parent directory .. :
+      jpaul.jar (only the jar and the sources)
+      jpaul-src.zip (the full, development-level sources, including the
+      tests and the scripts for building the final jar)
+
+ 5. cd ..
+
+ 6. mv jpaul.jar jpaul-<version>.jar
+    mv jpaul-src.zip jpaul-<version>-src.zip
+
+ 7. ftp upload.sourceforge.net
+      with user name anonymous
+    cd incoming
+    bin
+    hash
+    put jpaul-<version>.jar
+    put jpaul-<version>-src.zip
+
+ 8. Go to http://sourceforge.net/project/admin/editpackages.php?group_id=131236
+    (i.e., sourceforge.net/projects/jpaul -> Admin -> File Releases), scroll
+    down all the way to the page bottom and click on "Add Release".  Use
+    <version> as the "Release Name" (do NOT use jpaul-<version>).  You
+    need to do the "Add Release" thing twice: once for jpaul-jar
+    and once for jpaul-src.
+
+ 9. cd jpaul
+
+    Modify htdocs/index.html to announce the new version; also change the
+    URL that points to the notes for the most recent release.
+
+    It's also a good idea to make a separate copy of the javadoc for each
+    release, e.g., 
+
+    cd htdoc; cp -r javadoc javadoc-<version>
+
+    and to link from index.html both to (at least) the current (cvs
+    head) Javadoc and the Javadoc for the most recent public version.
+   
+10. Execute ./copy-htdocs to copy the new javadoc files and the new
+    index.html on SourceForge.
+
+
+=====================================================================
+Copyright 2006 Alexandru Salcianu - salcianu@alum.mit.edu
+Released under the Modified BSD Licence; see COPYING for details.
+
+This file's CVS version: $Id: RELEASE,v 1.6 2006/03/24 22:16:39 salcianu Exp $
+
