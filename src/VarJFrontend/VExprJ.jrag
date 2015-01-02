@@ -1,0 +1,173 @@
+aspect VExprJ
+{
+	syn nta DVar GenericTypeDecl.getDVar(TypeVariable tv) = new DVar(this, tv);
+
+	syn lazy DVar GenericTypeDecl.getDVar(int index) =
+		getDVar(getTypeParameter(index));
+
+
+	syn lazy java.util.List<DVar> GenericTypeDecl.getDVars() {
+		java.util.List<DVar> dvars = ASTUtils.createList();
+		List<TypeVariable> params = getTypeParameterList();
+		for(TypeVariable tv : params) {
+			dvars.add(getDVar(tv));
+		}
+		return dvars;
+	}
+	
+	/** Returns a UVar only if this parameter is declared with a parameterized
+	  * type.
+	  */
+	syn nta UVar ParameterDeclaration.getUVar(int index) {
+		TypeDecl typ = type();
+		/*
+		assert typ.isParameterizedType();
+		ParTypeDecl ptyp = (ParTypeDecl) typ;
+		assert index < ptyp.getNumArgument();
+		assert index >= 0;
+		*/
+		return new UVar((ParameterDeclaration) sourceDecl(), index);
+	}
+
+	eq DVar.toString() = String.format("DVar(%s, %s)",
+		getGenericTypeDecl().fullName(), getTypeVariable().name());
+
+	eq UVar.toString() = String.format("UVar(%s, %d)",
+		getParam().fullName(), getIndex());
+
+	public boolean DVar.equals(Object other) {
+		return (other instanceof DVar) ?
+			toString().equals(other.toString())
+			: false;
+	}
+
+	public boolean UVar.equals(Object other) {
+		return (other instanceof UVar) ?
+			toString().equals(other.toString())
+			: false;
+	}
+
+	public int DVar.hashCode() { return toString().hashCode(); }
+	
+	public int UVar.hashCode() { return toString().hashCode(); }
+
+
+	/** Returns the set of VVars in a variance expression. */
+	syn Set<VVar> VExpr.getVars();
+	
+	eq Transform.getVars() {
+		Set<VVar> set = ASTUtils.createSet();
+		set.addAll(getLeft().getVars());
+		set.addAll(getRight().getVars());
+		return set;
+	}
+
+	eq Meet.getVars() {
+		Set<VVar> set = ASTUtils.createSet();
+		set.addAll(getLeft().getVars());
+		set.addAll(getRight().getVars());
+		return set;
+	}
+
+	eq Join.getVars() {
+		Set<VVar> set = ASTUtils.createSet();
+		set.addAll(getLeft().getVars());
+		set.addAll(getRight().getVars());
+		return set;
+	}
+	
+	eq VVar.getVars() = Collections.singleton(this);
+	
+	eq Value.getVars() = Collections.emptySet();
+
+
+	// varExpr computes var(X; T) independent of a strategy
+	
+	syn VExpr TypeDecl.varExpr(TypeVariable tv) = BIVARIANT;
+	
+	/**
+	  * var(X; C<v_1 T_1, ..., v_n T_n>),
+	  * where v_i is the use-site annotation applied to
+	  * type actual T_i.
+	  */
+	eq ParTypeDecl.varExpr(TypeVariable tv) {
+		GenericTypeDecl gtd = (GenericTypeDecl) sourceTypeDecl();
+		VExpr result = null;
+		for (int i = 0; i < getNumArgument(); i++) {
+			TypeDecl typeArg = getArgument(i).type();
+			if(typeArg.structurallyContains(tv)) {
+				DVar defSiteVar = gtd.getDVar(i);
+				Value useSiteVar;
+				if (typeArg.isWildcardExtendsType())
+					useSiteVar = COVARIANT;
+				else if (typeArg.isWildcardSuperType())
+					useSiteVar = CONTRAVARIANT;
+				else {
+					assert !typeArg.isWildcardType();
+					useSiteVar = INVARIANT;
+				}
+				VExpr newVar = new Transform(
+					new Join(defSiteVar, useSiteVar),
+					typeArg.varExpr(tv));
+				result = (result == null) ?
+					newVar : new Meet(result, newVar);
+			}
+		}
+		return (result == null) ? BIVARIANT : result;
+	}
+
+	eq TypeVariable.varExpr(TypeVariable tv) =
+		(this == tv) ? COVARIANT : BIVARIANT;
+
+	eq ArrayDecl.varExpr(TypeVariable tv) =
+		new Transform(INVARIANT, componentType().varExpr(tv));
+
+	eq WildcardExtendsType.varExpr(TypeVariable tv) =
+		getAccess().type().varExpr(tv);
+
+	eq WildcardSuperType.varExpr(TypeVariable tv) =
+		getAccess().type().varExpr(tv);
+
+
+	syn boolean VVar.isDVar() = false;
+	eq DVar.isDVar() = true;
+	
+	syn boolean VVar.isUVar() = false;
+	eq UVar.isUVar() = true;
+	
+	syn Value UVar.specifiedUseSite() {
+		ParTypeAccess access = (ParTypeAccess) getParam().getTypeAccess();
+		return access.specifiedUseSite(getIndex());
+	}
+
+	syn Value ParTypeAccess.specifiedUseSite(int index) {
+		Access typeArg = getTypeArgument(index);
+		if(typeArg.isWildcardExtends())
+			return COVARIANT;
+		else if(typeArg.isWildcardSuper())
+			return CONTRAVARIANT;
+		else if(typeArg.isWildcard())
+			return BIVARIANT;
+		else
+			return INVARIANT;
+	}
+
+	syn Value ParTypeDecl.specifiedUseSite(int index) {
+		TypeDecl typeArg = getArgument(index).type();
+		if(typeArg.isWildcardExtendsType())
+			return COVARIANT;
+		else if(typeArg.isWildcardSuperType())
+			return CONTRAVARIANT;
+		else if(typeArg.isWildcardType())
+			return BIVARIANT;
+		else
+			return INVARIANT;
+	}
+	
+	syn DVar UVar.getDVar() {
+		TypeDecl typ = getParam().type();
+		assert typ.isParameterizedType();
+		GenericTypeDecl gtd = (GenericTypeDecl) typ.sourceTypeDecl();
+		return gtd.getDVar(getIndex());
+	}
+}

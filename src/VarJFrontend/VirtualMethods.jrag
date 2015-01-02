@@ -1,0 +1,154 @@
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Set;
+
+aspect VirtualMethods
+{
+	syn lazy java.util.List<MethodDecl> MethodDecl.overridingMethods() {
+		java.util.List<TypeDecl> subtypes = program().findSubtypes(hostType());
+		java.util.List<MethodDecl> oms = ASTUtils.createList();
+		for(TypeDecl st : subtypes) {
+			for(Iterator lmIt = st.localMethodsIterator(); lmIt.hasNext(); ) {
+				MethodDecl localMd = (MethodDecl) lmIt.next();
+				if(localMd.overrides(this)) {
+					oms.add(localMd);
+				}
+			}
+		}
+		return oms;
+	}
+
+	syn java.util.List<TypeDecl> Program.findSubtypes(TypeDecl superType) {
+		loadAllSourceFiles();
+		java.util.List<TypeDecl> subtypeList = ASTUtils.createList();
+		for(Iterator cuIt = compilationUnitIterator(); cuIt.hasNext(); ) {
+			CompilationUnit cu = (CompilationUnit) cuIt.next();
+			for(TypeDecl td : cu.getTypeDeclList()) {
+				if(td.subtype(superType)) {
+					subtypeList.add(td);
+				}
+				// scan through nested types
+				for(TypeDecl nestedType : td.getNestedTypeDecls()) {
+					if(nestedType.subtype(superType)) {
+						subtypeList.add(nestedType);
+					}
+				}
+			}
+		}
+		return subtypeList;
+	}
+	
+	private boolean Program.sourceFilesLoaded = false;
+	
+	
+	public void ASTNode.loadAllSourceFiles() {
+		for(int i = 0; i < getNumChild(); i++) {
+			getChild(i).loadAllSourceFiles();
+		}
+	}
+
+	public void Program.loadAllSourceFiles() {
+		if(sourceFilesLoaded) return;
+		Iterator itr = compilationUnitIterator();
+		while(itr.hasNext()) {
+			CompilationUnit unit = (CompilationUnit) itr.next();
+			// traverse nodes in source compilation units
+			if(unit.fromSource())
+				unit.loadAllSourceFiles();
+		}
+		sourceFilesLoaded = true;
+	}
+
+	syn lazy java.util.List<MethodDecl> MethodDecl.overriddenMethods() {
+		java.util.List<MethodDecl> overriddenMeths = ASTUtils.createList();
+		Iterator itr = hostType().ancestorMethods(signature()).iterator();
+		while(itr.hasNext()) {
+			MethodDecl m = (MethodDecl) itr.next();
+			overriddenMeths.add(m);
+			overriddenMeths.addAll(m.overriddenMethods());
+		}
+		return overriddenMeths;
+	}
+	
+	syn lazy java.util.List<MethodDecl> MethodDecl.hierarchyMethods() {
+		java.util.List<MethodDecl> methods = ASTUtils.createList();
+		// adding overridden methods, which does not include this method
+		methods.addAll(overriddenMethods());
+		// adding overriding methods, which includes this method
+		methods.addAll(overridingMethods());
+		return methods;
+	}
+
+	// hierarchyParams
+
+	syn lazy java.util.List<ParameterDeclaration> MethodDecl.hierarchyParams(int i) {
+		java.util.List<ParameterDeclaration> params = ASTUtils.createList();
+		for(MethodDecl meth : hierarchyMethods()) {
+			params.add(meth.getParameter(i));
+		}
+		return params;
+	}
+	
+	inh lazy java.util.List<ParameterDeclaration> ParameterDeclaration.hierarchyParams();
+
+	eq MethodDecl.getParameter(int i).hierarchyParams() = this.hierarchyParams(i);
+	
+	eq ConstructorDecl.getParameter(int i).hierarchyParams() =
+		Collections.singletonList(getParameter(i));
+	
+	eq BasicCatch.getParameter().hierarchyParams() =
+		Collections.singletonList(getParameter());
+
+	syn lazy boolean MethodDecl.isOverriden() {
+		for(MethodDecl meth : overridingMethods()) {
+			if(meth != this)
+				return true;
+		}
+		return false;
+	}
+
+	// overridingParams
+
+	syn lazy java.util.List<ParameterDeclaration> MethodDecl.overridingParams(int i) {
+		java.util.List<ParameterDeclaration> params = ASTUtils.createList();
+		for(MethodDecl meth : overridingMethods()) {
+			params.add(meth.getParameter(i));
+		}
+		return params;
+	}
+
+	inh lazy java.util.List<ParameterDeclaration> ParameterDeclaration.overridingParams();
+	
+	eq MethodDecl.getParameter(int i).overridingParams() = this.hierarchyParams(i);
+	
+	eq ConstructorDecl.getParameter(int i).overridingParams() =
+		Collections.singletonList(getParameter(i));
+	
+	eq BasicCatch.getParameter().overridingParams() =
+		Collections.singletonList(getParameter());
+
+
+	// Method for Testing
+
+	public void TypeDecl.logOverridenMethods() {
+		System.out.println("Logging overriden methods for: " + fullName());
+		for (int j=0; j < getNumBodyDecl(); j++) {
+			BodyDecl b = getBodyDecl(j);
+			if(b.isMethodDecl()) {
+				MethodDecl m = (MethodDecl) b;
+				String mname = m.fullName();
+				Collection<MethodDecl> oms = m.overridingMethods();
+				if(oms.isEmpty()) {
+					System.out.println("No overriding methods found for: " + mname);
+				}
+				else {
+					System.out.println("Found overriding methods of: " + mname);
+					for(MethodDecl overridingMethod : oms) {
+						System.out.println(String.format(
+							"%s overrides %s", overridingMethod.fullName(), mname));
+					}
+				}
+			}
+		}
+	}
+}

@@ -1,0 +1,10 @@
+{
+"includes" :
+ [
+   "paperexample.WList.addAndLog.dest",
+   "paperexample.WList.addAll.source",
+   "paperexample.WList.client.strings",
+   "paperexample.MapEntryWList.add.entry"
+ ],
+"excludes" : [ ]
+}

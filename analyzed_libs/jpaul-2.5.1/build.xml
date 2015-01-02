@@ -1,0 +1,110 @@
+<project name="jpaul" default="jar" basedir=".">
+  <description>
+    Java Program Analysis Utilities Library
+  </description>
+
+  <!-- set global properties for this build -->
+  <property name="src" location="src"/>
+  <property name="build" location="src"/>
+  <property name="tests" location="tests"/>
+  <property name="build-tests" location="tests"/>
+  <property name="doc" location="htdocs/javadoc"/>
+
+
+  <target name="init">
+    <!-- Create the time stamp -->
+    <tstamp/>
+    <!-- Create the build directory structure used by compile -->
+    <mkdir dir="${build}"/>
+    <mkdir dir="${build-tests}"/>
+  </target>
+
+  <target name="all" depends="realclean,compile,test" 
+		               description="rebuilds and tests everything"/>
+
+  <target name="compile" depends="init" description="compile the source">
+  	<!-- Compile the java code from ${src} into ${build} -->
+	<javac source="1.5"
+               debug="on"
+               debuglevel="lines,vars,source"
+               srcdir="${src}"
+	       destdir="${build}"
+               excludes="**/doc-files/*.java"
+               classpath="${classpath}:${build}"/>
+  </target>
+
+  <target name="jar" depends="compile" description="generate the
+	stand-alone jar file">
+	<jar jarfile="./jpaul.jar"
+	     basedir="${build}"
+             excludes="**/package.html,**/doc-files/**/*"
+             manifest="META-INF/MANIFEST.MF"/>
+  </target>
+
+  <target name="release" depends="javadoc,jar,clean" description="generate a
+	distribution containing all files">
+	<zip zipfile="../jpaul-src.zip"
+	     basedir=".."
+             includes="jpaul/**/*"
+	     excludes="**/CVS"/>
+        <copy file="jpaul.jar" tofile="../jpaul.jar"/>
+  </target>
+
+
+  <target name="compile-tests" depends="init,jar" description="compile the tests">
+  	<!-- Compile the java code from ${src} into ${build} -->
+	<javac source="1.5"
+               debug="on"
+               debuglevel="lines,vars,source"
+               srcdir="${tests}"
+	       destdir="${build-tests}"
+               classpath="${classpath}:./jpaul.jar:{tests}:./lib/junit.jar"/>
+  </target>
+
+
+  <target name="test" depends="jar,compile-tests" description="run regression tests">
+	<junit printsummary="yes" fork="yes" haltonfailure="yes" showoutput="yes" filtertrace="off">
+		<classpath path="${classpath}:./jpaul.jar:${build-tests}" />
+		<formatter type="brief" />
+		<test name="jpaul.tests.AllTests" />
+		<assertions>
+			<enable />
+		</assertions>
+	</junit>
+  </target>
+
+  <target name="javadoc" depends="compile" description="Create Javadoc API documentation">
+       <delete dir="${doc}"/>
+       <mkdir dir="${doc}"/>
+       <javadoc source="1.5"
+                sourcepath="${src}"
+		excludepackagenames="jpaul.Constraints.SetConstraints.doc-files"
+                destdir="${doc}"
+		packagenames="*"
+		overview="overview.html"
+		version="yes"
+		author="yes"
+		bottom="Copyright 2005 Alexandru Salcianu - salcianu@alum.mit.edu">
+	      <classpath path="${classpath}:${build}"/>
+       </javadoc>
+  </target>
+
+
+  <target name="clean" description="clean up" >
+    <delete>
+      <!-- The defaultexcludes="no" is truly necessary: by default,
+           ant regexps do not match certain files, including *~ -->
+      <fileset dir="." includes="**/*~" defaultexcludes="no"/>
+      <fileset dir="${build}" includes="**/*.class"/>
+      <fileset dir="${build-tests}" includes="**/*.class"/>
+      <fileset dir="." includes="TEST-*"/>
+    </delete>
+  </target>
+
+  <target name="realclean" depends="clean" description="clean up" >
+    <!-- Delete the ${build} and ${dist} directory trees -->
+    <delete dir="${doc}"/>
+    <delete file="./jpaul.jar"/>
+  </target>
+
+</project>

@@ -1,0 +1,226 @@
+import java.util.Set;
+
+/** This aspect contains utility methods used by multiple clients (aspects)
+  * other than itself.
+  */
+aspect Utils
+{
+	inh Program ASTNode.program();
+	eq Program.getChild().program() = this;
+	
+	public class VarAnalysisException extends RuntimeException {
+		public VarAnalysisException() { super(); }
+		public VarAnalysisException(String message) {
+			super(message);
+		}
+		public VarAnalysisException(String message, Throwable cause) {
+			super(message, cause);
+		}
+		public VarAnalysisException(Throwable cause) {
+			super(cause);
+		}
+	}
+	
+	// fullName
+
+	syn lazy String BodyDecl.fullName() = hostType().fullName();
+	
+	eq MethodDecl.fullName() = hostType().fullName() + '.' + name();
+	
+	syn lazy String Variable.fullName();
+	
+	eq FieldDeclaration.fullName() = hostType().fullName() + '.' + name();
+	
+	eq ParameterDeclaration.fullName() =
+		enclosingBodyDecl().fullName() + '.' + name();
+	
+	eq VariableDeclaration.fullName() =
+		enclosingBodyDecl().fullName() + '.' + name();
+	
+	// Avoid having to use more time expensive instanceof operation
+	
+	syn lazy boolean TypeDecl.isWildcardExtendsType() = false;
+	eq WildcardExtendsType.isWildcardExtendsType() = true;
+
+	syn lazy boolean TypeDecl.isWildcardSuperType() = false;
+	eq WildcardSuperType.isWildcardSuperType() = true;
+
+	syn lazy boolean TypeDecl.isWildcardType() = false;
+	eq WildcardType.isWildcardType() = true;
+
+	syn lazy boolean TypeDecl.isParTypeDecl() = false;
+	eq ParTypeDecl.isParTypeDecl() = true;
+
+	syn lazy boolean Access.isWildcardExtends() = false;
+	eq WildcardExtends.isWildcardExtends() = true;
+
+	syn lazy boolean Access.isWildcardSuper() = false;
+	eq WildcardSuper.isWildcardSuper() = true;
+
+	syn lazy boolean Access.isWildcard() = false;
+	eq Wildcard.isWildcard() = true;
+
+	syn lazy boolean Access.isParTypeAccess() = false;
+	eq ParTypeAccess.isParTypeAccess() = true;
+
+	syn lazy boolean BodyDecl.isFieldDeclaration() = false;
+	eq FieldDeclaration.isFieldDeclaration() = true;
+
+	syn lazy boolean BodyDecl.isMethodDecl() = false;
+	eq MethodDecl.isMethodDecl() = true;
+
+	syn lazy boolean BodyDecl.isMemberDecl() = false;
+	eq MemberDecl.isMemberDecl() = true;
+
+	syn lazy boolean BodyDecl.isMemberTypeDecl() = false;
+	eq MemberTypeDecl.isMemberTypeDecl() = true;
+	
+	/** Get nested type decls */
+	syn java.util.List<TypeDecl> TypeDecl.getNestedTypeDecls() {
+		java.util.List<TypeDecl> nestedTypes = ASTUtils.createList();
+		for (int i = 0; i < getNumBodyDecl(); i++) {
+			BodyDecl b = getBodyDecl(i);
+			if(b.isMemberTypeDecl()) {
+				TypeDecl td = ((MemberTypeDecl) b).typeDecl();
+				nestedTypes.add(td);
+				nestedTypes.addAll(td.getNestedTypeDecls());
+			}
+		}
+		return nestedTypes;
+	}
+	
+	/** Defined by TypeDecl.getNestedTypeDecls() */
+	syn java.util.List<TypeDecl> GenericTypeDecl.getNestedTypeDecls()
+		= super.getNestedTypeDecls();
+
+	inh lazy boolean TypeDecl.isMethodTypeVariable();
+	eq GenericMethodDecl.getTypeParameter(int i).isMethodTypeVariable() = true;
+	eq GenericConstructorDecl.getTypeParameter(int i).isMethodTypeVariable() = true;
+	eq Program.getChild().isMethodTypeVariable() = false;
+
+
+	syn boolean TypeDecl.containsMethodTypeVariable() = false;
+	
+	eq ParTypeDecl.containsMethodTypeVariable() {
+		for(int i = 0; i < getNumArgument(); i++) {
+			if(getArgument(i).type().containsMethodTypeVariable())
+				return true;
+		}
+		return false;
+	}
+
+	eq TypeVariable.containsMethodTypeVariable() =
+		isMethodTypeVariable();
+
+	eq ArrayDecl.containsMethodTypeVariable() =
+		componentType().containsMethodTypeVariable();
+
+	eq WildcardExtendsType.containsMethodTypeVariable() =
+		getAccess().type().containsMethodTypeVariable();
+
+	eq WildcardSuperType.containsMethodTypeVariable() =
+		getAccess().type().containsMethodTypeVariable();
+	
+	/** Needed to added some utility methods to this class because JastAdd
+		* fails to parse some legal Java methods, such as generic methods
+		* (methods with declared type parameters).
+		*/
+	public class ASTUtils
+	{
+		public static <E> java.util.List<E> copyList(Iterable<E> itr) {
+			java.util.List<E> newList = createList();
+			for(E elem : itr) newList.add(elem);
+			return newList;
+		}
+		
+		public static <E> java.util.List<E> createList() {
+			return new java.util.ArrayList<E>();
+		}
+
+		public static <E> Set<E> copySet(Iterable<E> itr) {
+			Set<E> newSet = createSet();
+			for(E elem : itr) newSet.add(elem);
+			return newSet;
+		}
+		
+		public static <E> Set<E> createSet() {
+			return new java.util.HashSet<E>();
+		}
+
+		public static <E> java.util.List<E> createListWithElem(E elem) {
+			java.util.List<E> list = createList();
+			list.add(elem);
+			return list;
+		}
+	
+		public static <E> Set<E> createSetWithElem(E elem) {
+			Set<E> set = createSet();
+			set.add(elem);
+			return set;
+		}
+		
+		public static String toString(Iterable<?> collec) {
+			StringBuilder sb = new StringBuilder("[");
+			Iterator<?> itr = collec.iterator();
+			// append string of first element in collec
+			if(itr.hasNext()) {
+				sb.append(itr.next().toString());
+			}
+			// append string of remaining elements
+			while(itr.hasNext()) {
+				sb.append(", ");
+				sb.append(itr.next());
+			}
+			sb.append(']');
+			return sb.toString();
+		}
+
+		public static <E> Set<E> subtract(Set<? extends E> s1, Set<?> s2) {
+			Set<E> result = createSet();
+			for(E elem : s1) {
+				if(!s2.contains(elem)) {
+					result.add(elem);
+				}
+			}
+			return result;
+		}
+
+		public static Comparator<TypeDecl> fullNameTypeDeclAscending() {
+			return new Comparator<TypeDecl>() {
+				public int compare(TypeDecl t1, TypeDecl t2) {
+					return t1.fullName().compareTo(t2.fullName());
+				}
+			};
+		}
+
+		public static Comparator<GenericTypeDecl> fullNameGenericTypeDeclAscending() {
+			return new Comparator<GenericTypeDecl>() {
+				final Comparator<TypeDecl> delegate = fullNameTypeDeclAscending();
+				public int compare(GenericTypeDecl t1, GenericTypeDecl t2) {
+					return delegate.compare((TypeDecl) t1, (TypeDecl) t2);
+				}
+			};
+		}
+
+
+		public static Comparator<BodyDecl> fullNameBodyDeclAscending() {
+			return new Comparator<BodyDecl>() {
+				public int compare(BodyDecl b1, BodyDecl b2) {
+					return b1.fullName().compareTo(b2.fullName());
+				}
+			};
+		}
+		
+		public static ProgramQuery getDefaultProgramQuery() {
+			return ProgramQueryImpl.getInstance();
+		}
+	}
+	
+	public class NoNullsSet<E> extends java.util.HashSet<E>
+	{
+		public boolean add(E e) {
+			if(e == null) throw new NullPointerException("nulls not allowed");
+			return super.add(e);
+		}
+	}
+}

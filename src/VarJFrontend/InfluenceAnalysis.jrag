@@ -1,0 +1,541 @@
+import java.util.Set;
+import java.util.Collections;
+
+aspect InfluenceAnalysis
+{
+	/** Interface representing a node in a type influence graph */
+	interface InfluenceNode
+	{
+		public String fullName();
+		public boolean isFromSource();
+		syn lazy Set<InfluenceNode> succ();
+		public Set<InfluenceNode> assignedTo();
+		public TypeDecl type();
+		syn lazy InfluenceNode sourceDecl();
+		public Access getTypeAccess();
+		public TypeDecl hostType();
+	}
+
+	MethodDecl implements InfluenceNode; // Represents really the return type of a method
+
+	Variable extends InfluenceNode;
+	// Bug w/ JastAdd forcing me to specify implicit implements
+	// declarations.
+	// Although next 3 classes implement Variable,
+	// have to add these implements declarations
+	// to avoid having to repeat method definitions
+	// from InfluenceNode in classes implementing Variable
+	VariableDeclaration  implements InfluenceNode;
+	FieldDeclaration     implements InfluenceNode;
+	ParameterDeclaration implements InfluenceNode;
+
+
+	inh lazy InfluenceNode Expr.destinationNode();
+	eq Program.getChild().destinationNode() = null;
+
+	eq MethodAccess.getArg(int i).destinationNode() = getParameter(i);
+	
+	eq ConstructorAccess.getArg(int i).destinationNode() = getParameter(i);
+
+	eq ClassInstanceExpr.getArg(int i).destinationNode() = getParameter(i);
+
+	eq AssignExpr.getSource().destinationNode() = getDest().destDecl();
+
+	eq VariableDeclaration.getInit().destinationNode() = this;
+
+	eq FieldDeclaration.getInit().destinationNode() = this;
+
+	eq ReturnStmt.getResult().destinationNode() =
+		enclosingBodyDecl().isMethodDecl() ?
+			(MethodDecl) enclosingBodyDecl() : null;
+
+	eq EnhancedForStmt.getExpr().destinationNode() = getVariableDeclaration();
+
+
+	syn lazy Variable Expr.destDecl() = varDecl();
+
+	eq AbstractDot.destDecl() =
+		isArrayAccess() ? getLeft().destDecl() : super.destDecl();
+
+	syn lazy boolean Expr.hasDestinationNode() = (destinationNode() != null);
+
+
+	coll Set<InfluenceNode> InfluenceNode.assignedTo() [ASTUtils.createSet()]
+		with addAll root Program;
+	
+	
+	Expr contributes Collections.singleton(destinationNode().sourceDecl())
+		when hasDestinationNode() && destinationNode().isUseful()
+		to InfluenceNode.assignedTo()
+		for each getUsefulNodes(nodesAffectingType());
+
+	MethodDecl contributes Collections.singleton(sourceDecl())
+		when isUseful()
+		to InfluenceNode.assignedTo()
+		for each ASTUtils.subtract(getUsefulNodes(hierarchyMethods()), 
+		                           Collections.singleton(sourceDecl()));
+
+	ParameterDeclaration contributes Collections.singleton(sourceDecl())
+		when isUseful()
+		to InfluenceNode.assignedTo()
+		for each ASTUtils.subtract(getUsefulNodes(hierarchyParams()),
+		                           Collections.singleton(sourceDecl()));
+
+	// add edges for qualified written-to accesses
+
+	MethodAccess contributes filterMayPromoteWildcard(formalParameterList())
+		when isInstanceMethodAccess()
+		     && hasQualifierDecl()
+		     && qualifierDecl().isUseful()
+		to InfluenceNode.assignedTo()
+		for qualifierDecl().sourceDecl();
+
+	VarAccess contributes
+		filterMayPromoteWildcard(Collections.singleton(decl()))
+		when isDest()
+		     && isInstanceFieldAccess()
+		     && hasQualifierDecl()
+		     && qualifierDecl().isUseful()
+		to InfluenceNode.assignedTo()
+		for qualifierDecl().sourceDecl();
+
+	syn boolean VarAccess.isInstanceFieldAccess() =
+		((Variable) decl().sourceDecl()).isInstanceVariable();
+
+	syn boolean MethodAccess.isInstanceMethodAccess() =
+		!((MethodDecl) decl().sourceDecl()).isStatic();
+
+	/** Returns set of nodes that can affect the type
+	  * the type of this expression
+	  */
+	syn Set<InfluenceNode> Expr.nodesAffectingType() = accessedINodes();
+	
+	/** Optimization for method access.
+	  * Actual value arguments do not affect the return type
+	  * of this method access unless the method being accessed
+	  * is a generic method.
+	  */
+	eq MethodAccess.nodesAffectingType() {
+		MethodDecl meth = (MethodDecl) decl().sourceDecl();
+		Set<InfluenceNode> nodes = ASTUtils.createSet();
+		nodes.add(meth);
+		if(meth.returnTypeDependsOnParam()) {
+			for(int i = 0; i < getNumArg(); i++) {
+				nodes.addAll(getArg(i).nodesAffectingType());
+			}
+		}
+		return nodes;
+	}
+	
+	/** Optimization for ConstructorAccess.
+	  * Actual value arguments never affect the return type.
+	  */
+	eq ConstructorAccess.nodesAffectingType() = Collections.emptySet();
+
+	/** Optimization for ClassInstanceExpr.
+	  * Actual value arguments never affect the return type.
+	  */
+	eq ClassInstanceExpr.nodesAffectingType() = Collections.emptySet();
+	
+	syn boolean MethodDecl.returnTypeDependsOnParam() = false;
+	
+	eq GenericMethodDecl.returnTypeDependsOnParam() {
+		int numParams = getNumParameter();
+		if(numParams == 0) {
+			return false;
+		}
+		TypeDecl returnType = type();
+		for(int i = 0; i < getNumTypeParameter(); i++) {
+			TypeVariable methodTypeVar = getTypeParameter(i);
+			// first, check that the type parameter occurs
+			// in the type of a formal parameter
+			boolean varOccurrenceFound = false;
+			for(int j = 0; j < numParams; j++) {
+				ParameterDeclaration param = getParameter(j);
+				varOccurrenceFound = param.type().structurallyContains(methodTypeVar);
+				if(varOccurrenceFound)
+					break;
+			}
+			if(varOccurrenceFound && returnType.structurallyContains(methodTypeVar))
+				return true;
+		}
+		return super.returnTypeDependsOnParam();
+	}
+
+	inh InfluenceNode Expr.qualifierDecl();
+	eq ASTNode.getChild().qualifierDecl() = null;
+	eq AbstractDot.getRight().qualifierDecl() = getLeft().referredDecl();
+
+	syn InfluenceNode Expr.referredDecl() = varDecl();
+	eq MethodAccess.referredDecl() = decl();
+	
+	syn boolean Expr.hasQualifierDecl() = qualifierDecl() != null;
+
+	public static Set<InfluenceNode>
+		ASTNode.getUsefulNodes(Iterable<? extends InfluenceNode> nodes)
+	{
+		Set<InfluenceNode> usefulNodes = ASTUtils.createSet();
+		for(InfluenceNode node : nodes) {
+			InfluenceNode sourceNode = node.sourceDecl();
+			if(sourceNode.isUseful()) {
+				usefulNodes.add(sourceNode);
+			}
+		}
+		return usefulNodes;
+	}
+
+	/** Takes advantage of the fact that a rewritten node would never
+	  * flow to a node of an instantiation of a purely invariant type
+	  */
+	syn lazy boolean InfluenceNode.isUseful();
+	
+	eq VariableDeclaration.isUseful() = mayPromoteWildcard();
+	
+	eq FieldDeclaration.isUseful() = mayPromoteWildcard();
+
+	eq ParameterDeclaration.isUseful() {
+		TypeDecl type = sourceDecl().type();
+		if(type.involvesGeneric()) {
+			return type.isParameterizedType() ?
+				mayPromoteWildcard() : true;
+		}
+		else return false;
+	}
+
+	eq MethodDecl.isUseful() {
+		TypeDecl type = sourceDecl().type();
+		if(type.involvesGeneric()) {
+			return type.isParameterizedType() ?
+				mayPromoteWildcard() : true;
+		}
+		else return false;
+	}
+
+	// involvesGeneric
+
+	syn lazy boolean TypeDecl.involvesGeneric() = false;
+	eq ParTypeDecl.involvesGeneric() = true;
+	eq TypeVariable.involvesGeneric() = true;
+	eq ArrayDecl.involvesGeneric() = componentType().involvesGeneric();
+	
+	// mayPromoteWildcard
+	// no longer use lazy (cache) modifier with this attribute
+	// because JastAdd was caching the incorrect value
+	// (the initial circular attribute value for VVar.eval())
+	syn boolean InfluenceNode.mayPromoteWildcard() =
+		isFromSource() ?
+			getTypeAccess().mayPromoteWildcard() :
+			type().isVariantType();
+	
+	syn boolean Access.mayPromoteWildcard() = type().mayPromoteWildcard();
+	
+	eq ParTypeAccess.mayPromoteWildcard() {
+		for(int i = 0; i < getNumTypeArgument(); i++) {
+			Value specifiedUseSite = specifiedUseSite(i);
+			if(specifiedUseSite.equals(BIVARIANT)) {
+				continue;
+			}
+			Value inferredUseSite = inferredUseSite(i);
+			if(inferredUseSite.gt(specifiedUseSite)) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	syn boolean TypeDecl.mayPromoteWildcard() = false;
+	
+	eq ParTypeDecl.mayPromoteWildcard() {
+		for (int i = 0; i < getNumArgument(); i++) {
+			Value specifiedUseSite = specifiedUseSite(i);
+			if(specifiedUseSite.equals(BIVARIANT)) {
+				continue;
+			}
+			Value inferredUseSite = inferredUseSite(i);
+			if(inferredUseSite.gt(specifiedUseSite)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	eq ArrayDecl.mayPromoteWildcard() =
+		componentType().mayPromoteWildcard();
+	
+	
+	syn boolean TypeDecl.containsParameterizedType() = false;
+	eq ParTypeDecl.containsParameterizedType() = true;
+	eq ArrayDecl.containsParameterizedType() =
+		componentType().containsParameterizedType();
+		
+	syn boolean InfluenceNode.isOfParameterizedType() =
+		getTypeAccess().isParTypeAccess();
+
+	public Set<InfluenceNode> ASTNode.filterMayPromoteWildcard(
+		Iterable<? extends InfluenceNode> nodes)
+	{
+		Set<InfluenceNode> filteredNodes = ASTUtils.createSet();
+		for(InfluenceNode node : nodes) {
+			InfluenceNode sourceNode = node.sourceDecl();
+			if(sourceNode.mayPromoteWildcard()) {
+				filteredNodes.add(sourceNode);
+			}
+		}
+		return filteredNodes;
+	}
+
+	// sourceDecl
+
+	eq Variable.sourceDecl() = sourceVariableDecl();
+	eq MethodDecl.sourceDecl() = sourceMethodDecl();
+
+	syn List<ParameterDeclaration> MethodAccess.formalParameterList() =
+		decl().getParameterList();
+
+	syn lazy ParameterDeclaration MethodAccess.getParameter(int index) {
+		MethodDecl meth = decl();
+		int numParams = meth.getNumParameter();
+		if(numParams == 0 || index >= numParams) {
+			return null;
+		}
+		int minNumArgs = (!meth.isVariableArity() || invokesVariableArityAsArray()) ?
+			numParams : Math.max(0, numParams-1);
+		return index < minNumArgs ?
+			meth.getParameter(index) : meth.getParameter(numParams-1);
+	}
+
+	syn lazy ParameterDeclaration ConstructorAccess.getParameter(int index) {
+		ConstructorDecl con = decl();
+		int numParams = con.getNumParameter();
+		return (numParams == 0 || index >= numParams) ?
+			null : con.getParameter(index);
+	}
+
+	syn lazy ParameterDeclaration ClassInstanceExpr.getParameter(int index) {
+		ConstructorDecl con = decl();
+		int numParams = con.getNumParameter();
+		return (numParams == 0 || index >= numParams) ?
+			null : con.getParameter(index);
+	}
+
+
+	// accessedINodes
+	
+	syn Set<InfluenceNode> ASTNode.accessedINodes() {
+		Set<InfluenceNode> nodes = ASTUtils.createSet();
+		nodes.addAll(accessedVarDecls());
+		nodes.addAll(accessedMethDecls());
+		return nodes;
+	}
+
+
+	// accessedVarDecls
+	
+	syn Set<Variable> ASTNode.accessedVarDecls() {
+		Set<Variable> decls = ASTUtils.createSet();
+    for(int i = 0; i < getNumChild(); i++) {
+    	decls.addAll(getChild(i).accessedVarDecls());
+    }
+    return decls;
+	}
+	
+	eq VarAccess.accessedVarDecls() {
+		if(decl() != null)
+			return Collections.singleton(decl());
+		else
+			return Collections.emptySet();
+	}
+
+	// accessedMethDecls
+	
+	syn Set<MethodDecl> ASTNode.accessedMethDecls() {
+		Set<MethodDecl> decls = ASTUtils.createSet();
+    for(int i = 0; i < getNumChild(); i++) {
+    	decls.addAll(getChild(i).accessedMethDecls());
+    }
+    return decls;
+	}
+	
+	eq MethodAccess.accessedMethDecls() {
+		Set<MethodDecl> decls = ASTUtils.createSet();
+		if(decl() != null) {
+			decls.add(decl());
+		}
+		decls.addAll(super.accessedMethDecls());
+		return decls;
+	}
+
+	eq VariableDeclaration.succ() = assignedTo();
+	eq FieldDeclaration.succ() = assignedTo();
+	
+	eq ParameterDeclaration.succ() {
+		Set<InfluenceNode> nodes = ASTUtils.createSet();
+		nodes.addAll(assignedTo());
+		for(ParameterDeclaration param : hierarchyParams()) {
+			Variable sourceParam = param.sourceVariableDecl();
+			if(sourceParam != this) {
+				nodes.add(sourceParam);
+			}
+		}
+		return nodes;
+	}
+
+	eq MethodDecl.succ() {
+		Set<InfluenceNode> nodes = ASTUtils.createSet();
+		nodes.addAll(assignedTo());
+		// Because Java allows covariance in the return
+		// types of overriding methods,
+		// we only need to add edges overridden methods
+		// in the super classes/interfaces.
+		// We don't need to add edges to overridding methods
+		for(MethodDecl meth : overriddenMethods()) {
+			MethodDecl sourceMeth = meth.sourceMethodDecl();
+			if(sourceMeth != this) {
+				nodes.add(sourceMeth);
+			}
+		}
+		return nodes;
+	}
+
+	// reachableINodes
+	
+	syn Set<InfluenceNode> InfluenceNode.reachableINodes() circular [succ()] {
+		Set<InfluenceNode> nodes = ASTUtils.createSet();
+		for(InfluenceNode node : succ()) {
+			nodes.add(node);
+			nodes.addAll(node.reachableINodes());
+		}
+		return nodes;
+	}
+
+	syn lazy boolean BodyDecl.isFromSource() = hostType().compilationUnit().fromSource();
+	
+	syn lazy boolean Variable.isFromSource();
+
+	eq FieldDeclaration.isFromSource() = super.isFromSource();
+
+	eq ParameterDeclaration.isFromSource() = enclosingBodyDecl().isFromSource();
+	
+	eq VariableDeclaration.isFromSource() = enclosingBodyDecl().isFromSource();
+
+
+	public static Collection<InfluenceNode>
+		ASTNode.filterFromSource(Collection<? extends InfluenceNode> nodes)
+	{
+		Collection<InfluenceNode> sourceNodes = ASTUtils.createList();
+		for(InfluenceNode node : nodes) {
+			if(node.isFromSource())
+				sourceNodes.add(node);
+		}
+		return sourceNodes;
+	}
+	
+	public static boolean
+		ASTNode.allFromSource(Collection<? extends InfluenceNode> nodes)
+	{
+		for(InfluenceNode node : nodes) {
+			if(!node.isFromSource())
+				return false;
+		}
+		return true;
+	}
+
+	// nodesAffectedBySig
+
+	/** Returns the set of InfluenceNodes that requires
+	  * updating, if any node in this subtree is updated
+	  */
+	syn lazy Set<InfluenceNode> ASTNode.nodesAffectedBySig() {
+		Set<InfluenceNode> set = ASTUtils.createSet();
+    for(int i = 0; i < getNumChild(); i++)
+    	set.addAll(getChild(i).nodesAffectedBySig());
+    return set;
+	}
+	
+	syn lazy Set<InfluenceNode> InfluenceNode.nodesAffectedBySig() {
+		Set<InfluenceNode> set = ASTUtils.createSet();
+		set.addAll(super.nodesAffectedBySig());
+		set.addAll(reachableINodes());
+		return set;
+	}
+
+
+	// Methods for testing
+	public void ASTNode.logFlowsTo() {
+    for(int i = 0; i < getNumChild(); i++) {
+    	getChild(i).logFlowsTo();
+    }
+	}
+	
+	public void InfluenceNode.logFlowsTo() {
+		String name = fullName();
+		if(!isUseful()) {
+			System.out.println("skipping flowsto logging for " + name);
+		}
+		else {
+			System.out.println("logging flowsto for " + name);
+			for(InfluenceNode inode : reachableINodes()) {
+				System.out.printf("%s flowsto %s", name, inode.fullName());
+				// Add source file info if it exists
+				if(inode.isFromSource()) {
+					ASTNode node = (ASTNode) inode;
+					System.out.printf(" from %s:%s", node.sourceFile(), node.location());
+				}
+				else {
+					System.out.print(" from binary");
+				}
+				System.out.println();
+			}
+			System.out.println();
+		}
+		super.logFlowsTo();
+	}
+
+	// Methods for testing
+	public void ASTNode.logSuccessor() {
+    for(int i = 0; i < getNumChild(); i++) {
+    	getChild(i).logSuccessor();
+    }
+	}
+
+	public void InfluenceNode.logSuccessor() {
+		String name = fullName();
+		if(!isUseful()) {
+			System.out.println("skipping assignedTo logging for " + name);
+		}
+		else {
+			System.out.println("logging assignedTo for " + name);
+			for(InfluenceNode inode : succ()) {
+				System.out.printf("%s assignedTo %s", name, inode.fullName());
+				// Add source file info if it exists
+				if(inode.isFromSource()) {
+					ASTNode node = (ASTNode) inode;
+					System.out.printf(" from %s:%s", node.sourceFile(), node.location());
+				}
+				else {
+					System.out.print(" from binary");
+				}
+				System.out.println();
+			}
+			System.out.println();
+		}
+		super.logSuccessor();
+	}
+
+	public void ASTNode.logShapeUse(TypeDecl shape) {
+		for(int i = 0; i < getNumChild(); i++) {
+			getChild(i).logShapeUse(shape);
+		}
+	}
+
+	public void InfluenceNode.logShapeUse(TypeDecl shape) {
+		if(type().structurallyContains(shape)) {
+			ASTNode thisNode = (ASTNode) this;
+			System.out.printf("[SHAPE USE] shape %s used in type %s of %s at %s:%s",
+				shape.fullName(), this.getTypeAccess(), this.fullName(),
+				thisNode.sourceFile(), thisNode.location());
+			System.out.println();
+		}
+		super.logShapeUse(shape);
+	}
+}

@@ -1,0 +1,341 @@
+aspect Stats
+{
+	// uselessWildCardsInSig
+	
+	syn lazy int ASTNode.uselessWildCardsInSig() {
+		int total = uselessWildCards();
+		for(int i = 0; i < getNumChild(); i++) {
+			total += getChild(i).uselessWildCardsInSig();
+		}
+		return total;
+	}
+	
+	// uselessWildCards
+
+	syn lazy int ASTNode.uselessWildCards() = 0;
+	
+	eq InfluenceNode.uselessWildCards() =
+		type().uselessWildCards();
+	
+	eq GenericMethodDecl.uselessWildCards() {
+		int total = super.uselessWildCards();
+		for(int i = 0; i < getNumTypeParameter(); i++) {
+			TypeVariable param = getTypeParameter(i);
+			for (int j = 0; j < param.getNumTypeBound(); j++) {
+				total += param.getTypeBound(j).type().uselessWildCards();
+			}
+		}
+		return total;
+	}
+
+	eq ParTypeDecl.uselessWildCards() {
+		int total = 0;
+		GenericTypeDecl gtd = (GenericTypeDecl) sourceTypeDecl();
+		for (int i = 0; i < getNumArgument(); i++) {
+			TypeDecl typeArg = getArgument(i).type();
+			Value formalVariance = gtd.computeVar(i);
+			if(!formalVariance.equals(INVARIANT)) {
+				Value actualVariance;
+				if(typeArg.isWildcardExtendsType())
+					actualVariance = COVARIANT;
+				else if(typeArg.isWildcardSuperType())
+					actualVariance = CONTRAVARIANT;
+				else if(typeArg.isWildcardType())
+					actualVariance = BIVARIANT;
+				else
+					actualVariance = INVARIANT;
+				
+				if(!actualVariance.equals(INVARIANT) && formalVariance.gteq(actualVariance))
+					total++;
+			}
+			total += typeArg.uselessWildCards();
+		}
+		return total;
+	}
+
+	eq WildcardExtendsType.uselessWildCards() =
+		getAccess().type().uselessWildCards();
+
+	eq WildcardSuperType.uselessWildCards() =
+		getAccess().type().uselessWildCards();
+
+	eq ArrayDecl.uselessWildCards() =
+		componentType().uselessWildCards();
+
+	// numWildCardActualsInSig
+
+	syn lazy int ASTNode.numWildCardActualsInSig() {
+		int total = numWildCardActuals();
+		for(int i = 0; i < getNumChild(); i++) {
+			total += getChild(i).numWildCardActualsInSig();
+		}
+		return total;
+	}
+	
+	// numWildCardActuals
+
+	syn lazy int ASTNode.numWildCardActuals() = 0;
+
+	eq InfluenceNode.numWildCardActuals() =
+		type().numWildCardActuals();
+
+	eq GenericMethodDecl.numWildCardActuals() {
+		int total = super.numWildCardActuals();
+		for(int i = 0; i < getNumTypeParameter(); i++) {
+			TypeVariable param = getTypeParameter(i);
+			for (int j = 0; j < param.getNumTypeBound(); j++) {
+				total += param.getTypeBound(j).type().numWildCardActuals();
+			}
+		}
+		return total;
+	}
+
+	eq ParTypeDecl.numWildCardActuals() {
+		int total = 0;
+		for (int i = 0; i < getNumArgument(); i++) {
+			total += getArgument(i).type().numWildCardActuals();
+		}
+		return total;
+	}
+		
+	eq WildcardExtendsType.numWildCardActuals() =
+		1 + getAccess().type().numWildCardActuals();
+
+	eq WildcardSuperType.numWildCardActuals() =
+		1 + getAccess().type().numWildCardActuals();
+		
+	eq WildcardType.numWildCardActuals() = 1;
+
+	eq ArrayDecl.numWildCardActuals() =
+		componentType().numWildCardActuals();
+
+
+	// overSpecifiedActualsInSig
+
+	syn lazy int ASTNode.overSpecifiedActualsInSig() {
+		int total = overSpecifiedActuals();
+		for(int i = 0; i < getNumChild(); i++) {
+			total += getChild(i).overSpecifiedActualsInSig();
+		}
+		return total;
+	}
+	
+	// overSpecifiedActuals
+
+	syn lazy int ASTNode.overSpecifiedActuals() = 0;
+	
+	eq MethodDecl.overSpecifiedActuals() {
+		int total = 0;
+		// only count in argument types
+		for (int i=0; i<getNumParameter(); i++) {
+			total += getParameter(i).type().overSpecified();
+		}
+		if(total > 0) {
+			LOG.log(INFO, fullName() + " sig has an overspecified type actual");
+		}
+		return total;
+	}
+
+
+	// overSpecified
+	
+	syn lazy int TypeDecl.overSpecified() = 0;
+
+	eq ParTypeDecl.overSpecified() {
+		int total = 0;
+		GenericTypeDecl gtd = (GenericTypeDecl) sourceTypeDecl();
+		for (int i = 0; i < getNumArgument(); i++) {
+			TypeDecl typeArg = getArgument(i).type();
+			Value formalVariance = gtd.computeVar(i);
+			if(!formalVariance.equals(INVARIANT)) {
+				Value actualVariance;
+				if(typeArg.isWildcardExtendsType())
+					actualVariance = COVARIANT;
+				else if(typeArg.isWildcardSuperType())
+					actualVariance = CONTRAVARIANT;
+				else if(typeArg.isWildcardType())
+					actualVariance = BIVARIANT;
+				else
+					actualVariance = INVARIANT;
+				
+				if(formalVariance.gt(actualVariance))
+					total++;
+			}
+			total += typeArg.overSpecified();
+		}
+		return total;
+	}
+
+	eq WildcardExtendsType.overSpecified() =
+		getAccess().type().overSpecified();
+
+	eq WildcardSuperType.overSpecified() =
+		getAccess().type().overSpecified();
+
+	eq ArrayDecl.overSpecified() =
+		componentType().overSpecified();
+
+
+	
+	// numMethArgTypeActuals
+	
+	syn lazy int ASTNode.numMethArgTypeActualsInSig() {
+		int total = numMethArgTypeActuals();
+		for(int i = 0; i < getNumChild(); i++) {
+			total += getChild(i).numMethArgTypeActualsInSig();
+		}
+		return total;
+	}
+		
+	syn lazy int ASTNode.numMethArgTypeActuals() = 0;
+
+	eq MethodDecl.numMethArgTypeActuals() {
+		int total = 0;
+		// only argument types
+		for (int i=0; i<getNumParameter(); i++) {
+			total += getParameter(i).type().numTypeActuals();
+		}
+		return total;
+	}
+
+	// numTypeActuals
+	
+	syn lazy int TypeDecl.numTypeActuals() = 0;
+	
+	eq ParTypeDecl.numTypeActuals() {
+		int numParams = getNumArgument();
+		int total = numParams;
+		for (int i = 0; i < numParams; i++) {
+			total += getArgument(i).type().numTypeActuals();
+		}
+		return total;
+	}
+
+	eq WildcardExtendsType.numTypeActuals() = getAccess().type().numTypeActuals();
+
+	eq WildcardSuperType.numTypeActuals() = getAccess().type().numTypeActuals();
+
+	eq ArrayDecl.numTypeActuals() = componentType().numTypeActuals();
+
+	/** Computes number of declarations declared with parameterized types. */
+	syn lazy int ASTNode.numPDeclsInSig() {
+		int total = isPDecl() ? numDecls() : 0;
+		for(int i = 0; i < getNumChild(); i++) {
+			total += getChild(i).numPDeclsInSig();
+		}
+		return total;
+	}
+	
+	/** Returns true if node is a declaration declared with a
+	  * parameterized type from source */
+	syn boolean ASTNode.isPDecl() = false;
+	eq InfluenceNode.isPDecl() =
+		isFromSource() && type().containsParameterizedType();
+	
+	syn int ASTNode.numDecls() = 0;
+	eq InfluenceNode.numDecls() = 1;
+	
+	/** Returns total number of flows-to OCCURRENCES,
+	  * where total = the sum of sizes of each
+	  * flows-to set.
+	  */
+	syn lazy long ASTNode.numFlowsToInSig() {
+		long total = isPDecl() ? numFlowsTo() : 0;
+		for(int i = 0; i < getNumChild(); i++) {
+			total += getChild(i).numFlowsToInSig();
+		}
+		return total;
+	}
+	
+	syn lazy int ASTNode.numFlowsTo() = 0;
+	eq InfluenceNode.numFlowsTo() = reachableINodes().size();
+
+	syn lazy int ASTNode.numRewritablePDeclsInSig() {
+		int total = isPDecl() ? numRewritable() : 0;
+		for(int i = 0; i < getNumChild(); i++) {
+			total += getChild(i).numRewritablePDeclsInSig();
+		}
+		return total;
+	}
+
+	syn lazy int ASTNode.numRewritable() = 0;
+	eq InfluenceNode.numRewritable() = isRewritable() ? 1 : 0;
+
+
+	syn lazy int ASTNode.numRewrittenInSig() {
+		int total = numRewritten();
+		for(int i = 0; i < getNumChild(); i++) {
+			total += getChild(i).numRewrittenInSig();
+		}
+		return total;
+	}
+
+	syn lazy int ASTNode.numRewritten() = 0;
+	
+	eq InfluenceNode.numRewritten() = willRewrite() ? 1 : 0;
+
+
+	// eq InfluenceNode.numRewritten() { return ASTNode.calcNumRewritten(this); }
+
+	/*
+	public static int ASTNode.calcNumRewritten(InfluenceNode node) {
+		if(node.willRewrite()) {
+			assert !ASTNode.settings().analysisStrategy.isSignatureOnlyAnalysis() || ((ASTNode) node).isVDecl();
+			// Commented out block for use only with JDB,
+			// since JDB ignore assert statements
+			// if(ASTNode.settings().analysisStrategy.isSignatureOnlyAnalysis()
+			// 		&& !((ASTNode) node).isVDecl())
+			// {
+			// 	System.out.println("Reached bad part");
+			// 	node.mayPromoteWildcard();
+			// }
+			return 1;
+		}
+		else
+			return 0;
+	}
+	*/
+
+	syn lazy long ASTNode.numRewritableFlowsToInSig() {
+		long total = isPDecl() ? numRewritableFlowsTo() : 0;
+		for(int i = 0; i < getNumChild(); i++) {
+			total += getChild(i).numRewritableFlowsToInSig();
+		}
+		return total;
+	}
+
+	syn lazy int ASTNode.numRewritableFlowsTo() = 0;
+	
+	eq InfluenceNode.numRewritableFlowsTo() = isRewritable() ?
+		reachableINodes().size() : 0;
+
+
+	/** Computes number of declarations declared with variant types. */
+	syn lazy int ASTNode.numVDeclsInSig() {
+		int total = isVDecl() ? numDecls() : 0;
+		for(int i = 0; i < getNumChild(); i++) {
+			total += getChild(i).numVDeclsInSig();
+		}
+		return total;
+	}
+
+	syn boolean ASTNode.isVDecl() = false;
+
+	eq InfluenceNode.isVDecl() = isPDecl() && type().isVariantType();
+
+	syn lazy int ASTNode.numRewritableVDeclsInSig() {
+		int total = isVDecl() ? numRewritable() : 0;
+		for(int i = 0; i < getNumChild(); i++) {
+			total += getChild(i).numRewritableVDeclsInSig();
+		}
+		return total;
+	}
+
+	syn lazy int ASTNode.numRewrittenVDeclsInSig() {
+		int total = isVDecl() ? numRewritten() : 0;
+		for(int i = 0; i < getNumChild(); i++) {
+			total += getChild(i).numRewrittenVDeclsInSig();
+		}
+		return total;
+	}
+}

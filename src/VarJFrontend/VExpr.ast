@@ -1,0 +1,9 @@
+// JastAdd forces us to use a useless root node
+// because JastAdd doesn't allow root nodes to
+// be abstract
+// VProgram ::= VExpr*;
+abstract VExpr;
+Transform : VExpr ::= Left:VExpr Right:VExpr;
+Join      : VExpr ::= Left:VExpr Right:VExpr;
+Meet      : VExpr ::= Left:VExpr Right:VExpr;
+Value     : VExpr ::= <Val:backend.Val>;

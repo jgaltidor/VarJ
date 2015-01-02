@@ -1,0 +1,60 @@
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Set;
+import java.util.HashSet;
+
+aspect AnalysisBase
+{
+	/** Interface of AST constructs containing type expressions (accesses)
+	  * that constrain the variance of type parameters
+	  */
+	public interface TypeContainer { }
+	
+	GenericTypeDecl extends TypeContainer;
+	TypeDecl implements TypeContainer;
+	BodyDecl implements TypeContainer;
+
+	/** Interface representing an analysis strategy for generating
+	  * constraints on variance
+	  * unknowns such as inferred definition-site variances.
+		* In particular, implementing the function varBounds depends on
+	  * three inputs:
+	  * 1) The AST construct being analyzed
+		* 2) The AnalysisStrategy representing the type of analysis strategy
+		*    (e.g. analyze only type signatures, analyze method bodies, etc)
+		* 3) The TypeVariable for which we are generating constraints for.
+		* varBounds is implemented by applying double dispatch on the
+		* the AST construct being analyzed and the strategy to enable an
+		* extensible implementation where new analysis strategies can be
+		* implemented without altering existing code.
+		* That is, we can think of the method invocation:
+		*    strategy.varBounds(dvar)
+		* as the method invocation
+		*    (strategy, dvar).varBounds()
+	  */
+	public interface AnalysisStrategy
+	{	
+		public java.util.List<VExpr> varBounds(DVar dvar);
+		public java.util.List<VExpr> varBounds(UVar uvar);
+
+		public java.util.List<VExpr> varBounds(TypeContainer container, TypeVariable tv);
+
+		public String wildString(Access typeAccess);
+		
+		public VExpr inferredUseSite(ParTypeAccess access, int index);
+		public VExpr inferredUseSite(ParTypeDecl ptyp, int index);
+		
+		public boolean isSignatureOnlyAnalysis();
+	}
+
+	public abstract class StrategyWithVisibility implements AnalysisStrategy
+	{
+		public static enum Visibility { ALL_PRIVATE, MINIMAL }
+
+		public final Visibility visibility;
+
+		public StrategyWithVisibility(Visibility visibility) {
+			this.visibility = visibility;
+		}
+	}
+}

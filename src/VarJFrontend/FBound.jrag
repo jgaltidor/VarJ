@@ -1,0 +1,125 @@
+import java.util.Collection;
+import java.util.Map;
+import java.util.Set;
+
+aspect FBound
+{
+	syn boolean TypeDecl.isFBounded() {
+		for(TypeDecl parentType : superTypes()) {
+			if(parentType.structurallyContains(this))
+				return true;
+		}
+		return false;
+	}
+	
+	eq TypeVariable.isFBounded() {
+		for(int i = 0; i < getNumTypeBound(); i++) {
+			TypeDecl bound = getTypeBound(i).type();
+			if(bound.structurallyContains(this)) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	syn Set<GenericTypeDecl> TypeDecl.getParentsWithFBound() {
+		Set<GenericTypeDecl> fbounds = ASTUtils.createSet();
+		for(TypeDecl parentType : superTypes()) {
+			if(parentType.structurallyContains(this))
+				fbounds.add((GenericTypeDecl) parentType.sourceTypeDecl());
+		}
+		return fbounds;
+	}
+
+
+	eq TypeVariable.getParentsWithFBound() {
+		Set<GenericTypeDecl> fbounds = ASTUtils.createSet();
+		for(int i = 0; i < getNumTypeBound(); i++) {
+			TypeDecl bound = getTypeBound(i).type();
+			if(bound.structurallyContains(this)) {
+				fbounds.add((GenericTypeDecl) bound.sourceTypeDecl());
+			}
+		}
+		return fbounds;
+	}
+	
+	public class FBoundInfo {
+		// the type decl that was fbounded
+		public final TypeDecl fboundedType;
+		
+		// generics that were applied to the f-bounded type
+		public final Set<GenericTypeDecl> shapes;
+		
+		public FBoundInfo(TypeDecl fboundedType, Set<GenericTypeDecl> shapes) {
+			this.fboundedType = fboundedType;
+			this.shapes = shapes;
+		}
+		
+		public static Map<GenericTypeDecl, Set<TypeDecl>>
+			groupByShape(Collection<? extends FBoundInfo> generics)
+		{
+			Map<GenericTypeDecl, Set<TypeDecl>> map = createSortedMap();
+			for(FBoundInfo info : generics) {
+				TypeDecl fbType = info.fboundedType;
+				Set<GenericTypeDecl> shapes = info.shapes;
+				for(GenericTypeDecl shape : shapes) {
+					Set<TypeDecl> fbTypesForShape = map.get(shape);
+					// if shape is not in map
+					if(fbTypesForShape == null) {
+						fbTypesForShape = createSortedSet();
+						map.put(shape, fbTypesForShape);
+					}
+					fbTypesForShape.add(fbType);
+				}
+			}
+			return map;
+		}
+		
+		private static <T> Map<GenericTypeDecl, T> createSortedMap() {
+			return new java.util.TreeMap<GenericTypeDecl, T>(
+				ASTUtils.fullNameGenericTypeDeclAscending());
+		}
+		
+		private static Set<TypeDecl> createSortedSet() {
+			return new java.util.TreeSet<TypeDecl>(
+				ASTUtils.fullNameTypeDeclAscending());
+		}
+	}
+	
+	syn Collection<FBoundInfo> ASTNode.fBoundedGenericsInSig() {
+		java.util.List<FBoundInfo> generics = ASTUtils.createList();
+		for(int i = 0; i < getNumChild(); i++) {
+			generics.addAll(getChild(i).fBoundedGenericsInSig());
+		}
+		return generics;
+	}
+	
+	eq TypeDecl.fBoundedGenericsInSig() {
+		Collection<FBoundInfo> generics = ASTUtils.createList();
+		Set<GenericTypeDecl> parentsWithBound = getParentsWithFBound();
+		if(!parentsWithBound.isEmpty()) {
+			generics.add(new FBoundInfo(this, parentsWithBound));
+		}
+		generics.addAll(super.fBoundedGenericsInSig());
+		return generics;
+	}
+	
+	
+	public void ASTNode.logFBoundInfo() {
+		Map<GenericTypeDecl, Set<TypeDecl>> fboundInfoInSig =
+			FBoundInfo.groupByShape(fBoundedGenericsInSig());
+		for(Map.Entry<GenericTypeDecl, Set<TypeDecl>> entry :
+		      fboundInfoInSig.entrySet())
+		{
+			GenericTypeDecl shape = entry.getKey();
+			Set<TypeDecl> fbTypesForShape = entry.getValue();
+			for(TypeDecl fbType : fbTypesForShape) {
+				System.out.printf("%s is shape for %s",
+					shape.fullName(), fbType.fullName());
+				System.out.println();
+			}
+			logShapeUse((TypeDecl) shape);
+		}
+	}
+}
+

@@ -1,0 +1,55 @@
+aspect RewritesSelected
+{
+	public class SelectedRewriteStrategy implements RewriteStrategy
+	{
+		public final Collection<String> includedDeclNames;	
+		public final Collection<String> excludedDeclNames;
+	
+		public SelectedRewriteStrategy(
+			Collection<String> includedDeclNames,
+			Collection<String> excludedDeclNames)
+		{
+			this.includedDeclNames = includedDeclNames;
+			this.excludedDeclNames = excludedDeclNames;
+		}
+	
+		public void rewriteTypesInSig(ASTNode node) {
+			node.rewriteTypesInSig(this);
+		}
+		public boolean rewriteCheck(InfluenceNode node) {
+			return node.rewriteCheck(this);
+		}
+	
+		public String toString() {
+			return SelectedRewriteStrategy.class.getName();
+		}
+	}
+
+	public void ASTNode.rewriteTypesInSig(SelectedRewriteStrategy strategy) {
+    for(int i = 0; i < getNumChild(); i++) {
+    	strategy.rewriteTypesInSig(getChild(i));
+    }
+	}
+
+	public void Program.rewriteTypesInSig(SelectedRewriteStrategy strategy) {
+		rewriteTypesInSig((RewriteStrategy) strategy);
+	}
+
+	public void InfluenceNode.rewriteTypesInSig(SelectedRewriteStrategy strategy)
+	{
+		if(strategy.includedDeclNames.contains(fullName()) &&
+		   isRewritable(strategy))
+		{
+			writeToWildcards();
+			for(InfluenceNode node : reachableINodes())
+				node.writeToWildcards();
+		}
+		super.rewriteTypesInSig(strategy);
+	}
+
+	syn lazy boolean InfluenceNode.rewriteCheck(SelectedRewriteStrategy strategy)
+	{
+		return strategy.excludedDeclNames.contains(fullName()) ?
+			false : rewriteCheck((RewriteStrategy) strategy);
+	}
+}

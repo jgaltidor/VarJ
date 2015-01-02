@@ -1,0 +1,245 @@
+import backend.txtreplace.ReplaceInfo;
+
+aspect RewriteWildcardsBase
+{	
+	/** Every concrete class implementing RewriteStrategy
+	  * should override all of the methods in this interface
+	  * to ensure the correct method is invoked at runtime.
+	  */
+	public interface RewriteStrategy
+	{
+		void rewriteTypesInSig(ASTNode node);
+		boolean rewriteCheck(InfluenceNode node);
+	}
+
+	public class DefaultRewriteStrategy implements RewriteStrategy {
+		private final static DefaultRewriteStrategy INSTANCE =
+			new DefaultRewriteStrategy();
+		public static DefaultRewriteStrategy getInstance() {
+			return INSTANCE;
+		}
+		private DefaultRewriteStrategy() { }
+		
+		public void rewriteTypesInSig(ASTNode node) {
+			node.rewriteTypesInSig(this);
+		}
+		public boolean rewriteCheck(InfluenceNode node) {
+			return node.rewriteCheck(this);
+		}
+		
+		public String toString() {
+			return DefaultRewriteStrategy.class.getName();
+		}
+	}
+
+	// rewriteTypesInSig
+
+	public void ASTNode.rewriteTypesInSig() {
+    settings().rewriteStrategy.rewriteTypesInSig(this);
+	}
+	
+	// rewriteTypesInSig(RewriteStrategy strategy)
+	
+	public void ASTNode.rewriteTypesInSig(RewriteStrategy strategy) {
+    for(int i = 0; i < getNumChild(); i++) {
+    	strategy.rewriteTypesInSig(getChild(i));
+    }
+	}
+	
+	public void Program.rewriteTypesInSig(RewriteStrategy strategy) {
+		for(int i = 0; i < getNumCompilationUnit(); i++) {
+			CompilationUnit unit = getCompilationUnit(i);
+			if(unit.fromSource()) {
+				strategy.rewriteTypesInSig(unit);
+				// write fake replacement info to ensure this
+				// unit's source file is copied to the new
+				// directory even if no types in this unit
+				// required an update
+				unit.writeFakeReplaceInfo();
+			}
+		}
+	}
+
+	public void InfluenceNode.rewriteTypesInSig(RewriteStrategy strategy) {
+		if(willRewrite(strategy)) {
+			writeToWildcards();
+		}
+		super.rewriteTypesInSig(strategy);
+	}
+	
+	syn boolean InfluenceNode.willRewrite() =
+		willRewrite(settings().rewriteStrategy);
+	
+	syn boolean InfluenceNode.willRewrite(RewriteStrategy strategy) =
+		isRewritable(strategy) && mayPromoteWildcard();
+
+	syn boolean InfluenceNode.isRewritable() =
+		isRewritable(settings().rewriteStrategy);
+
+	syn boolean InfluenceNode.isRewritable(RewriteStrategy strategy) circular [true] {
+		if(!strategy.rewriteCheck(this)) {
+			return false;
+		}
+		for(InfluenceNode inode : reachableINodes()) {
+			if(inode != this && !strategy.rewriteCheck(inode)) {
+				return false;
+			}
+		}
+		return true;
+	}
+	
+	
+	// rewriteCheck(RewriteStrategy strategy)
+	
+	
+	syn lazy boolean InfluenceNode.rewriteCheck(RewriteStrategy strategy);
+	
+	eq VariableDeclaration.rewriteCheck(RewriteStrategy strategy)
+		= minimalRewriteCheck(this);
+	
+	eq FieldDeclaration.rewriteCheck(RewriteStrategy strategy)
+		= minimalRewriteCheck(this);
+	
+	/** Checking if return type is a type variable
+	  * because of overriding.
+	  */
+	eq MethodDecl.rewriteCheck(RewriteStrategy strategy) =
+		(!isStatic() && type().isTypeVariable()) ?
+			false : minimalRewriteCheck(this);
+
+	/** Checking if param's type is a type variable
+	  * because of overriding.
+	  */
+	eq ParameterDeclaration.rewriteCheck(RewriteStrategy strategy) {
+		if(isMethodParam()) {
+			MethodDecl meth = (MethodDecl) enclosingBodyDecl();
+			return (!meth.isStatic() && type().isTypeVariable()) ?
+				false : minimalRewriteCheck(this);
+		}
+		else return minimalRewriteCheck(this);
+	}
+
+	eq VariableArityParameterDeclaration.rewriteCheck(RewriteStrategy strategy)
+		= false;
+	
+	public static boolean ASTNode.minimalRewriteCheck(InfluenceNode node) {
+		return node.isFromSource() &&
+		       node.getTypeAccess().inferredTypeKeepsMethodVars();
+	}
+
+	syn boolean Access.inferredTypeKeepsMethodVars() =
+		type().inferredTypeKeepsMethodVars();
+	
+	eq ParTypeAccess.inferredTypeKeepsMethodVars() {
+		for(int i = 0; i < getNumTypeArgument(); i++) {
+			if(getTypeArgument(i).type().containsMethodTypeVariable()
+			   && inferredUseSite(i).equals(BIVARIANT))
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+	
+	syn boolean TypeDecl.inferredTypeKeepsMethodVars() = true;
+	
+	eq ParTypeDecl.inferredTypeKeepsMethodVars() {
+		for (int i = 0; i < getNumArgument(); i++) {
+			Value inferredUseSite = inferredUseSite(i);
+			if(getArgument(i).type().containsMethodTypeVariable()
+			   && inferredUseSite(i).equals(BIVARIANT))
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+
+
+	// writeFakeReplaceInfo
+
+	public void Program.writeFakeReplaceInfo() {
+		for(int i = 0; i < getNumCompilationUnit(); i++) {
+			CompilationUnit unit = getCompilationUnit(i);
+			if(unit.fromSource())
+				unit.writeFakeReplaceInfo();
+		}
+	}
+
+	public void CompilationUnit.writeFakeReplaceInfo() {
+		ReplaceInfo fakeReplacement = new ReplaceInfo(
+			sourceFile(), -1, -1, -1, -1, " ", " ");
+		LOG.log(INFO, "fake rewrite: " + fakeReplacement);
+		settings().rewriteOut.println(fakeReplacement);
+	}
+
+	public void InfluenceNode.writeToWildcards() {
+		Access type = getTypeAccess();
+		String oldAccess = type.toString();
+		String newAccess =
+			ASTNode.settings().analysisStrategy.wildString(type);
+		type.writeWildcardReplaceInfo(oldAccess, newAccess);
+	}	
+
+	public void ASTNode.writeWildcardReplaceInfo(String oldAccess, String newAccess) {
+		writeWildcardReplaceInfo(oldAccess, newAccess, 0);
+	}
+
+	/** Should be dispatched on the node that is being rewritten */
+	public void ASTNode.writeWildcardReplaceInfo(String oldAccess, String newAccess, int colOffset)
+	{
+		if(oldAccess.equals(newAccess)) {
+			return;
+		}
+		// ignoring nodes not generated from the parser
+		// such as nodes generated from AST rewrites
+		if(getStart() == 0 && getEnd() == 0) {
+			LOG.log(INFO, "ignoring node with invalid source file location");
+			return;
+		}
+		ReplaceInfo replacement = new ReplaceInfo(
+			sourceFile(),
+			getLine(getStart()),
+			getColumn(getStart()),
+			getLine(getEnd()),
+			colOffset + getColumn(getEnd()),
+			oldAccess,
+			newAccess);
+		LOG.log(INFO, "rewrite: " + replacement);
+		settings().rewriteOut.println(replacement);
+	}
+
+
+	public void ASTNode.rewriteNodesInSig(RewriteStrategy strategy) {
+		for(InfluenceNode node : nodesAffectedBySig()) {
+			if(node.isRewritable(strategy)) {
+				node.writeToWildcards();
+			}
+		}
+	}
+
+	// Methods for testing
+	public void ASTNode.logRewritability() {
+		logRewritability(settings().rewriteStrategy);
+	}
+	
+	public void ASTNode.logRewritability(RewriteStrategy strategy) {
+    for(int i = 0; i < getNumChild(); i++) {
+    	getChild(i).logRewritability(strategy);
+    }
+	}
+
+	public void InfluenceNode.logRewritability(RewriteStrategy strategy) {
+		String name = fullName();
+		if(isUseful()) {
+			System.out.printf("isRewritable(%s): %b", name,
+				isRewritable(strategy));
+			System.out.println();
+			logFlowsTo();
+		}
+		else {
+			System.out.println("skipping rewritability logging for " + name);
+		}
+    super.logRewritability(strategy);
+	}
+}
