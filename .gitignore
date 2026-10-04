@@ -1,0 +1,9 @@
+# Downloaded by src/3rd_party_libs/fetch-deps.sh
+src/3rd_party_libs/scala-2.9.3/lib/
+# Not redistributable; see README.md
+src/3rd_party_libs/java-1.5/
+analyzed_libs/jdk1.6.0_06_src/
+# Build outputs
+src/VarJFrontend/AST/
+src/VarJFrontend/VarJ.jar
+*.class

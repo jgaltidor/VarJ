@@ -5,7 +5,7 @@ ANALYZEDLIBS_BASENAME=analyzed_libs
 ANALYZEDLIBS=../../$ANALYZEDLIBS_BASENAME
 SCALA_HOME=../3rd_party_libs/scala-2.9.3
 # classes.jar used for analyzing Guava library (Release 8)
-JAVA5_CLASSES=../3rd_party_libs/java-1.5/Classes/classes.jar
+JAVA5_CLASSES=${JAVA5_CLASSES:-../3rd_party_libs/java-1.5/Classes/classes.jar}
 
 APACHE=$ANALYZEDLIBS/collections-generic-4.01
 GUAVA=$ANALYZEDLIBS/guava-libraries-read-only
