@@ -1,0 +1,5 @@
+Extra complexity/Implicit Dependency
+------------------------------------
+Every client of VCon needs to be aware of this rule not specified
+or enforced by the interface of VCon.
+
